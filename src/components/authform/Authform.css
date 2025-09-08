@@ -1,0 +1,110 @@
+@charset "UTF-8";
+/* мобильный full-height контейнер */
+.auth {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: 1fr auto; /* 1) форма по центру, 2) табы снизу */
+  background: #0f172a; /* тёмный фон, под TMA ок */
+  color: #e2e8f0;
+  padding: 20px; /* как просил: 20px по бокам и сверху/снизу */
+  box-sizing: border-box;
+}
+
+/* обёртка, чтобы центрировать форму по вертикали и горизонтали */
+.auth__form-wrapper {
+  display: flex;
+  align-items: center; /* по вертикали */
+  justify-content: center; /* по горизонтали */
+}
+
+/* карточка формы */
+.auth__card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px; /* паддинги внутри карточки */
+  border-radius: 16px;
+  background: #111827;
+  border: 1px solid #1f2937;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+/* вкладки (снизу, под формой) */
+.auth__tabs {
+  width: 100%;
+  max-width: 380px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: end;
+}
+
+.auth__tab {
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #1f2937;
+  background: #0b1220;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+.auth__tab.is-active {
+  background: #1f2937;
+  color: #fff;
+  border-color: #334155;
+}
+
+/* поля */
+.auth__label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.auth__input {
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: #0b1220;
+  border: 1px solid #1f2937;
+  color: #e2e8f0;
+  outline: none;
+}
+
+.auth__input.is-error {
+  border-color: #ef4444;
+}
+
+/* сообщения */
+.auth__error {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #3b0a0a;
+  border: 1px solid #7f1d1d;
+  color: #fecaca;
+  font-size: 13px;
+}
+
+.auth__hint {
+  font-size: 12px;
+  opacity: 0.75;
+  text-align: center;
+}
+
+/* кнопка submit */
+.auth__btn {
+  height: 48px;
+  border-radius: 12px;
+  border: none;
+  background: #3b82f6;
+  color: white;
+  font-weight: 700;
+}
+
+.auth__btn:disabled {
+  opacity: 0.6;
+}/*# sourceMappingURL=Authform.css.map */
