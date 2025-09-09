@@ -7,15 +7,13 @@ import { useState, useEffect } from "react";
 
 function App() {
   const [loading, setLoading] = useState(true);
-  const [stage, setStage] = useState("auth"); 
-  // "auth" | "test"
+  const [stage, setStage] = useState("auth"); // "auth" | "test"
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 2000);
     return () => clearTimeout(timer);
   }, []);
 
-  // коллбэк для успешного логина
   function handleLoginSuccess() {
     setStage("test");
   }

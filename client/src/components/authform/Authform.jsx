@@ -1,27 +1,24 @@
 import { useState, useMemo } from "react";
 import "./Authform.css";
 
-export default function Authform() {
+export default function Authform({ onLoginSuccess }) {
   const [mode, setMode] = useState("login"); // 'login' | 'register'
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // поля только для регистрации
   const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState(""); // отображаемая строка с маской
+  const [phone, setPhone] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // ===== helpers =====
   const emailValid = useMemo(() => /.+@.+\..+/.test(email), [email]);
   const passValid = useMemo(() => password.length >= 6, [password]);
 
-  // оставляем только цифры
   const phoneDigits = useMemo(() => phone.replace(/\D/g, ""), [phone]);
   const nameValid = useMemo(() => fullName.trim().length >= 2, [fullName]);
-  const phoneValid = useMemo(() => phoneDigits.length >= 10, [phoneDigits]); // минимум 10 цифр
+  const phoneValid = useMemo(() => phoneDigits.length >= 10, [phoneDigits]);
 
   const canSubmit =
     !loading &&
@@ -29,9 +26,8 @@ export default function Authform() {
     passValid &&
     (mode === "login" ? true : nameValid && phoneValid);
 
-  // простая маска: +X XXX XXX-XX-XX (по мере ввода)
   function formatPhoneMask(value) {
-    const d = value.replace(/\D/g, "").slice(0, 15); // <=15 цифр по E.164
+    const d = value.replace(/\D/g, "").slice(0, 15);
     if (!d) return "";
     let res = "+" + d[0];
     if (d.length > 1) res += " " + d.slice(1, 4);
@@ -41,12 +37,10 @@ export default function Authform() {
     if (d.length > 11) res += " " + d.slice(11);
     return res;
   }
-
   function handlePhoneChange(e) {
     setPhone(formatPhoneMask(e.target.value));
   }
 
-  // === запрос к API прямо отсюда ===
   const API = "https://hotelproject-8cip.onrender.com";
 
   async function handleSubmit(e) {
@@ -64,7 +58,6 @@ export default function Authform() {
     setLoading(true);
     try {
       if (mode === "login") {
-        // ---- LOGIN ----
         const res = await fetch(`${API}/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -72,7 +65,11 @@ export default function Authform() {
         });
 
         let data = {};
-        try { data = await res.json(); } catch {}
+        try {
+          data = await res.json();
+        } catch (err) {
+          data = {};
+        }
 
         if (!res.ok) {
           const msg =
@@ -82,11 +79,10 @@ export default function Authform() {
           throw new Error(msg);
         }
 
-        // успех -> редирект на /test
-        window.location.href = "/test";
+        // >>> ключевая строчка:
+        onLoginSuccess?.();
         return;
       } else {
-        // ---- REGISTER ----
         const res = await fetch(`${API}/auth/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -99,7 +95,11 @@ export default function Authform() {
         });
 
         let data = {};
-        try { data = await res.json(); } catch {}
+        try {
+          data = await res.json();
+        } catch (err) {
+          data = {};
+        }
 
         if (!res.ok) {
           const msg =
@@ -110,7 +110,6 @@ export default function Authform() {
         }
 
         setSuccess("✅ Регистрация успешна! Войдите под своими данными.");
-        // очистка полей и переключение на login
         setPassword("");
         setFullName("");
         setPhone("");
