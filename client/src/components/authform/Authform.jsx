@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import "./Authform.css";
 
-export default function Authform({ onSubmitLogin, onSubmitRegister }) {
+export default function Authform() {
   const [mode, setMode] = useState("login"); // 'login' | 'register'
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -12,6 +12,7 @@ export default function Authform({ onSubmitLogin, onSubmitRegister }) {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   // ===== helpers =====
   const emailValid = useMemo(() => /.+@.+\..+/.test(email), [email]);
@@ -37,7 +38,7 @@ export default function Authform({ onSubmitLogin, onSubmitRegister }) {
     if (d.length > 4) res += " " + d.slice(4, 7);
     if (d.length > 7) res += "-" + d.slice(7, 9);
     if (d.length > 9) res += "-" + d.slice(9, 11);
-    if (d.length > 11) res += " " + d.slice(11); // хвост без строгой формы
+    if (d.length > 11) res += " " + d.slice(11);
     return res;
   }
 
@@ -45,9 +46,13 @@ export default function Authform({ onSubmitLogin, onSubmitRegister }) {
     setPhone(formatPhoneMask(e.target.value));
   }
 
+  // === запрос к API прямо отсюда ===
+  const API = "https://hotelproject-8cip.onrender.com";
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
     if (!emailValid) return setError("Введите корректный e-mail");
     if (!passValid) return setError("Пароль не короче 6 символов");
@@ -59,14 +64,38 @@ export default function Authform({ onSubmitLogin, onSubmitRegister }) {
     setLoading(true);
     try {
       if (mode === "login") {
-        await (onSubmitLogin?.(email, password) ??
-          new Promise((r) => setTimeout(r, 500)));
+        // Пока логин — заглушка
+        setSuccess("Логин пока не реализован 🚧");
       } else {
-        // передаём и имя, и «чистые» цифры телефона
-        await (onSubmitRegister?.(email, password, {
-          fullName: fullName.trim(),
-          phone: phoneDigits,
-        }) ?? new Promise((r) => setTimeout(r, 500)));
+        const res = await fetch(`${API}/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            password,
+            fullName: fullName.trim(),
+            phone: phoneDigits,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          if (data?.error === "email already exists") {
+            throw new Error("Такой e-mail уже зарегистрирован");
+          }
+          throw new Error("Ошибка регистрации");
+        }
+
+        setSuccess("✅ Регистрация успешна!");
+        console.log("User:", data.user);
+
+        // Очистка полей
+        setEmail("");
+        setPassword("");
+        setFullName("");
+        setPhone("");
+        setMode("login"); // переключаем на вкладку входа
       }
     } catch (e) {
       setError(e?.message || "Ошибка. Попробуйте ещё раз.");
@@ -77,7 +106,6 @@ export default function Authform({ onSubmitLogin, onSubmitRegister }) {
 
   return (
     <div className="auth">
-      {/* центрируем форму во весь экран */}
       <div className="auth__form-wrapper">
         <form className="auth__card" onSubmit={handleSubmit}>
           <label className="auth__label">
@@ -106,7 +134,7 @@ export default function Authform({ onSubmitLogin, onSubmitRegister }) {
               autoComplete={mode === "login" ? "current-password" : "new-password"}
             />
           </label>
-          
+
           {mode === "register" && (
             <>
               <label className="auth__label">
@@ -132,7 +160,6 @@ export default function Authform({ onSubmitLogin, onSubmitRegister }) {
                   className={`auth__input ${phone && !phoneValid ? "is-error" : ""}`}
                   autoComplete="tel"
                 />
-                {/* Подсказка мелким шрифтом */}
                 <small className="auth__hint" style={{ marginTop: 4 }}>
                   Введите номер в международном формате. Пример: +48 600 000-000
                 </small>
@@ -141,6 +168,7 @@ export default function Authform({ onSubmitLogin, onSubmitRegister }) {
           )}
 
           {error && <div className="auth__error">{error}</div>}
+          {success && <div className="auth__success">{success}</div>}
 
           <button className="auth__btn" type="submit" disabled={!canSubmit}>
             {loading ? "Отправка…" : mode === "login" ? "Войти" : "Создать аккаунт"}
@@ -154,13 +182,13 @@ export default function Authform({ onSubmitLogin, onSubmitRegister }) {
         </form>
       </div>
 
-      {/* табы внизу, под карточкой */}
       <div className="auth__tabs">
         <button
           className={`auth__tab ${mode === "login" ? "is-active" : ""}`}
           onClick={() => {
             setMode("login");
             setError("");
+            setSuccess("");
           }}
           type="button"
         >
@@ -171,6 +199,7 @@ export default function Authform({ onSubmitLogin, onSubmitRegister }) {
           onClick={() => {
             setMode("register");
             setError("");
+            setSuccess("");
           }}
           type="button"
         >
