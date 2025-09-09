@@ -48,6 +48,7 @@ app.get("/healthz", async (req, res) => {
   }
 });
 
+console.log("DB URL:", process.env.DATABASE_URL);
 
 app.listen(PORT, () => {
   console.log(`API running on http://localhost:${PORT}`);
