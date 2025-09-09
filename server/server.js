@@ -38,6 +38,17 @@ app.post("/auth/register", async (req, res) => {
   }
 });
 
+app.get("/healthz", async (req, res) => {
+  try {
+    const r = await pool.query("SELECT NOW()");
+    res.json({ ok: true, time: r.rows[0].now });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+
 app.listen(PORT, () => {
   console.log(`API running on http://localhost:${PORT}`);
 });
