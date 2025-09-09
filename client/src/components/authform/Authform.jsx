@@ -67,7 +67,7 @@ export default function Authform({ onLoginSuccess }) {
         let data = {};
         try {
           data = await res.json();
-        } catch (err) {
+        } catch {
           data = {};
         }
 
@@ -79,7 +79,7 @@ export default function Authform({ onLoginSuccess }) {
           throw new Error(msg);
         }
 
-        // >>> ключевая строчка:
+        // 🔑 вместо редиректа вызываем коллбэк
         onLoginSuccess?.();
         return;
       } else {
@@ -97,7 +97,7 @@ export default function Authform({ onLoginSuccess }) {
         let data = {};
         try {
           data = await res.json();
-        } catch (err) {
+        } catch {
           data = {};
         }
 
