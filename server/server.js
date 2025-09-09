@@ -5,19 +5,17 @@ import { Pool } from "pg";
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// 🔑 замени на свои данные подключения
 const pool = new Pool({
-  connectionString: "postgres://user:password@localhost:5432/mydb",
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }, // нужно для Neon
 });
 
-// миддлвары
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
-// регистрация
 app.post("/auth/register", async (req, res) => {
   try {
-    const { email, password, fullName, phone } = req.body || {};
+    const { email, password, fullName, phone } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: "email and password required" });
@@ -25,7 +23,7 @@ app.post("/auth/register", async (req, res) => {
 
     const q = await pool.query(
       `INSERT INTO users (email, password_hash, full_name, phone, role)
-       VALUES ($1, $2, $3, $4, 'user')
+       VALUES ($1,$2,$3,$4,'user')
        RETURNING id, email, role, full_name, phone, created_at`,
       [email.toLowerCase().trim(), password, fullName || null, phone || null]
     );
