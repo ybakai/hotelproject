@@ -3,17 +3,18 @@
 .auth {
   min-height: 100vh;
   display: grid;
-  grid-template-rows: 1fr auto; /* 1) форма по центру, 2) табы снизу */
+  grid-template-rows: auto; /* 1) форма по центру, 2) табы снизу */
   background: #0f172a; /* тёмный фон, под TMA ок */
   color: #e2e8f0;
   padding: 20px; /* как просил: 20px по бокам и сверху/снизу */
   box-sizing: border-box;
+  gap: 20px;
 }
 
 /* обёртка, чтобы центрировать форму по вертикали и горизонтали */
 .auth__form-wrapper {
   display: flex;
-  align-items: center; /* по вертикали */
+  align-items: end; /* по вертикали */
   justify-content: center; /* по горизонтали */
 }
 
@@ -39,7 +40,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-top: 12px;
-  align-items: end;
+  align-items: start;
 }
 
 .auth__tab {
