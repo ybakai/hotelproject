@@ -13,6 +13,40 @@ const pool = new Pool({
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
+app.post("/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ error: "email and password required" });
+    }
+
+    const q = await pool.query(
+      `SELECT id, email, password_hash, full_name, phone, role, created_at
+       FROM users
+       WHERE email = $1`,
+      [String(email).toLowerCase().trim()]
+    );
+
+    if (q.rowCount === 0) {
+      return res.status(401).json({ error: "invalid_credentials" });
+    }
+
+    const user = q.rows[0];
+    // В твоём MVP пароль хранится как есть в password_hash:
+    if (user.password_hash !== String(password)) {
+      return res.status(401).json({ error: "invalid_credentials" });
+    }
+
+    // Успех
+    delete user.password_hash; // не отдаём пароль наружу
+    res.json({ ok: true, user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "server error" });
+  }
+});
+
+
 app.post("/auth/register", async (req, res) => {
   try {
     const { email, password, fullName, phone } = req.body;

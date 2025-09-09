@@ -64,9 +64,29 @@ export default function Authform() {
     setLoading(true);
     try {
       if (mode === "login") {
-        // Пока логин — заглушка
-        setSuccess("Логин пока не реализован 🚧");
+        // ---- LOGIN ----
+        const res = await fetch(`${API}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+
+        let data = {};
+        try { data = await res.json(); } catch {}
+
+        if (!res.ok) {
+          const msg =
+            data?.error === "invalid_credentials"
+              ? "Неверный e-mail или пароль"
+              : data?.error || res.statusText || "Ошибка входа";
+          throw new Error(msg);
+        }
+
+        // успех -> редирект на /test
+        window.location.href = "/test";
+        return;
       } else {
+        // ---- REGISTER ----
         const res = await fetch(`${API}/auth/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -78,24 +98,23 @@ export default function Authform() {
           }),
         });
 
-        const data = await res.json();
+        let data = {};
+        try { data = await res.json(); } catch {}
 
         if (!res.ok) {
-          if (data?.error === "email already exists") {
-            throw new Error("Такой e-mail уже зарегистрирован");
-          }
-          throw new Error("Ошибка регистрации");
+          const msg =
+            data?.error === "email already exists"
+              ? "Такой e-mail уже зарегистрирован"
+              : data?.error || res.statusText || "Ошибка регистрации";
+          throw new Error(msg);
         }
 
-        setSuccess("✅ Регистрация успешна!");
-        console.log("User:", data.user);
-
-        // Очистка полей
-        setEmail("");
+        setSuccess("✅ Регистрация успешна! Войдите под своими данными.");
+        // очистка полей и переключение на login
         setPassword("");
         setFullName("");
         setPhone("");
-        setMode("login"); // переключаем на вкладку входа
+        setMode("login");
       }
     } catch (e) {
       setError(e?.message || "Ошибка. Попробуйте ещё раз.");
