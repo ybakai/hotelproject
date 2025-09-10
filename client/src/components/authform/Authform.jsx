@@ -79,8 +79,8 @@ export default function Authform({ onLoginSuccess }) {
           throw new Error(msg);
         }
 
-        // 🔑 вместо редиректа вызываем коллбэк
-        onLoginSuccess?.();
+        // Передаём наверх пользователя с ролью (data.user.role)
+        onLoginSuccess?.(data.user);
         return;
       } else {
         const res = await fetch(`${API}/auth/register`, {
