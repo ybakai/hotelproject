@@ -1,14 +1,8 @@
 
 
-/* Шапка */
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 40;
-  background: rgba(247, 247, 248, 0.9);
-  backdrop-filter: saturate(180%) blur(12px);
-  padding: calc(16px + env(safe-area-inset-top)) 16px 12px; /* ⬅️ добавили safe-area сверху */
-  border-bottom: 1px solid #e5e7eb;
+.app{
+  padding: 0px 20px;
+  margin-top: 40px;
 }
 .title {
   font-size: 24px;

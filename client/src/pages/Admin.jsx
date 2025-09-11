@@ -247,10 +247,7 @@ export default function Admin() {
 
   return (
     <div className="app">
-      
-
       <main className="container">{renderContent()}</main>
-
       <BottomNav current={page} onChange={setPage} />
     </div>
   );
