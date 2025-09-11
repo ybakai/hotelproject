@@ -154,19 +154,25 @@ overflow-y: auto;   }
   -webkit-appearance: none;
   -moz-appearance: none;
 
-  display: flex;            /* ← важно */
-  align-items: center;      /* ← выравнивание текста по центру */
-  justify-content: center;  /* если нужно по центру по горизонтали */
-  
-  padding: 6px 10px;
+  display: inline-block;
+  padding: 6px 12px;
   border-radius: 10px;
   border: 1px solid #e2e8f0;
-  background: #ffffff;
+  background: #fff;
   font-size: 12px;
   font-weight: 600;
   color: #0f172a;
-  line-height: 1;           /* ← убирает лишние отступы сверху/снизу */
+  line-height: 1.2;
+
+  /* ключевые строки для центрирования текста */
+  text-align: center;        /* центр по горизонтали */
+  text-align-last: center;   /* центр выбранного значения */
 }
+
+.select-pill option {
+  text-align: center;        /* центр в выпадающем списке */
+}
+
 .select-pill:disabled {
   opacity: 0.6;
   cursor: not-allowed;
