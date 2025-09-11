@@ -49,6 +49,14 @@ function SegmentedToggle({ value, onChange }) {
 function UsersTab() {
   const [users, setUsers] = useState([]);
   const [state, setState] = useState({ loading: true, error: "" });
+  const [savingId, setSavingId] = useState(null);
+
+  const STATUS_LABELS = {
+    lead: "Лид",
+    owner: "Владелец",
+    client: "Клиент",
+  };
+  const STATUS_OPTIONS = Object.keys(STATUS_LABELS);
 
   useEffect(() => {
     fetch(`${API}/api/users`, { credentials: "include" })
@@ -67,32 +75,77 @@ function UsersTab() {
       });
   }, []);
 
+  const updateStatus = async (user, nextStatus) => {
+    // оптимистично обновим UI
+    const prev = users.slice();
+    setSavingId(user.id ?? user.phone ?? user.full_name);
+    setUsers((arr) =>
+      arr.map((u) =>
+        (u.id ?? u.phone) === (user.id ?? user.phone) ? { ...u, status: nextStatus } : u
+      )
+    );
+
+    try {
+      const res = await fetch(`${API}/api/users/${user.id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || `HTTP ${res.status}`);
+      }
+      // опционально можно сверить, что вернул сервер:
+      // const updated = await res.json();
+    } catch (e) {
+      console.error("Failed to update status:", e);
+      // откат
+      setUsers(prev);
+      alert("Не удалось изменить статус");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   if (state.loading) return <div className="empty">Загрузка...</div>;
   if (state.error)   return <div className="empty">Ошибка: {state.error}</div>;
   if (!users.length) return <div className="empty">Нет пользователей</div>;
 
-  const statusRu = (s) => {
-    const m = { lead: "Лид", owner: "Владелец", client: "Клиент" };
-    return m[(s || "").toLowerCase()] || s || "—";
-  };
-
   return (
     <div className="vstack-12">
-      {users.map((u, idx) => (
-        <div key={u.id ?? u.phone ?? u.full_name ?? idx} className="card">
-          <div className="card__col">
-            <div className="text-name">{u.full_name || "Без имени"}</div>
-            {u.id ? <div className="text-sub">ID: {u.id}</div> : (u.phone ? <div className="text-sub">{u.phone}</div> : null)}
+      {users.map((u, idx) => {
+        const key = u.id ?? u.phone ?? u.full_name ?? idx;
+        const current = String(u.status || "").toLowerCase();
+        return (
+          <div key={key} className="card">
+            <div className="card__col">
+              <div className="text-name">{u.full_name || "Без имени"}</div>
+              {u.id ? <div className="text-sub">ID: {u.id}</div> : (u.phone ? <div className="text-sub">{u.phone}</div> : null)}
+            </div>
+
+            <div className="hstack-8">
+              {/* селект статуса */}
+              <select
+                className="select-pill"
+                value={STATUS_OPTIONS.includes(current) ? current : ""}
+                onChange={(e) => updateStatus(u, e.target.value)}
+                disabled={savingId === key}
+              >
+                <option value="" disabled>Выбрать статус</option>
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                ))}
+              </select>
+              <ChevronRight size={20} color="#cbd5e1" />
+            </div>
           </div>
-          <div className="hstack-8">
-            <span className="tag">{statusRu(u.status)}</span>
-            <ChevronRight size={20} color="#cbd5e1" />
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
+
 
 function ObjectsTab() {
   return (

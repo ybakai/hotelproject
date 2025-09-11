@@ -37,6 +37,35 @@ app.get("/api/users", async (req, res) => {
 });
 
 
+// допустимые статусы
+const ALLOWED = new Set(["lead", "owner", "client"]);
+
+// PUT /api/users/:id/status  { "status": "lead" }
+app.put("/api/users/:id/status", async (req, res) => {
+  const { id } = req.params;
+  let { status } = req.body || {};
+  status = String(status || "").toLowerCase();
+
+  if (!ALLOWED.has(status)) {
+    return res.status(400).json({ error: "Invalid status" });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `UPDATE users
+         SET status = $1
+       WHERE id = $2
+       RETURNING id, full_name, status`,
+      [status, id]
+    );
+
+    if (!rows.length) return res.status(404).json({ error: "User not found" });
+    res.json(rows[0]);
+  } catch (e) {
+    console.error("DB error in PUT /api/users/:id/status:", e);
+    res.status(500).json({ error: "DB error" });
+  }
+});
 
 
 // ===== health with DB
