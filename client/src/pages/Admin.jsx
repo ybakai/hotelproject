@@ -155,6 +155,8 @@ function ObjectsTab() {
   const [description, setDescription] = useState("");
   const [ownerId, setOwnerId] = useState("");
   const [files, setFiles] = useState([]); // File[]
+  const [ownerName, setOwnerName] = useState("");
+const [ownerContact, setOwnerContact] = useState("");
 
   const loadObjects = () => {
     setLoading(true);
@@ -274,6 +276,49 @@ function ObjectsTab() {
                   placeholder="Краткое описание"
                 />
               </label>
+
+const [ownerName, setOwnerName] = useState("");
+const [ownerContact, setOwnerContact] = useState("");
+
+// ...
+
+<form className="form" onSubmit={onCreate}>
+  {/* ... уже есть title/description ... */}
+
+  <label className="form__group">
+    <span className="form__label">Имя владельца</span>
+    <input
+      className="input"
+      value={ownerName}
+      onChange={(e) => setOwnerName(e.target.value)}
+      placeholder="Напр. Иван Иванов"
+    />
+  </label>
+
+  <label className="form__group">
+    <span className="form__label">Контакт (телефон/email)</span>
+    <input
+      className="input"
+      value={ownerContact}
+      onChange={(e) => setOwnerContact(e.target.value)}
+      placeholder="+380 67 123 4567 или email"
+    />
+  </label>
+
+  <label className="form__group">
+    <span className="form__label">ID владельца (опционально)</span>
+    <input
+      className="input"
+      value={ownerId}
+      onChange={(e) => setOwnerId(e.target.value)}
+      placeholder="id пользователя"
+      inputMode="numeric"
+    />
+  </label>
+
+  {/* ... загрузка картинок ... */}
+</form>
+
 
               <label className="form__group">
                 <span className="form__label">ID владельца (опционально)</span>

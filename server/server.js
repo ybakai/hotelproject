@@ -139,11 +139,11 @@ app.post("/api/objects", upload.array("images", 6), async (req, res) => {
 
     // 2) сохранить объект в БД
     const { rows } = await pool.query(
-      `INSERT INTO objects (owner_id, title, description, images)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, owner_id, title, description, images, created_at`,
-      [owner_id ? Number(owner_id) : null, title, description || null, urls]
-    );
+  `INSERT INTO objects (owner_id, title, description, images, owner_name, owner_contact)
+   VALUES ($1, $2, $3, $4, $5, $6)
+   RETURNING id, owner_id, title, description, images, owner_name, owner_contact, created_at`,
+  [owner_id ? Number(owner_id) : null, title, description || null, urls, owner_name || null, owner_contact || null]
+);
 
     res.status(201).json(rows[0]);
   } catch (e) {

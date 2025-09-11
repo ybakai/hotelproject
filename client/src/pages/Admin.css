@@ -318,7 +318,6 @@
 }
 
 .modal {
-  width: min(92vw, 420px);
   background: #fff;
   border-radius: 16px;
   padding: 12px;
