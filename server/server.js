@@ -6,25 +6,33 @@ import { Pool } from "pg";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-const FRONT_ORIGIN = process.env.APP_URL || true; // можно указать домен фронта
+const FRONT_ORIGIN = process.env.APP_URL || true;
 
 // ===== DB
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }, // Neon/Render/Vercel
+  ssl: { rejectUnauthorized: false },
 });
 
-// ===== Cloudinary (для картинок объектов)
+// ===== Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME, // обязателен
-  api_key: process.env.CLOUDINARY_API_KEY,       // обязателен
-  api_secret: process.env.CLOUDINARY_API_SECRET, // обязателен
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+
+// Флаг — настроен ли Cloudinary
+const cloudOK = Boolean(
+  process.env.CLOUDINARY_CLOUD_NAME &&
+  process.env.CLOUDINARY_API_KEY &&
+  process.env.CLOUDINARY_API_SECRET
+);
+console.log("Cloudinary configured:", cloudOK);
 
 // ===== Multer (приём файлов в память)
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 8 * 1024 * 1024 }, // 8MB на файл
+  limits: { fileSize: 8 * 1024 * 1024 }, // 8 MB
 });
 
 // ===== middlewares
@@ -37,8 +45,6 @@ app.get("/", (_req, res) => {
 });
 
 // ===================== USERS =====================
-
-// GET /api/users
 app.get("/api/users", async (_req, res) => {
   try {
     const { rows } = await pool.query(
@@ -53,10 +59,8 @@ app.get("/api/users", async (_req, res) => {
   }
 });
 
-// допустимые статусы
 const ALLOWED = new Set(["lead", "owner", "client"]);
 
-// PUT /api/users/:id/status  { "status": "lead" }
 app.put("/api/users/:id/status", async (req, res) => {
   const { id } = req.params;
   let { status } = req.body || {};
@@ -84,9 +88,6 @@ app.put("/api/users/:id/status", async (req, res) => {
 });
 
 // ===================== OBJECTS =====================
-// Таблица: objects(id, owner_id, title, description, images[], created_at)
-
-// GET /api/objects?owner_id=123  — список (всех или по владельцу)
 app.get("/api/objects", async (req, res) => {
   try {
     const { owner_id } = req.query;
@@ -102,7 +103,6 @@ app.get("/api/objects", async (req, res) => {
   }
 });
 
-// GET /api/users/:id/objects — объекты конкретного пользователя
 app.get("/api/users/:id/objects", async (req, res) => {
   try {
     const { id } = req.params;
@@ -117,22 +117,12 @@ app.get("/api/users/:id/objects", async (req, res) => {
   }
 });
 
-// POST /api/objects — создать объект (multipart/form-data)
-// поля: title (обяз.), description (опц.), owner_id (опц.), images[] (опц., до 6 шт.)
 app.post("/api/objects", upload.array("images", 6), async (req, res) => {
   try {
-    // +++ новые поля из формы
-    const {
-      title,
-      description,
-      owner_id,
-      owner_name,
-      owner_contact,
-    } = req.body;
+    const { title, description, owner_id, owner_name, owner_contact } = req.body;
 
     if (!title) return res.status(400).json({ error: "Title is required" });
 
-    // тут как раньше собираем массив URL картинок
     const urls = [];
     if (Array.isArray(req.files) && req.files.length && cloudOK) {
       for (const file of req.files) {
@@ -145,9 +135,10 @@ app.post("/api/objects", upload.array("images", 6), async (req, res) => {
         });
         urls.push(uploaded.secure_url);
       }
+    } else if (Array.isArray(req.files) && req.files.length && !cloudOK) {
+      console.warn("Images were sent but Cloudinary isn't configured — skipping upload.");
     }
 
-    // +++ обновлённый INSERT с двумя новыми колонками
     const { rows } = await pool.query(
       `INSERT INTO objects (owner_id, title, description, images, owner_name, owner_contact)
        VALUES ($1, $2, $3, $4, $5, $6)
@@ -165,14 +156,11 @@ app.post("/api/objects", upload.array("images", 6), async (req, res) => {
     res.status(201).json(rows[0]);
   } catch (e) {
     console.error("POST /api/objects:", e);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: e.message || "Server error" });
   }
 });
 
-
-// ===================== HEALTH & AUTH (как у тебя) =====================
-
-// healthz (DB)
+// ===================== HEALTH & AUTH =====================
 app.get("/healthz", async (_req, res) => {
   try {
     const r = await pool.query("SELECT NOW()");
@@ -183,7 +171,6 @@ app.get("/healthz", async (_req, res) => {
   }
 });
 
-// register
 app.post("/auth/register", async (req, res) => {
   try {
     const { email, password, fullName, phone } = req.body || {};
@@ -206,7 +193,6 @@ app.post("/auth/register", async (req, res) => {
   }
 });
 
-// login
 app.post("/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
@@ -235,14 +221,13 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
-// 404
+// ===== 404 & error handlers
 app.use((_req, res) => res.status(404).json({ error: "not_found" }));
 
-// глобальные ловушки
 process.on("unhandledRejection", (reason) => console.error("UNHANDLED_REJECTION:", reason));
 process.on("uncaughtException", (err) => console.error("UNCAUGHT_EXCEPTION:", err));
 
-// start
+// ===== start
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`API running on http://localhost:${PORT}`);
 });
