@@ -1,9 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Home, Users, CalendarDays, UserCircle2, Building2, ChevronRight } from "lucide-react";
-import { AnimatePresence } from "framer-motion";
-import "/src/pages/Admin.css"
-
-
+import { motion, AnimatePresence } from "framer-motion";
+import "./Admin.css";
 
 const demoUsers = [
   { id: 1, name: "Иван Иванов", project: "Villa Fir", role: "Лид" },
@@ -11,7 +9,7 @@ const demoUsers = [
   { id: 3, name: "Иван Иванов", project: "Villa Fir", role: "Владелец" },
 ];
 
-const demoObjects = new Array(6).fill(0).map((_, i) => ({
+const demoObjects = Array.from({ length: 6 }, (_, i) => ({
   id: i + 1,
   title: "Villa Fir",
   subtitle: "12 комнат",
@@ -25,6 +23,7 @@ function SegmentedToggle({ value, onChange }) {
     ],
     []
   );
+
   const activeIndex = options.findIndex((o) => o.key === value);
 
   return (
@@ -41,6 +40,7 @@ function SegmentedToggle({ value, onChange }) {
           key={opt.key}
           onClick={() => onChange(opt.key)}
           className={`segmented__btn ${value === opt.key ? "is-active" : ""}`}
+          type="button"
         >
           {opt.icon}
           {opt.label}
@@ -70,7 +70,7 @@ function UsersTab() {
 }
 
 function ObjectsTab() {
-  // Заглушка без картинок — простые карточки-сетки
+  // Заглушка без картинок — простые карточки
   return (
     <div className="grid-2-12">
       {demoObjects.map((o) => (
@@ -91,6 +91,7 @@ function BottomNav({ current, onChange }) {
     { key: "calendar", label: "Календарь", icon: <CalendarDays size={20} /> },
     { key: "profile", label: "Профиль", icon: <UserCircle2 size={20} /> },
   ];
+
   return (
     <nav className="bottom">
       <div className="bottom__wrap">
@@ -100,6 +101,7 @@ function BottomNav({ current, onChange }) {
               key={it.key}
               onClick={() => onChange(it.key)}
               className={`bottom__btn ${current === it.key ? "is-active" : ""}`}
+              type="button"
             >
               {it.icon}
               <span>{it.label}</span>
