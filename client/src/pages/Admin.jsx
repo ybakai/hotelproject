@@ -1,16 +1,11 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { Home, Users, CalendarDays, UserCircle2, Building2, ChevronRight } from "lucide-react";
+import { Home, Users, CalendarDays, UserCircle2, Building2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./Admin.css";
 
 const API = "https://hotelproject-8cip.onrender.com";
 
-const demoObjects = Array.from({ length: 6 }, (_, i) => ({
-  id: i + 1,
-  title: "Villa Fir",
-  subtitle: "12 комнат",
-}));
-
+/* -------------------- Segmented Toggle -------------------- */
 function SegmentedToggle({ value, onChange }) {
   const options = useMemo(
     () => [
@@ -19,7 +14,6 @@ function SegmentedToggle({ value, onChange }) {
     ],
     []
   );
-
   const activeIndex = options.findIndex((o) => o.key === value);
 
   return (
@@ -46,6 +40,7 @@ function SegmentedToggle({ value, onChange }) {
   );
 }
 
+/* -------------------- Users Tab -------------------- */
 function UsersTab() {
   const [users, setUsers] = useState([]);
   const [state, setState] = useState({ loading: true, error: "" });
@@ -62,7 +57,6 @@ function UsersTab() {
         try { return JSON.parse(text); } catch { return []; }
       })
       .then((data) => {
-        // ожидаем массив объектов с полями id, full_name, phone, status
         setUsers(Array.isArray(data) ? data : []);
         setState({ loading: false, error: "" });
       })
@@ -73,18 +67,12 @@ function UsersTab() {
   }, []);
 
   const updateStatus = async (user, nextStatus) => {
-    if (!user.id) {
-      console.warn("Нет id у пользователя, PUT невозможен:", user);
-      return;
-    }
+    if (!user.id) return;
 
-    // оптимистичное обновление
     const prev = users.slice();
     const key = user.id ?? user.phone ?? user.full_name;
     setSavingId(key);
-    setUsers((arr) =>
-      arr.map((u) => (u.id === user.id ? { ...u, status: nextStatus } : u))
-    );
+    setUsers((arr) => arr.map((u) => (u.id === user.id ? { ...u, status: nextStatus } : u)));
 
     try {
       const res = await fetch(`${API}/api/users/${user.id}/status`, {
@@ -97,11 +85,9 @@ function UsersTab() {
         const t = await res.text();
         throw new Error(t || `HTTP ${res.status}`);
       }
-      // можно сверить ответ, если нужно:
-      // const updated = await res.json();
     } catch (e) {
       console.error("Failed to update status:", e);
-      setUsers(prev); // откат
+      setUsers(prev);
       alert("Не удалось изменить статус");
     } finally {
       setSavingId(null);
@@ -144,8 +130,7 @@ function UsersTab() {
   );
 }
 
-
-
+/* -------------------- Objects Tab -------------------- */
 function ObjectsTab() {
   const [objects, setObjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -154,6 +139,8 @@ function ObjectsTab() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [ownerId, setOwnerId] = useState("");
+  const [ownerName, setOwnerName] = useState("");
+  const [ownerContact, setOwnerContact] = useState("");
   const [files, setFiles] = useState([]); // File[]
 
   const loadObjects = () => {
@@ -175,6 +162,8 @@ function ObjectsTab() {
     setTitle("");
     setDescription("");
     setOwnerId("");
+    setOwnerName("");
+    setOwnerContact("");
     setFiles([]);
   };
 
@@ -184,9 +173,11 @@ function ObjectsTab() {
 
     const fd = new FormData();
     fd.append("title", title.trim());
-    if (description.trim()) fd.append("description", description.trim());
-    if (ownerId) fd.append("owner_id", ownerId);
-    for (const f of files) fd.append("images", f);
+    if (description.trim())   fd.append("description", description.trim());
+    if (ownerId)              fd.append("owner_id", ownerId);
+    if (ownerName.trim())     fd.append("owner_name", ownerName.trim());
+    if (ownerContact.trim())  fd.append("owner_contact", ownerContact.trim());
+    for (const f of files)    fd.append("images", f);
 
     try {
       const res = await fetch(`${API}/api/objects`, {
@@ -199,7 +190,7 @@ function ObjectsTab() {
         throw new Error(t || `HTTP ${res.status}`);
       }
       const created = await res.json();
-      setObjects((prev) => [created, ...prev]); // мгновенно добавим в список
+      setObjects((prev) => [created, ...prev]);
       setShowModal(false);
       resetForm();
     } catch (err) {
@@ -237,6 +228,8 @@ function ObjectsTab() {
               <div className="tile__body">
                 <div className="tile__title">{o.title}</div>
                 {o.description ? <div className="tile__sub">{o.description}</div> : null}
+                {o.owner_name ? <div className="tile__sub">Владелец: {o.owner_name}</div> : null}
+                {o.owner_contact ? <div className="tile__sub">Контакт: {o.owner_contact}</div> : null}
               </div>
             </div>
           ))}
@@ -272,6 +265,26 @@ function ObjectsTab() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Краткое описание"
+                />
+              </label>
+
+              <label className="form__group">
+                <span className="form__label">Имя владельца</span>
+                <input
+                  className="input"
+                  value={ownerName}
+                  onChange={(e) => setOwnerName(e.target.value)}
+                  placeholder="Напр. Иван Иванов"
+                />
+              </label>
+
+              <label className="form__group">
+                <span className="form__label">Контакт (телефон/email)</span>
+                <input
+                  className="input"
+                  value={ownerContact}
+                  onChange={(e) => setOwnerContact(e.target.value)}
+                  placeholder="+380 67 123 4567 или email"
                 />
               </label>
 
@@ -313,14 +326,13 @@ function ObjectsTab() {
   );
 }
 
-
+/* -------------------- Bottom Nav -------------------- */
 function BottomNav({ current, onChange }) {
   const items = [
     { key: "manage", label: "Управление", icon: <Home size={20} /> },
     { key: "calendar", label: "Календарь", icon: <CalendarDays size={20} /> },
     { key: "profile", label: "Профиль", icon: <UserCircle2 size={20} /> },
   ];
-
   return (
     <nav className="bottom">
       <div className="bottom__wrap">
@@ -342,6 +354,7 @@ function BottomNav({ current, onChange }) {
   );
 }
 
+/* -------------------- Empty Screen -------------------- */
 function EmptyScreen({ title, note }) {
   return (
     <div className="empty">
@@ -353,6 +366,7 @@ function EmptyScreen({ title, note }) {
   );
 }
 
+/* -------------------- Admin Page -------------------- */
 export default function Admin() {
   const [page, setPage] = useState("manage");
   const [section, setSection] = useState("users");

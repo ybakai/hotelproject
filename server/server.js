@@ -121,28 +121,45 @@ app.get("/api/users/:id/objects", async (req, res) => {
 // поля: title (обяз.), description (опц.), owner_id (опц.), images[] (опц., до 6 шт.)
 app.post("/api/objects", upload.array("images", 6), async (req, res) => {
   try {
-    const { title, description, owner_id } = req.body;
+    // +++ новые поля из формы
+    const {
+      title,
+      description,
+      owner_id,
+      owner_name,
+      owner_contact,
+    } = req.body;
+
     if (!title) return res.status(400).json({ error: "Title is required" });
 
-    // 1) загрузить картинки в Cloudinary, получить secure_url
+    // тут как раньше собираем массив URL картинок
     const urls = [];
-    for (const file of req.files || []) {
-      const uploaded = await new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: "hotel_objects" },
-          (err, result) => (err ? reject(err) : resolve(result))
-        );
-        stream.end(file.buffer);
-      });
-      urls.push(uploaded.secure_url);
+    if (Array.isArray(req.files) && req.files.length && cloudOK) {
+      for (const file of req.files) {
+        const uploaded = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "hotel_objects" },
+            (err, result) => (err ? reject(err) : resolve(result))
+          );
+          stream.end(file.buffer);
+        });
+        urls.push(uploaded.secure_url);
+      }
     }
 
-    // 2) сохранить объект в БД
+    // +++ обновлённый INSERT с двумя новыми колонками
     const { rows } = await pool.query(
-      `INSERT INTO objects (owner_id, title, description, images)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, owner_id, title, description, images, created_at`,
-      [owner_id ? Number(owner_id) : null, title, description || null, urls]
+      `INSERT INTO objects (owner_id, title, description, images, owner_name, owner_contact)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, owner_id, title, description, images, owner_name, owner_contact, created_at`,
+      [
+        owner_id ? Number(owner_id) : null,
+        title.trim(),
+        description?.trim() || null,
+        urls,
+        owner_name?.trim() || null,
+        owner_contact?.trim() || null,
+      ]
     );
 
     res.status(201).json(rows[0]);
@@ -151,6 +168,7 @@ app.post("/api/objects", upload.array("images", 6), async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 // ===================== HEALTH & AUTH (как у тебя) =====================
 
