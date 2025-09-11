@@ -147,19 +147,172 @@ function UsersTab() {
 
 
 function ObjectsTab() {
+  const [objects, setObjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [showModal, setShowModal] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [ownerId, setOwnerId] = useState("");
+  const [files, setFiles] = useState([]); // File[]
+
+  const loadObjects = () => {
+    setLoading(true);
+    fetch(`${API}/api/objects`)
+      .then((r) => r.json())
+      .then((data) => setObjects(Array.isArray(data) ? data : []))
+      .catch((e) => console.error("objects load error:", e))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { loadObjects(); }, []);
+
+  const onSelectFiles = (e) => {
+    setFiles(Array.from(e.target.files || []).slice(0, 6));
+  };
+
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setOwnerId("");
+    setFiles([]);
+  };
+
+  const onCreate = async (e) => {
+    e.preventDefault();
+    if (!title.trim()) return alert("Введите название объекта");
+
+    const fd = new FormData();
+    fd.append("title", title.trim());
+    if (description.trim()) fd.append("description", description.trim());
+    if (ownerId) fd.append("owner_id", ownerId);
+    for (const f of files) fd.append("images", f);
+
+    try {
+      const res = await fetch(`${API}/api/objects`, {
+        method: "POST",
+        body: fd,
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || `HTTP ${res.status}`);
+      }
+      const created = await res.json();
+      setObjects((prev) => [created, ...prev]); // мгновенно добавим в список
+      setShowModal(false);
+      resetForm();
+    } catch (err) {
+      console.error("Create object failed:", err);
+      alert("Не удалось создать объект");
+    }
+  };
+
   return (
-    <div className="grid-2-12">
-      {demoObjects.map((o) => (
-        <div key={o.id} className="tile">
-          <div className="tile__body">
-            <div className="tile__title">{o.title}</div>
-            <div className="tile__sub">{o.subtitle}</div>
+    <div>
+      {/* панель сверху */}
+      <div className="objects-toolbar">
+        <div className="objects-title">Объекты</div>
+        <button className="btn-primary" type="button" onClick={() => setShowModal(true)}>
+          Добавить объект
+        </button>
+      </div>
+
+      {/* список / пусто */}
+      {loading ? (
+        <div className="empty">Загрузка…</div>
+      ) : objects.length === 0 ? (
+        <div className="empty">Объектов пока нет</div>
+      ) : (
+        <div className="grid-2-12">
+          {objects.map((o) => (
+            <div key={o.id} className="tile">
+              {Array.isArray(o.images) && o.images[0] ? (
+                <div className="tile__imgwrap">
+                  <img className="tile__img" src={o.images[0]} alt={o.title} />
+                </div>
+              ) : (
+                <div className="tile__imgwrap tile__imgwrap--empty">Нет фото</div>
+              )}
+              <div className="tile__body">
+                <div className="tile__title">{o.title}</div>
+                {o.description ? <div className="tile__sub">{o.description}</div> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* модалка */}
+      {showModal && (
+        <div className="modal__backdrop" onClick={() => setShowModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__header">
+              <div className="modal__title">Новый объект</div>
+              <button className="modal__close" type="button" onClick={() => setShowModal(false)}>✕</button>
+            </div>
+
+            <form className="form" onSubmit={onCreate}>
+              <label className="form__group">
+                <span className="form__label">Название *</span>
+                <input
+                  className="input"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Напр. Villa Fir"
+                  required
+                />
+              </label>
+
+              <label className="form__group">
+                <span className="form__label">Описание</span>
+                <textarea
+                  className="textarea"
+                  rows={3}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Краткое описание"
+                />
+              </label>
+
+              <label className="form__group">
+                <span className="form__label">ID владельца (опционально)</span>
+                <input
+                  className="input"
+                  value={ownerId}
+                  onChange={(e) => setOwnerId(e.target.value)}
+                  placeholder="id пользователя"
+                  inputMode="numeric"
+                />
+              </label>
+
+              <label className="form__group">
+                <span className="form__label">Картинки (до 6)</span>
+                <input className="input" type="file" accept="image/*" multiple onChange={onSelectFiles} />
+              </label>
+
+              {files.length > 0 && (
+                <div className="previews">
+                  {files.map((f, i) => (
+                    <div key={i} className="preview">
+                      <img src={URL.createObjectURL(f)} alt={f.name} />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="form__actions">
+                <button className="btn-secondary" type="button" onClick={() => setShowModal(false)}>Отмена</button>
+                <button className="btn-primary" type="submit">Создать</button>
+              </div>
+            </form>
           </div>
         </div>
-      ))}
+      )}
     </div>
   );
 }
+
 
 function BottomNav({ current, onChange }) {
   const items = [

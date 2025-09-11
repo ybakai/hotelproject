@@ -177,3 +177,72 @@ overflow-y: auto;   }
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+
+/* toolbar */
+.objects-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 8px 0 14px;
+}
+.objects-title { font-weight: 800; font-size: 18px; }
+
+/* кнопки */
+.btn-primary, .btn-secondary {
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.btn-primary { background:#111827; color:#fff; }
+.btn-primary:disabled { opacity:.6; cursor:not-allowed; }
+.btn-secondary { background:#fff; color:#111827; border-color:#e5e7eb; }
+
+/* карточки объектов */
+.tile__imgwrap {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: #f1f5f9;
+}
+.tile__imgwrap--empty {
+  display:flex; align-items:center; justify-content:center;
+  color:#94a3b8; font-size:12px;
+}
+.tile__img { width:100%; height:100%; object-fit:cover; }
+
+/* модалка */
+.modal__backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+}
+.modal {
+  width: min(92vw, 420px);
+  background:#fff; border-radius: 16px; padding: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+.modal__header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom: 8px;
+}
+.modal__title { font-weight:800; font-size:18px; }
+.modal__close { background:none; border:0; font-size:18px; cursor:pointer; }
+
+.form__group { display:block; margin-top: 10px; }
+.form__label { display:block; font-size:12px; color:#64748b; margin-bottom: 6px; }
+.input, .textarea {
+  width: 100%; border:1px solid #e5e7eb; border-radius: 10px;
+  padding: 10px 12px; font-size:14px; outline:none; background:#fff;
+}
+.textarea { resize: vertical; }
+
+.previews { display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }
+.preview { width:84px; height:84px; overflow:hidden; border-radius:10px; background:#f1f5f9; }
+.preview img { width:100%; height:100%; object-fit:cover; }
+
+.form__actions {
+  display:flex; gap:8px; justify-content:flex-end; margin-top: 14px;
+}
