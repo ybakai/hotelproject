@@ -48,39 +48,44 @@ function SegmentedToggle({ value, onChange }) {
 
 function UsersTab() {
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [state, setState] = useState({ loading: true, error: "" });
 
   useEffect(() => {
-    fetch(`${API}/api/users`)
-      .then((res) => res.json())
+    fetch(`${API}/api/users`, { credentials: "include" })
+      .then(async (res) => {
+        const text = await res.text();
+        if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
+        try { return JSON.parse(text); } catch { return []; }
+      })
       .then((data) => {
-        setUsers(data);
-        setLoading(false);
+        setUsers(Array.isArray(data) ? data : []);
+        setState({ loading: false, error: "" });
       })
       .catch((err) => {
-        console.error("Ошибка загрузки пользователей:", err);
-        setLoading(false);
+        console.error("Error fetching users:", err);
+        setState({ loading: false, error: err.message || "DB error" });
       });
   }, []);
 
-  if (loading) {
-    return <div className="empty">Загрузка...</div>;
-  }
+  if (state.loading) return <div className="empty">Загрузка...</div>;
+  if (state.error)   return <div className="empty">Ошибка: {state.error}</div>;
+  if (!users.length) return <div className="empty">Нет пользователей</div>;
 
-  if (users.length === 0) {
-    return <div className="empty">Нет пользователей</div>;
-  }
+  const statusRu = (s) => {
+    const m = { lead: "Лид", owner: "Владелец", client: "Клиент" };
+    return m[(s || "").toLowerCase()] || s || "—";
+  };
 
   return (
     <div className="vstack-12">
-      {users.map((u) => (
-        <div key={u.id} className="card">
+      {users.map((u, idx) => (
+        <div key={u.id ?? u.phone ?? u.full_name ?? idx} className="card">
           <div className="card__col">
-            <div className="text-name">{u.username}</div>
-            <div className="text-sub">ID: {u.id}</div>
+            <div className="text-name">{u.full_name || "Без имени"}</div>
+            {u.id ? <div className="text-sub">ID: {u.id}</div> : (u.phone ? <div className="text-sub">{u.phone}</div> : null)}
           </div>
           <div className="hstack-8">
-            <span className="tag">{u.status}</span>
+            <span className="tag">{statusRu(u.status)}</span>
             <ChevronRight size={20} color="#cbd5e1" />
           </div>
         </div>

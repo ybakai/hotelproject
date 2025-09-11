@@ -22,20 +22,20 @@ app.get("/", (_req, res) => {
 });
 
 // GET /api/users
-// GET /api/users
 app.get("/api/users", async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT phone, role, status, created_at
+      `SELECT id, full_name, status
        FROM users
        ORDER BY created_at DESC`
     );
-    res.json(rows); // вернём массив
+    res.json(rows);
   } catch (e) {
     console.error("DB error in /api/users:", e);
     res.status(500).json({ error: "DB error" });
   }
 });
+
 
 
 
