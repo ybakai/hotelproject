@@ -25,7 +25,7 @@ app.get("/", (_req, res) => {
 app.get("/api/users", async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, full_name, status
+      `SELECT id, full_name, status,phone
        FROM users
        ORDER BY created_at DESC`
     );

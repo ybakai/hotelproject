@@ -51,11 +51,7 @@ function UsersTab() {
   const [state, setState] = useState({ loading: true, error: "" });
   const [savingId, setSavingId] = useState(null);
 
-  const STATUS_LABELS = {
-    lead: "Лид",
-    owner: "Владелец",
-    client: "Клиент",
-  };
+  const STATUS_LABELS = { lead: "Лид", owner: "Владелец", client: "Клиент" };
   const STATUS_OPTIONS = Object.keys(STATUS_LABELS);
 
   useEffect(() => {
@@ -66,6 +62,7 @@ function UsersTab() {
         try { return JSON.parse(text); } catch { return []; }
       })
       .then((data) => {
+        // ожидаем массив объектов с полями id, full_name, phone, status
         setUsers(Array.isArray(data) ? data : []);
         setState({ loading: false, error: "" });
       })
@@ -76,13 +73,17 @@ function UsersTab() {
   }, []);
 
   const updateStatus = async (user, nextStatus) => {
-    // оптимистично обновим UI
+    if (!user.id) {
+      console.warn("Нет id у пользователя, PUT невозможен:", user);
+      return;
+    }
+
+    // оптимистичное обновление
     const prev = users.slice();
-    setSavingId(user.id ?? user.phone ?? user.full_name);
+    const key = user.id ?? user.phone ?? user.full_name;
+    setSavingId(key);
     setUsers((arr) =>
-      arr.map((u) =>
-        (u.id ?? u.phone) === (user.id ?? user.phone) ? { ...u, status: nextStatus } : u
-      )
+      arr.map((u) => (u.id === user.id ? { ...u, status: nextStatus } : u))
     );
 
     try {
@@ -96,12 +97,11 @@ function UsersTab() {
         const t = await res.text();
         throw new Error(t || `HTTP ${res.status}`);
       }
-      // опционально можно сверить, что вернул сервер:
+      // можно сверить ответ, если нужно:
       // const updated = await res.json();
     } catch (e) {
       console.error("Failed to update status:", e);
-      // откат
-      setUsers(prev);
+      setUsers(prev); // откат
       alert("Не удалось изменить статус");
     } finally {
       setSavingId(null);
@@ -120,14 +120,11 @@ function UsersTab() {
         return (
           <div key={key} className="card">
             <div className="card__col">
-    <div className="text-name">{u.full_name || "Без имени"}</div>
-    {u.phone ? (
-      <div className="text-sub">{u.phone}</div>
-    ) : null}
-  </div>
+              <div className="text-name">{u.full_name || "Без имени"}</div>
+              {u.phone ? <div className="text-sub">{u.phone}</div> : null}
+            </div>
 
             <div className="hstack-8">
-              {/* селект статуса */}
               <select
                 className="select-pill"
                 value={STATUS_OPTIONS.includes(current) ? current : ""}
@@ -146,6 +143,7 @@ function UsersTab() {
     </div>
   );
 }
+
 
 
 function ObjectsTab() {
