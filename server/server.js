@@ -22,15 +22,21 @@ app.get("/", (_req, res) => {
 });
 
 // GET /api/users
+// GET /api/users
 app.get("/api/users", async (req, res) => {
   try {
-    const result = await pool.query("SELECT id, username, status FROM users ORDER BY id ASC");
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching users:", err);
+    const { rows } = await pool.query(
+      `SELECT phone, role, status, created_at
+       FROM users
+       ORDER BY created_at DESC`
+    );
+    res.json(rows); // вернём массив
+  } catch (e) {
+    console.error("DB error in /api/users:", e);
     res.status(500).json({ error: "DB error" });
   }
 });
+
 
 
 // ===== health with DB
