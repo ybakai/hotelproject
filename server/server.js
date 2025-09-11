@@ -21,6 +21,18 @@ app.get("/", (_req, res) => {
   res.json({ ok: true, message: "API is up 🚀" });
 });
 
+// GET /api/users
+app.get("/api/users", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT id, username, status FROM users ORDER BY id ASC");
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ error: "DB error" });
+  }
+});
+
+
 // ===== health with DB
 app.get("/healthz", async (_req, res) => {
   try {
