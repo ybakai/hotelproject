@@ -12,7 +12,7 @@
 
 /* Вспомогательные стеки/отступы */
 .vstack-12 { display: grid; gap: 12px; }
-.hstack-8 { display: inline-flex; align-items: center; gap: 8px; }
+.hstack-8 { display: flex; align-items: center; gap: 8px; }
 .mt-12 { margin-top: 12px; }
 .mt-14 { margin-top: 14px;
 overflow-y: auto;   }
@@ -150,13 +150,14 @@ overflow-y: auto;   }
 .bottom__btn.is-active { color: #111827; }
 
 .select-pill {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
 
+  display: flex;            /* ← важно */
+  align-items: center;      /* ← выравнивание текста по центру */
+  justify-content: center;  /* если нужно по центру по горизонтали */
+  
   padding: 6px 10px;
   border-radius: 10px;
   border: 1px solid #e2e8f0;
@@ -164,6 +165,7 @@ overflow-y: auto;   }
   font-size: 12px;
   font-weight: 600;
   color: #0f172a;
+  line-height: 1;           /* ← убирает лишние отступы сверху/снизу */
 }
 .select-pill:disabled {
   opacity: 0.6;

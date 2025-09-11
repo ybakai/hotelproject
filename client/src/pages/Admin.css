@@ -16,7 +16,7 @@
 }
 
 .hstack-8 {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 8px;
 }
@@ -212,12 +212,12 @@
 }
 
 .select-pill {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
+  display: flex; /* ← важно */
+  align-items: center; /* ← выравнивание текста по центру */
+  justify-content: center; /* если нужно по центру по горизонтали */
   padding: 6px 10px;
   border-radius: 10px;
   border: 1px solid #e2e8f0;
@@ -225,6 +225,7 @@
   font-size: 12px;
   font-weight: 600;
   color: #0f172a;
+  line-height: 1; /* ← убирает лишние отступы сверху/снизу */
 }
 
 .select-pill:disabled {
