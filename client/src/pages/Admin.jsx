@@ -137,7 +137,6 @@ function UsersTab() {
                   <option key={s} value={s}>{STATUS_LABELS[s]}</option>
                 ))}
               </select>
-              <ChevronRight size={20} color="#cbd5e1" />
             </div>
           </div>
         );
