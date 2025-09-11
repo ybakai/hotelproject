@@ -20,7 +20,8 @@
 .vstack-12 { display: grid; gap: 12px; }
 .hstack-8 { display: inline-flex; align-items: center; gap: 8px; }
 .mt-12 { margin-top: 12px; }
-.mt-14 { margin-top: 14px; }
+.mt-14 { margin-top: 14px;
+overflow-y: auto;   }
 
 /* Сегментированный переключатель */
 .segmented {
