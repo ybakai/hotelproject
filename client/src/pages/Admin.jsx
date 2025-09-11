@@ -120,9 +120,11 @@ function UsersTab() {
         return (
           <div key={key} className="card">
             <div className="card__col">
-              <div className="text-name">{u.full_name || "Без имени"}</div>
-              {u.id ? <div className="text-sub">ID: {u.id}</div> : (u.phone ? <div className="text-sub">{u.phone}</div> : null)}
-            </div>
+    <div className="text-name">{u.full_name || "Без имени"}</div>
+    {u.phone ? (
+      <div className="text-sub">{u.phone}</div>
+    ) : null}
+  </div>
 
             <div className="hstack-8">
               {/* селект статуса */}
