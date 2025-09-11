@@ -5,11 +5,7 @@ import "./Admin.css";
 
 const API = "https://hotelproject-8cip.onrender.com";
 
-const demoObjects = Array.from({ length: 6 }, (_, i) => ({
-  id: i + 1,
-  title: "Villa Fir",
-  subtitle: "12 комнат",
-}));
+
 
 function SegmentedToggle({ value, onChange }) {
   const options = useMemo(
