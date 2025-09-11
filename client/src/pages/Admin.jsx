@@ -1,11 +1,16 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { Home, Users, CalendarDays, UserCircle2, Building2, ChevronRight } from "lucide-react";
+import {
+  Home,
+  Users,
+  CalendarDays,
+  UserCircle2,
+  Building2,
+  ChevronRight,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./Admin.css";
 
 const API = "https://hotelproject-8cip.onrender.com";
-
-
 
 function SegmentedToggle({ value, onChange }) {
   const options = useMemo(
@@ -55,7 +60,11 @@ function UsersTab() {
       .then(async (res) => {
         const text = await res.text();
         if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
-        try { return JSON.parse(text); } catch { return []; }
+        try {
+          return JSON.parse(text);
+        } catch {
+          return [];
+        }
       })
       .then((data) => {
         // ожидаем массив объектов с полями id, full_name, phone, status
@@ -105,7 +114,7 @@ function UsersTab() {
   };
 
   if (state.loading) return <div className="empty">Загрузка...</div>;
-  if (state.error)   return <div className="empty">Ошибка: {state.error}</div>;
+  if (state.error) return <div className="empty">Ошибка: {state.error}</div>;
   if (!users.length) return <div className="empty">Нет пользователей</div>;
 
   return (
@@ -127,9 +136,13 @@ function UsersTab() {
                 onChange={(e) => updateStatus(u, e.target.value)}
                 disabled={savingId === key}
               >
-                <option value="" disabled>Выбрать статус</option>
+                <option value="" disabled>
+                  Выбрать статус
+                </option>
                 {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                  <option key={s} value={s}>
+                    {STATUS_LABELS[s]}
+                  </option>
                 ))}
               </select>
             </div>
@@ -139,8 +152,6 @@ function UsersTab() {
     </div>
   );
 }
-
-
 
 function ObjectsTab() {
   const [objects, setObjects] = useState([]);
@@ -152,7 +163,7 @@ function ObjectsTab() {
   const [ownerId, setOwnerId] = useState("");
   const [files, setFiles] = useState([]); // File[]
   const [ownerName, setOwnerName] = useState("");
-const [ownerContact, setOwnerContact] = useState("");
+  const [ownerContact, setOwnerContact] = useState("");
 
   const loadObjects = () => {
     setLoading(true);
@@ -163,7 +174,9 @@ const [ownerContact, setOwnerContact] = useState("");
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadObjects(); }, []);
+  useEffect(() => {
+    loadObjects();
+  }, []);
 
   const onSelectFiles = (e) => {
     setFiles(Array.from(e.target.files || []).slice(0, 6));
@@ -211,7 +224,11 @@ const [ownerContact, setOwnerContact] = useState("");
       {/* панель сверху */}
       <div className="objects-toolbar">
         <div className="objects-title">Объекты</div>
-        <button className="btn-primary" type="button" onClick={() => setShowModal(true)}>
+        <button
+          className="btn-primary"
+          type="button"
+          onClick={() => setShowModal(true)}
+        >
           Добавить объект
         </button>
       </div>
@@ -230,11 +247,15 @@ const [ownerContact, setOwnerContact] = useState("");
                   <img className="tile__img" src={o.images[0]} alt={o.title} />
                 </div>
               ) : (
-                <div className="tile__imgwrap tile__imgwrap--empty">Нет фото</div>
+                <div className="tile__imgwrap tile__imgwrap--empty">
+                  Нет фото
+                </div>
               )}
               <div className="tile__body">
                 <div className="tile__title">{o.title}</div>
-                {o.description ? <div className="tile__sub">{o.description}</div> : null}
+                {o.description ? (
+                  <div className="tile__sub">{o.description}</div>
+                ) : null}
               </div>
             </div>
           ))}
@@ -247,7 +268,13 @@ const [ownerContact, setOwnerContact] = useState("");
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal__header">
               <div className="modal__title">Новый объект</div>
-              <button className="modal__close" type="button" onClick={() => setShowModal(false)}>✕</button>
+              <button
+                className="modal__close"
+                type="button"
+                onClick={() => setShowModal(false)}
+              >
+                ✕
+              </button>
             </div>
 
             <form className="form" onSubmit={onCreate}>
@@ -273,48 +300,25 @@ const [ownerContact, setOwnerContact] = useState("");
                 />
               </label>
 
-const [ownerName, setOwnerName] = useState("");
-const [ownerContact, setOwnerContact] = useState("");
+              <label className="form__group">
+                <span className="form__label">Имя владельца</span>
+                <input
+                  className="input"
+                  value={ownerName}
+                  onChange={(e) => setOwnerName(e.target.value)}
+                  placeholder="Напр. Иван Иванов"
+                />
+              </label>
 
-// ...
-
-<form className="form" onSubmit={onCreate}>
-  {/* ... уже есть title/description ... */}
-
-  <label className="form__group">
-    <span className="form__label">Имя владельца</span>
-    <input
-      className="input"
-      value={ownerName}
-      onChange={(e) => setOwnerName(e.target.value)}
-      placeholder="Напр. Иван Иванов"
-    />
-  </label>
-
-  <label className="form__group">
-    <span className="form__label">Контакт (телефон/email)</span>
-    <input
-      className="input"
-      value={ownerContact}
-      onChange={(e) => setOwnerContact(e.target.value)}
-      placeholder="+380 67 123 4567 или email"
-    />
-  </label>
-
-  <label className="form__group">
-    <span className="form__label">ID владельца (опционально)</span>
-    <input
-      className="input"
-      value={ownerId}
-      onChange={(e) => setOwnerId(e.target.value)}
-      placeholder="id пользователя"
-      inputMode="numeric"
-    />
-  </label>
-
-  {/* ... загрузка картинок ... */}
-</form>
-
+              <label className="form__group">
+                <span className="form__label">Контакт (телефон/email)</span>
+                <input
+                  className="input"
+                  value={ownerContact}
+                  onChange={(e) => setOwnerContact(e.target.value)}
+                  placeholder="+380 67 123 4567 или email"
+                />
+              </label>
 
               <label className="form__group">
                 <span className="form__label">ID владельца (опционально)</span>
@@ -329,7 +333,13 @@ const [ownerContact, setOwnerContact] = useState("");
 
               <label className="form__group">
                 <span className="form__label">Картинки (до 6)</span>
-                <input className="input" type="file" accept="image/*" multiple onChange={onSelectFiles} />
+                <input
+                  className="input"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={onSelectFiles}
+                />
               </label>
 
               {files.length > 0 && (
@@ -343,8 +353,16 @@ const [ownerContact, setOwnerContact] = useState("");
               )}
 
               <div className="form__actions">
-                <button className="btn-secondary" type="button" onClick={() => setShowModal(false)}>Отмена</button>
-                <button className="btn-primary" type="submit">Создать</button>
+                <button
+                  className="btn-secondary"
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                >
+                  Отмена
+                </button>
+                <button className="btn-primary" type="submit">
+                  Создать
+                </button>
               </div>
             </form>
           </div>
@@ -353,7 +371,6 @@ const [ownerContact, setOwnerContact] = useState("");
     </div>
   );
 }
-
 
 function BottomNav({ current, onChange }) {
   const items = [
@@ -434,9 +451,19 @@ export default function Admin() {
       );
     }
     if (page === "calendar") {
-      return <EmptyScreen title="Календарь" note="Пока пусто — добавим расписание/бронь позже." />;
+      return (
+        <EmptyScreen
+          title="Календарь"
+          note="Пока пусто — добавим расписание/бронь позже."
+        />
+      );
     }
-    return <EmptyScreen title="Профиль" note="Здесь появится профиль администратора/пользователя." />;
+    return (
+      <EmptyScreen
+        title="Профиль"
+        note="Здесь появится профиль администратора/пользователя."
+      />
+    );
   };
 
   return (
