@@ -1,13 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Home, Users, CalendarDays, UserCircle2, Building2, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./Admin.css";
 
-const demoUsers = [
-  { id: 1, name: "Иван Иванов", project: "Villa Fir", role: "Лид" },
-  { id: 2, name: "Иван Иванов", project: "Villa Fir", role: "Клиент" },
-  { id: 3, name: "Иван Иванов", project: "Villa Fir", role: "Владелец" },
-];
+const API = "https://hotelproject-8cip.onrender.com";
 
 const demoObjects = Array.from({ length: 6 }, (_, i) => ({
   id: i + 1,
@@ -51,16 +47,40 @@ function SegmentedToggle({ value, onChange }) {
 }
 
 function UsersTab() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API}/api/users`)
+      .then((res) => res.json())
+      .then((data) => {
+        setUsers(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Ошибка загрузки пользователей:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return <div className="empty">Загрузка...</div>;
+  }
+
+  if (users.length === 0) {
+    return <div className="empty">Нет пользователей</div>;
+  }
+
   return (
     <div className="vstack-12">
-      {demoUsers.map((u) => (
+      {users.map((u) => (
         <div key={u.id} className="card">
           <div className="card__col">
-            <div className="text-name">{u.name}</div>
-            <div className="text-sub">{u.project}</div>
+            <div className="text-name">{u.username}</div>
+            <div className="text-sub">ID: {u.id}</div>
           </div>
           <div className="hstack-8">
-            <span className="tag">{u.role}</span>
+            <span className="tag">{u.status}</span>
             <ChevronRight size={20} color="#cbd5e1" />
           </div>
         </div>
@@ -70,7 +90,6 @@ function UsersTab() {
 }
 
 function ObjectsTab() {
-  // Заглушка без картинок — простые карточки
   return (
     <div className="grid-2-12">
       {demoObjects.map((o) => (
@@ -125,8 +144,8 @@ function EmptyScreen({ title, note }) {
 }
 
 export default function Admin() {
-  const [page, setPage] = useState("manage"); // manage | calendar | profile
-  const [section, setSection] = useState("users"); // users | objects
+  const [page, setPage] = useState("manage");
+  const [section, setSection] = useState("users");
 
   const renderContent = () => {
     if (page === "manage") {
