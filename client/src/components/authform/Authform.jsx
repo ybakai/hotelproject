@@ -109,7 +109,7 @@ export default function Authform({ onLoginSuccess }) {
           throw new Error(msg);
         }
 
-        setSuccess("✅ Регистрация успешна! Войдите под своими данными.");
+        setSuccess(" Регистрация успешна! Войдите под своими данными.");
         setPassword("");
         setFullName("");
         setPhone("");
