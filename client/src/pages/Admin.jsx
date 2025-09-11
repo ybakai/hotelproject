@@ -247,9 +247,7 @@ export default function Admin() {
 
   return (
     <div className="app">
-      <header className="header">
-        <div className="title">Управление</div>
-      </header>
+      
 
       <main className="container">{renderContent()}</main>
 
