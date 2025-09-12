@@ -217,34 +217,104 @@ overflow-y: auto;   }
 .tile__img { width:100%; height:100%; object-fit:cover; }
 
 /* модалка */
+/* фон */
 .modal__backdrop {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.4);
-  display: flex; align-items: center; justify-content: center;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px; /* чтобы у модалки был отступ от краёв экрана */
   z-index: 100;
 }
+
+/* сама модалка */
 .modal {
-  background:#fff; border-radius: 16px; padding: 12px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+
+  width: 100%;          /* по ширине экрана */
+  max-width: 480px;     /* но не больше 480px */
+  box-sizing: border-box; /* чтобы padding учитывался в ширину */
 }
+
 .modal__header {
-  display:flex; align-items:center; justify-content:space-between;
-  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
 }
-.modal__title { font-weight:800; font-size:18px; }
-.modal__close { background:none; border:0; font-size:18px; cursor:pointer; }
 
-.form__group { display:block; margin-top: 10px; }
-.form__label { display:block; font-size:12px; color:#64748b; margin-bottom: 6px; }
+.modal__title {
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.modal__close {
+  background: none;
+  border: 0;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* форма и поля */
+.form__group { 
+  display: block; 
+  margin-top: 12px; 
+}
+
+.form__label { 
+  display: block; 
+  font-size: 12px; 
+  color: #64748b; 
+  margin-bottom: 6px; 
+}
+
 .input, .textarea {
-  width: 100%; border:1px solid #e5e7eb; border-radius: 10px;
-  padding: 10px 12px; font-size:14px; outline:none; background:#fff;
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+  background: #fff;
+  box-sizing: border-box; /* чтобы padding не ломал ширину */
 }
-.textarea { resize: vertical; }
 
-.previews { display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }
-.preview { width:84px; height:84px; overflow:hidden; border-radius:10px; background:#f1f5f9; }
-.preview img { width:100%; height:100%; object-fit:cover; }
+.textarea { 
+  resize: vertical; 
+}
 
+/* превью картинок */
+.previews {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.preview {
+  width: 84px;
+  height: 84px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #f1f5f9;
+}
+
+.preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* кнопки */
 .form__actions {
-  display:flex; gap:8px; justify-content:flex-end; margin-top: 14px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
+

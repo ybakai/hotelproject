@@ -307,6 +307,7 @@
 }
 
 /* модалка */
+/* фон */
 .modal__backdrop {
   position: fixed;
   inset: 0;
@@ -314,21 +315,26 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20px; /* чтобы у модалки был отступ от краёв экрана */
   z-index: 100;
 }
 
+/* сама модалка */
 .modal {
   background: #fff;
   border-radius: 16px;
-  padding: 12px;
+  padding: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  width: 100%; /* по ширине экрана */
+  max-width: 480px; /* но не больше 480px */
+  box-sizing: border-box; /* чтобы padding учитывался в ширину */
 }
 
 .modal__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .modal__title {
@@ -343,9 +349,10 @@
   cursor: pointer;
 }
 
+/* форма и поля */
 .form__group {
   display: block;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .form__label {
@@ -363,12 +370,14 @@
   font-size: 14px;
   outline: none;
   background: #fff;
+  box-sizing: border-box; /* чтобы padding не ломал ширину */
 }
 
 .textarea {
   resize: vertical;
 }
 
+/* превью картинок */
 .previews {
   display: flex;
   gap: 8px;
@@ -391,9 +400,10 @@
      object-fit: cover;
 }
 
+/* кнопки */
 .form__actions {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-  margin-top: 14px;
+  margin-top: 16px;
 }/*# sourceMappingURL=Admin.css.map */
