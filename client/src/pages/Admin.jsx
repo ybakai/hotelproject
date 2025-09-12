@@ -471,7 +471,7 @@ export default function Admin() {
       return (
         <div style={{ padding: 20 }}>
           <AdminCalendar
-            months={2}
+            months={1}
             bookedRanges={bookedRanges}
             selected={range}
             onSelectRange={setRange}
