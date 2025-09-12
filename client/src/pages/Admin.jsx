@@ -1,7 +1,16 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { Home, Users, CalendarDays, UserCircle2, Building2 } from "lucide-react";
+import {
+  Home,
+  Users,
+  CalendarDays,
+  UserCircle2,
+  Building2,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./Admin.css";
+import AdminCalendar from "/src/components/calendarAdmin/CalendarAdmin.jsx";
+
+
 
 const API = "https://hotelproject-8cip.onrender.com";
 
@@ -54,7 +63,11 @@ function UsersTab() {
       .then(async (res) => {
         const text = await res.text();
         if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
-        try { return JSON.parse(text); } catch { return []; }
+        try {
+          return JSON.parse(text);
+        } catch {
+          return [];
+        }
       })
       .then((data) => {
         setUsers(Array.isArray(data) ? data : []);
@@ -72,7 +85,9 @@ function UsersTab() {
     const prev = users.slice();
     const key = user.id ?? user.phone ?? user.full_name;
     setSavingId(key);
-    setUsers((arr) => arr.map((u) => (u.id === user.id ? { ...u, status: nextStatus } : u)));
+    setUsers((arr) =>
+      arr.map((u) => (u.id === user.id ? { ...u, status: nextStatus } : u))
+    );
 
     try {
       const res = await fetch(`${API}/api/users/${user.id}/status`, {
@@ -95,7 +110,7 @@ function UsersTab() {
   };
 
   if (state.loading) return <div className="empty">Загрузка...</div>;
-  if (state.error)   return <div className="empty">Ошибка: {state.error}</div>;
+  if (state.error) return <div className="empty">Ошибка: {state.error}</div>;
   if (!users.length) return <div className="empty">Нет пользователей</div>;
 
   return (
@@ -117,9 +132,13 @@ function UsersTab() {
                 onChange={(e) => updateStatus(u, e.target.value)}
                 disabled={savingId === key}
               >
-                <option value="" disabled>Выбрать статус</option>
+                <option value="" disabled>
+                  Выбрать статус
+                </option>
                 {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                  <option key={s} value={s}>
+                    {STATUS_LABELS[s]}
+                  </option>
                 ))}
               </select>
             </div>
@@ -152,7 +171,9 @@ function ObjectsTab() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadObjects(); }, []);
+  useEffect(() => {
+    loadObjects();
+  }, []);
 
   const onSelectFiles = (e) => {
     setFiles(Array.from(e.target.files || []).slice(0, 6));
@@ -173,11 +194,11 @@ function ObjectsTab() {
 
     const fd = new FormData();
     fd.append("title", title.trim());
-    if (description.trim())   fd.append("description", description.trim());
-    if (ownerId)              fd.append("owner_id", ownerId);
-    if (ownerName.trim())     fd.append("owner_name", ownerName.trim());
-    if (ownerContact.trim())  fd.append("owner_contact", ownerContact.trim());
-    for (const f of files)    fd.append("images", f);
+    if (description.trim()) fd.append("description", description.trim());
+    if (ownerId) fd.append("owner_id", ownerId);
+    if (ownerName.trim()) fd.append("owner_name", ownerName.trim());
+    if (ownerContact.trim()) fd.append("owner_contact", ownerContact.trim());
+    for (const f of files) fd.append("images", f);
 
     try {
       const res = await fetch(`${API}/api/objects`, {
@@ -204,7 +225,11 @@ function ObjectsTab() {
       {/* панель сверху */}
       <div className="objects-toolbar">
         <div className="objects-title">Объекты</div>
-        <button className="btn-primary" type="button" onClick={() => setShowModal(true)}>
+        <button
+          className="btn-primary"
+          type="button"
+          onClick={() => setShowModal(true)}
+        >
           Добавить объект
         </button>
       </div>
@@ -223,13 +248,21 @@ function ObjectsTab() {
                   <img className="tile__img" src={o.images[0]} alt={o.title} />
                 </div>
               ) : (
-                <div className="tile__imgwrap tile__imgwrap--empty">Нет фото</div>
+                <div className="tile__imgwrap tile__imgwrap--empty">
+                  Нет фото
+                </div>
               )}
               <div className="tile__body">
                 <div className="tile__title">{o.title}</div>
-                {o.description ? <div className="tile__sub">{o.description}</div> : null}
-                {o.owner_name ? <div className="tile__sub">Владелец: {o.owner_name}</div> : null}
-                {o.owner_contact ? <div className="tile__sub">Контакт: {o.owner_contact}</div> : null}
+                {o.description ? (
+                  <div className="tile__sub">{o.description}</div>
+                ) : null}
+                {o.owner_name ? (
+                  <div className="tile__sub">Владелец: {o.owner_name}</div>
+                ) : null}
+                {o.owner_contact ? (
+                  <div className="tile__sub">Контакт: {o.owner_contact}</div>
+                ) : null}
               </div>
             </div>
           ))}
@@ -242,7 +275,13 @@ function ObjectsTab() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal__header">
               <div className="modal__title">Новый объект</div>
-              <button className="modal__close" type="button" onClick={() => setShowModal(false)}>✕</button>
+              <button
+                className="modal__close"
+                type="button"
+                onClick={() => setShowModal(false)}
+              >
+                ✕
+              </button>
             </div>
 
             <form className="form" onSubmit={onCreate}>
@@ -301,7 +340,13 @@ function ObjectsTab() {
 
               <label className="form__group">
                 <span className="form__label">Картинки (до 6)</span>
-                <input className="input" type="file" accept="image/*" multiple onChange={onSelectFiles} />
+                <input
+                  className="input"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={onSelectFiles}
+                />
               </label>
 
               {files.length > 0 && (
@@ -315,8 +360,16 @@ function ObjectsTab() {
               )}
 
               <div className="form__actions">
-                <button className="btn-secondary" type="button" onClick={() => setShowModal(false)}>Отмена</button>
-                <button className="btn-primary" type="submit">Создать</button>
+                <button
+                  className="btn-secondary"
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                >
+                  Отмена
+                </button>
+                <button className="btn-primary" type="submit">
+                  Создать
+                </button>
               </div>
             </form>
           </div>
@@ -370,6 +423,13 @@ function EmptyScreen({ title, note }) {
 export default function Admin() {
   const [page, setPage] = useState("manage");
   const [section, setSection] = useState("users");
+  const [range, setRange] = React.useState(); // { from?: Date, to?: Date }
+
+  // Пример: занятые «ночёвки» — [start, end)
+  const bookedRanges = [
+    { start: "2025-08-12", end: "2025-08-15" },
+    { start: "2025-08-20", end: "2025-08-23" },
+  ];
 
   const renderContent = () => {
     if (page === "manage") {
@@ -407,9 +467,25 @@ export default function Admin() {
       );
     }
     if (page === "calendar") {
-      return <EmptyScreen title="Календарь" note="Пока пусто — добавим расписание/бронь позже." />;
+      
+      return (
+        <div style={{ padding: 20 }}>
+          <AdminCalendar
+            months={2}
+            bookedRanges={bookedRanges}
+            selected={range}
+            onSelectRange={setRange}
+            readOnly={false}
+          />
+        </div>
+      );
     }
-    return <EmptyScreen title="Профиль" note="Здесь появится профиль администратора/пользователя." />;
+    return (
+      <EmptyScreen
+        title="Профиль"
+        note="Здесь появится профиль администратора/пользователя."
+      />
+    );
   };
 
   return (

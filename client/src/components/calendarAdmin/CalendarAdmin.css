@@ -1,0 +1,112 @@
+@charset "UTF-8";
+.admin-cal {
+  width: 100%;
+}
+
+.admin-cal__wrap {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff;
+}
+
+.admin-cal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.admin-cal__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.admin-cal__header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* DayPicker base size */
+.admin-cal__dp {
+  font-size: 14px;
+}
+
+/* Диапазон, занятый массивом bookedRanges */
+.admin-cal__range--booked {
+  background: #fde2e2 !important;
+  color: #7f1d1d !important;
+}
+
+/* Индивидуальные дни по метаданным */
+.admin-cal__day--booked {
+  background: #fff2f2;
+  color: #7f1d1d;
+  position: relative;
+}
+
+.admin-cal__day--blocked {
+  background: #eef2f7;
+  color: #334155;
+  position: relative;
+}
+
+/* Контент дня */
+.admin-cal__date {
+  display: block;
+  line-height: 20px;
+}
+
+.admin-cal__badge {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  font-size: 11px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: #e6f4ea;
+  color: #155724;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-cal__badge--icon {
+  background: #e2e8f0;
+  color: #334155;
+  min-width: 20px;
+}
+
+.admin-cal__badge--dot {
+  background: #fee2e2;
+  color: #991b1b;
+  min-width: 16px;
+}
+
+/* Hover/active для кликабельных дней */
+.rdp-day:not(.rdp-day_disabled):hover {
+  outline: 2px solid #dbeafe;
+}
+
+/* Footer */
+.admin-cal__footer {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.admin-cal__edit {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.admin-cal__edit:hover {
+  background: #eef2f7;
+}/*# sourceMappingURL=CalendarAdmin.css.map */
