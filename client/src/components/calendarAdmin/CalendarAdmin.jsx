@@ -1,7 +1,8 @@
 import React from "react";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
-import "/src/components/calendarAdmin/CalendarAdmin.css."; // styles ниже
+import "./CalendarAdmin.css";
+
 
 // helpers
 function toDate(iso) {
