@@ -88,12 +88,6 @@ function ObjectsList({ onOpen }) {
             {o.description ? (
               <div className="tile__sub">{o.description}</div>
             ) : null}
-            {o.owner_name ? (
-              <div className="tile__sub">Владелец: {o.owner_name}</div>
-            ) : null}
-            {o.owner_contact ? (
-              <div className="tile__sub">Контакт: {o.owner_contact}</div>
-            ) : null}
           </div>
         </button>
       ))}
