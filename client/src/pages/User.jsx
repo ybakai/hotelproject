@@ -136,7 +136,7 @@ function ObjectDetails({ obj, onBack }) {
       {/* 3) Календарь + кнопка */}
       <div style={{ marginTop: 12 }}>
         <AdminCalendar
-          months={2}
+          months={1}
           bookedRanges={[]}        // пока нет данных — пусто
           selected={range}
           onSelectRange={setRange}
