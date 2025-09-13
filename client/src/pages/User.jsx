@@ -71,13 +71,6 @@ export default function User() {
 
   return (
     <div className="user-page">
-      <header className="user-header">
-        <div className="user-card">
-          <h1 className="user-title">Вы вошли 👌</h1>
-          <p className="user-note">Это тестовая страница после логина</p>
-        </div>
-      </header>
-
       <main className="user-content">
         {renderContent()}
       </main>
