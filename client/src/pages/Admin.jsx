@@ -176,6 +176,16 @@ function ObjectsTab() {
 }
 
 /* -------------------- Bookings Tab -------------------- */
+function formatDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 function BookingsTab() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -217,37 +227,39 @@ function BookingsTab() {
   return (
     <div className="vstack-12">
       {bookings.map((b) => (
-        <div key={b.id} className="card">
-          <div className="card__col">
-            <div className="text-name">{b.user_name || "Пользователь"}</div>
-            <div className="text-sub">{b.object_title || "Объект"}</div>
-            <div className="text-sub">
-              {b.start_date} → {b.end_date}
+        <div key={b.id} className="booking-card">
+          <div className="booking-header">
+            {b.user_name || "Пользователь"}{" "}
+            {b.user_phone ? `(${b.user_phone})` : ""}
+          </div>
+          <div className="booking-sub">🏠 {b.object_title || "Объект"}</div>
+          <div className="booking-sub">
+            📅 {formatDate(b.start_date)} → {formatDate(b.end_date)}
+          </div>
+          <div className={`booking-status ${b.status}`}>
+            {b.status === "pending"
+              ? "⏳ Ожидает"
+              : b.status === "confirmed"
+              ? "✅ Подтверждено"
+              : "❌ Отклонено"}
+          </div>
+
+          {b.status === "pending" && (
+            <div className="booking-actions">
+              <button
+                className="btn-primary"
+                onClick={() => updateStatus(b.id, "confirmed")}
+              >
+                Подтвердить
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={() => updateStatus(b.id, "rejected")}
+              >
+                Отклонить
+              </button>
             </div>
-            <div className="text-sub">Статус: {b.status}</div>
-          </div>
-          <div className="hstack-8">
-            {b.status === "pending" ? (
-              <>
-                <button
-                  className="btn-primary"
-                  onClick={() => updateStatus(b.id, "confirmed")}
-                >
-                  ✅ Подтвердить
-                </button>
-                <button
-                  className="btn-secondary"
-                  onClick={() => updateStatus(b.id, "rejected")}
-                >
-                  ❌ Отклонить
-                </button>
-              </>
-            ) : (
-              <span className="tag">
-                {b.status === "confirmed" ? "Подтверждена" : "Отклонена"}
-              </span>
-            )}
-          </div>
+          )}
         </div>
       ))}
     </div>
@@ -303,11 +315,21 @@ export default function Admin() {
           <div className="mt-14">
             <AnimatePresence mode="wait">
               {section === "users" ? (
-                <motion.div key="users" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                <motion.div
+                  key="users"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                >
                   <UsersTab />
                 </motion.div>
               ) : (
-                <motion.div key="objects" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                <motion.div
+                  key="objects"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                >
                   <ObjectsTab />
                 </motion.div>
               )}

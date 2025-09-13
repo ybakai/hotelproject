@@ -222,6 +222,7 @@ app.post("/auth/login", async (req, res) => {
 });
 
 // POST /api/bookings — создать заявку на бронь
+// POST /api/bookings — создать заявку на бронь
 app.post("/api/bookings", async (req, res) => {
   try {
     const { objectId, startDate, endDate, guests = 1, note = null, userId } = req.body;
@@ -237,7 +238,7 @@ app.post("/api/bookings", async (req, res) => {
     `;
     const values = [objectId, userId, startDate, endDate, guests, note];
 
-    const { rows } = await pool.query(query, values); // 👈 у тебя pool, не db
+    const { rows } = await pool.query(query, values);
     res.status(201).json(rows[0]);
   } catch (err) {
     if (err.code === "23P01") {
@@ -254,6 +255,7 @@ app.get("/api/bookings", async (req, res) => {
     const q = await pool.query(
       `SELECT b.id, b.start_date, b.end_date, b.status,
               u.full_name AS user_name,
+              u.phone AS user_phone,
               o.title AS object_title
        FROM bookings b
        LEFT JOIN users u ON b.user_id = u.id
@@ -287,6 +289,7 @@ app.patch("/api/bookings/:id", async (req, res) => {
     res.status(500).json({ error: "server error" });
   }
 });
+
 
 
 
