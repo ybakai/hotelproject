@@ -102,10 +102,17 @@ function ObjectDetails({ obj, onBack }) {
       return;
     }
 
-    // ⚠️ временно userId берём из localStorage (например, после логина)
-    const loggedUser = JSON.parse(localStorage.getItem("user") || "{}");
-    if (!loggedUser.id) {
-      alert("Не найден userId — авторизуйтесь");
+    // userId берём из localStorage (сохраняется после логина)
+    const stored = localStorage.getItem("user");
+    let loggedUser = null;
+    try {
+      loggedUser = stored ? JSON.parse(stored) : null;
+    } catch {
+      loggedUser = null;
+    }
+
+    if (!loggedUser?.id) {
+      alert("❌ Не найден userId — сначала войдите");
       return;
     }
 
@@ -124,7 +131,7 @@ function ObjectDetails({ obj, onBack }) {
         }),
       });
 
-      if (res.status === 201) {
+      if (res.ok) {
         const booking = await res.json();
         alert(`✅ Заявка создана!\nID: ${booking.id}\nСтатус: ${booking.status}`);
       } else if (res.status === 409) {
