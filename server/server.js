@@ -221,6 +221,35 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
+// POST /api/bookings — создать заявку на бронь
+app.post("/api/bookings", async (req, res) => {
+  try {
+    const { objectId, startDate, endDate, guests = 1, note = null, userId } = req.body;
+
+    if (!objectId || !startDate || !endDate || !userId) {
+      return res.status(400).json({ error: "objectId, userId, startDate, endDate обязательны" });
+    }
+
+    const query = `
+      INSERT INTO bookings (object_id, user_id, status, start_date, end_date, guests, note)
+      VALUES ($1, $2, 'pending', $3, $4, $5, $6)
+      RETURNING *;
+    `;
+    const values = [objectId, userId, startDate, endDate, guests, note];
+
+    const { rows } = await pool.query(query, values); // 👈 у тебя pool, не db
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    if (err.code === "23P01") {
+      return res.status(409).json({ error: "Эти даты уже заняты" });
+    }
+    console.error("Error creating booking:", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+
+
 // ===== 404 & error handlers
 app.use((_req, res) => res.status(404).json({ error: "not_found" }));
 

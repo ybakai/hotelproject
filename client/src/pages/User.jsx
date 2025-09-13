@@ -1,13 +1,13 @@
-// User.jsx — простая фронт-модель без storage и без брони API
+// User.jsx
 import React from "react";
 import { Home, RefreshCw, UserCircle2 } from "lucide-react";
-import "./Admin.css"; // используем твои существующие стили
+import "./Admin.css";
 import AdminCalendar from "/src/components/calendarAdmin/CalendarAdmin.jsx";
 import "/src/components/calendarAdmin/CalendarAdmin.css";
 
 const API = "https://hotelproject-8cip.onrender.com";
 
-/* -------- Общая заглушка -------- */
+/* -------- Заглушка -------- */
 function EmptyScreen({ title, note }) {
   return (
     <div className="empty">
@@ -19,7 +19,7 @@ function EmptyScreen({ title, note }) {
   );
 }
 
-/* -------- Нижняя навигация -------- */
+/* -------- Нижнее меню -------- */
 function BottomNav({ current, onChange }) {
   const items = [
     { key: "objects", label: "Объекты", icon: <Home size={20} /> },
@@ -91,18 +91,54 @@ function ObjectsList({ onOpen }) {
   );
 }
 
-/* -------- Детали объекта (картинка → заголовок/описание → календарь → кнопка) -------- */
+/* -------- Детали объекта -------- */
 function ObjectDetails({ obj, onBack }) {
   const [range, setRange] = React.useState(); // { from, to }
+  const [loading, setLoading] = React.useState(false);
 
-  function handleBook() {
+  async function handleBook() {
     if (!range?.from || !range?.to) {
       alert("Выберите даты заезда и выезда");
       return;
     }
-    // Пока без API — просто показываем, что всё ок
+
+    // ⚠️ временно userId берём из localStorage (например, после логина)
+    const loggedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    if (!loggedUser.id) {
+      alert("Не найден userId — авторизуйтесь");
+      return;
+    }
+
     const iso = (d) => d.toISOString().slice(0, 10);
-    alert(`(MVP) Бронь: ${obj.title}\nс ${iso(range.from)} по ${iso(range.to)}`);
+
+    try {
+      setLoading(true);
+      const res = await fetch(`${API}/api/bookings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          objectId: obj.id,
+          userId: loggedUser.id, // 👈 id пользователя
+          startDate: iso(range.from),
+          endDate: iso(range.to),
+        }),
+      });
+
+      if (res.status === 201) {
+        const booking = await res.json();
+        alert(`✅ Заявка создана!\nID: ${booking.id}\nСтатус: ${booking.status}`);
+      } else if (res.status === 409) {
+        alert("❌ Эти даты уже заняты!");
+      } else {
+        const text = await res.text();
+        alert("Ошибка: " + text);
+      }
+    } catch (err) {
+      console.error("Booking error:", err);
+      alert("Сеть/сервер недоступны");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -116,7 +152,6 @@ function ObjectDetails({ obj, onBack }) {
         ← Назад
       </button>
 
-      {/* 1) Картинка */}
       {Array.isArray(obj.images) && obj.images[0] ? (
         <img
           src={obj.images[0]}
@@ -129,27 +164,29 @@ function ObjectDetails({ obj, onBack }) {
         </div>
       )}
 
-      {/* 2) Название и описание */}
       <h2 className="title" style={{ marginTop: 0 }}>{obj.title}</h2>
       {obj.description ? <p style={{ marginTop: 6 }}>{obj.description}</p> : null}
 
-      {/* 3) Календарь + кнопка */}
       <div style={{ marginTop: 12 }}>
         <AdminCalendar
           months={1}
-          bookedRanges={[]}        // пока нет данных — пусто
+          bookedRanges={[]} // пока пусто
           selected={range}
           onSelectRange={setRange}
           readOnly={false}
         />
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
-          <button className="btn-primary" type="button" onClick={handleBook}>
-            Забронировать
+          <button
+            className="btn-primary"
+            type="button"
+            onClick={handleBook}
+            disabled={loading}
+          >
+            {loading ? "Бронируем..." : "Забронировать"}
           </button>
         </div>
       </div>
 
-      {/* 4) Контакты (карта позже) */}
       <div style={{ marginTop: 16 }}>
         {obj.owner_name ? <div className="text-sub">Владелец: {obj.owner_name}</div> : null}
         {obj.owner_contact ? <div className="text-sub">Контакт: {obj.owner_contact}</div> : null}
@@ -158,7 +195,7 @@ function ObjectDetails({ obj, onBack }) {
   );
 }
 
-/* -------- User Page -------- */
+/* -------- Страница пользователя -------- */
 export default function User() {
   const [page, setPage] = React.useState("objects");
   const [openedObject, setOpenedObject] = React.useState(null);
