@@ -1,11 +1,13 @@
-// User.jsx
+// User.jsx — простая фронт-модель без storage и без брони API
 import React from "react";
 import { Home, RefreshCw, UserCircle2 } from "lucide-react";
-import "./Admin.css"; // используем существующие классы: .grid-2-12, .tile, .empty, .bottom и т.д.
+import "./Admin.css"; // используем твои существующие стили
+import AdminCalendar from "/src/components/calendarAdmin/CalendarAdmin.jsx";
+import "/src/components/calendarAdmin/CalendarAdmin.css";
 
 const API = "https://hotelproject-8cip.onrender.com";
 
-/* -------------------- Общая заглушка -------------------- */
+/* -------- Общая заглушка -------- */
 function EmptyScreen({ title, note }) {
   return (
     <div className="empty">
@@ -17,7 +19,7 @@ function EmptyScreen({ title, note }) {
   );
 }
 
-/* -------------------- Нижняя навигация -------------------- */
+/* -------- Нижняя навигация -------- */
 function BottomNav({ current, onChange }) {
   const items = [
     { key: "objects", label: "Объекты", icon: <Home size={20} /> },
@@ -45,12 +47,12 @@ function BottomNav({ current, onChange }) {
   );
 }
 
-/* -------------------- Список объектов -------------------- */
+/* -------- Список объектов -------- */
 function ObjectsList({ onOpen }) {
   const [objects, setObjects] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
 
-  const loadObjects = React.useCallback(() => {
+  React.useEffect(() => {
     setLoading(true);
     fetch(`${API}/api/objects`)
       .then((r) => r.json())
@@ -58,10 +60,6 @@ function ObjectsList({ onOpen }) {
       .catch((e) => console.error("objects load error:", e))
       .finally(() => setLoading(false));
   }, []);
-
-  React.useEffect(() => {
-    loadObjects();
-  }, [loadObjects]);
 
   if (loading) return <div className="empty">Загрузка…</div>;
   if (objects.length === 0) return <div className="empty">Объектов пока нет</div>;
@@ -85,9 +83,7 @@ function ObjectsList({ onOpen }) {
           )}
           <div className="tile__body">
             <div className="tile__title">{o.title}</div>
-            {o.description ? (
-              <div className="tile__sub">{o.description}</div>
-            ) : null}
+            {o.description ? <div className="tile__sub">{o.description}</div> : null}
           </div>
         </button>
       ))}
@@ -95,8 +91,20 @@ function ObjectsList({ onOpen }) {
   );
 }
 
-/* -------------------- Детали объекта -------------------- */
+/* -------- Детали объекта (картинка → заголовок/описание → календарь → кнопка) -------- */
 function ObjectDetails({ obj, onBack }) {
+  const [range, setRange] = React.useState(); // { from, to }
+
+  function handleBook() {
+    if (!range?.from || !range?.to) {
+      alert("Выберите даты заезда и выезда");
+      return;
+    }
+    // Пока без API — просто показываем, что всё ок
+    const iso = (d) => d.toISOString().slice(0, 10);
+    alert(`(MVP) Бронь: ${obj.title}\nс ${iso(range.from)} по ${iso(range.to)}`);
+  }
+
   return (
     <div style={{ padding: 16 }}>
       <button
@@ -108,43 +116,49 @@ function ObjectDetails({ obj, onBack }) {
         ← Назад
       </button>
 
-      <h2 className="title" style={{ marginTop: 0 }}>{obj.title}</h2>
-
-      {obj.description ? (
-        <p style={{ marginTop: 8 }}>{obj.description}</p>
-      ) : null}
-
-      {Array.isArray(obj.images) && obj.images.length > 0 ? (
-        <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr" }}>
-          {obj.images.map((src, i) => (
-            <img
-              key={i}
-              src={src}
-              alt={obj.title || `image ${i + 1}`}
-              style={{ width: "100%", borderRadius: 12 }}
-            />
-          ))}
-        </div>
+      {/* 1) Картинка */}
+      {Array.isArray(obj.images) && obj.images[0] ? (
+        <img
+          src={obj.images[0]}
+          alt={obj.title}
+          style={{ width: "100%", borderRadius: 12, marginBottom: 12 }}
+        />
       ) : (
-        <div className="tile__imgwrap tile__imgwrap--empty" style={{ marginTop: 8 }}>
+        <div className="tile__imgwrap tile__imgwrap--empty" style={{ marginBottom: 12 }}>
           Нет фото
         </div>
       )}
 
-      {/* Дополнительные поля, если есть */}
+      {/* 2) Название и описание */}
+      <h2 className="title" style={{ marginTop: 0 }}>{obj.title}</h2>
+      {obj.description ? <p style={{ marginTop: 6 }}>{obj.description}</p> : null}
+
+      {/* 3) Календарь + кнопка */}
       <div style={{ marginTop: 12 }}>
-        {obj.owner_name ? (
-          <div className="text-sub">Владелец: {obj.owner_name}</div>
-        ) : null}
-        {obj.owner_contact ? (
-          <div className="text-sub">Контакт: {obj.owner_contact}</div>
-        ) : null}
+        <AdminCalendar
+          months={2}
+          bookedRanges={[]}        // пока нет данных — пусто
+          selected={range}
+          onSelectRange={setRange}
+          readOnly={false}
+        />
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+          <button className="btn-primary" type="button" onClick={handleBook}>
+            Забронировать
+          </button>
+        </div>
+      </div>
+
+      {/* 4) Контакты (карта позже) */}
+      <div style={{ marginTop: 16 }}>
+        {obj.owner_name ? <div className="text-sub">Владелец: {obj.owner_name}</div> : null}
+        {obj.owner_contact ? <div className="text-sub">Контакт: {obj.owner_contact}</div> : null}
       </div>
     </div>
   );
 }
 
-/* -------------------- User Page -------------------- */
+/* -------- User Page -------- */
 export default function User() {
   const [page, setPage] = React.useState("objects");
   const [openedObject, setOpenedObject] = React.useState(null);
@@ -152,22 +166,12 @@ export default function User() {
   const renderContent = () => {
     if (page === "objects") {
       if (openedObject) {
-        return (
-          <ObjectDetails
-            obj={openedObject}
-            onBack={() => setOpenedObject(null)}
-          />
-        );
-        }
+        return <ObjectDetails obj={openedObject} onBack={() => setOpenedObject(null)} />;
+      }
       return <ObjectsList onOpen={setOpenedObject} />;
     }
     if (page === "exchange") {
-      return (
-        <EmptyScreen
-          title="Обмен домами"
-          note="Позже подключим логику обмена."
-        />
-      );
+      return <EmptyScreen title="Обмен домами" note="Позже подключим логику обмена." />;
     }
     return <EmptyScreen title="Профиль" note="Тут будет профиль пользователя." />;
   };
