@@ -424,7 +424,7 @@
 .booking-card .booking-header {
   font-weight: 600;
   font-size: 15px;
-  color: #f9fafb;
+  color: #111827;
 }
 
 .booking-card .booking-sub {
@@ -441,13 +441,11 @@
 }
 
 .booking-status.pending {
-  background: #facc15;
-  color: #000;
+  color: #111827;
 }
 
 .booking-status.confirmed {
-  background: #22c55e;
-  color: #fff;
+  color: #111827;
 }
 
 .booking-status.rejected {
