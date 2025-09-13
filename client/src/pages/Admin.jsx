@@ -57,7 +57,7 @@ function UsersTab() {
   const STATUS_OPTIONS = Object.keys(STATUS_LABELS);
 
   useEffect(() => {
-    fetch(`${API}/api/users`, { credentials: "include" })
+    fetch(`${API}/api/users`)
       .then((res) => res.json())
       .then((data) => {
         setUsers(Array.isArray(data) ? data : []);
@@ -82,7 +82,6 @@ function UsersTab() {
       const res = await fetch(`${API}/api/users/${user.id}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ status: nextStatus }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -111,7 +110,7 @@ function UsersTab() {
           <div className="hstack-8">
             <select
               className="select-pill"
-              value={STATUS_OPTIONS.includes(u.status) ? u.status : ""}
+              value={STATUS_OPTIONS.includes(String(u.status)) ? u.status : ""}
               onChange={(e) => updateStatus(u, e.target.value)}
               disabled={savingId === u.id}
             >
@@ -228,7 +227,7 @@ function BookingsTab() {
             <div className="text-sub">Статус: {b.status}</div>
           </div>
           <div className="hstack-8">
-            {b.status === "pending" && (
+            {b.status === "pending" ? (
               <>
                 <button
                   className="btn-primary"
@@ -243,6 +242,10 @@ function BookingsTab() {
                   ❌ Отклонить
                 </button>
               </>
+            ) : (
+              <span className="tag">
+                {b.status === "confirmed" ? "Подтверждена" : "Отклонена"}
+              </span>
             )}
           </div>
         </div>
@@ -316,7 +319,13 @@ export default function Admin() {
     if (page === "calendar") {
       return (
         <div style={{ padding: 20 }}>
-          <AdminCalendar months={1} bookedRanges={bookedRanges} selected={range} onSelectRange={setRange} readOnly={false} />
+          <AdminCalendar
+            months={1}
+            bookedRanges={bookedRanges}
+            selected={range}
+            onSelectRange={setRange}
+            readOnly={false}
+          />
         </div>
       );
     }

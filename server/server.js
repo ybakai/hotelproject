@@ -248,6 +248,47 @@ app.post("/api/bookings", async (req, res) => {
   }
 });
 
+// Получить все бронирования
+app.get("/api/bookings", async (req, res) => {
+  try {
+    const q = await pool.query(
+      `SELECT b.id, b.start_date, b.end_date, b.status,
+              u.full_name AS user_name,
+              o.title AS object_title
+       FROM bookings b
+       LEFT JOIN users u ON b.user_id = u.id
+       LEFT JOIN objects o ON b.object_id = o.id
+       ORDER BY b.created_at DESC`
+    );
+    res.json(q.rows);
+  } catch (err) {
+    console.error("Error loading bookings:", err);
+    res.status(500).json({ error: "server error" });
+  }
+});
+
+// Изменить статус брони
+app.patch("/api/bookings/:id", async (req, res) => {
+  try {
+    const { status } = req.body || {};
+    if (!["pending", "confirmed", "rejected"].includes(status)) {
+      return res.status(400).json({ error: "invalid status" });
+    }
+
+    const q = await pool.query(
+      `UPDATE bookings SET status = $1 WHERE id = $2 RETURNING *`,
+      [status, req.params.id]
+    );
+
+    if (q.rowCount === 0) return res.status(404).json({ error: "not found" });
+    res.json(q.rows[0]);
+  } catch (err) {
+    console.error("Error updating booking:", err);
+    res.status(500).json({ error: "server error" });
+  }
+});
+
+
 
 
 // ===== 404 & error handlers
