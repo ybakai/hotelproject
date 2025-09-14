@@ -5,6 +5,10 @@ import "./Admin.css";
 import AdminCalendar from "/src/components/calendarAdmin/CalendarAdmin.jsx";
 import "/src/components/calendarAdmin/CalendarAdmin.css";
 
+/* === ДОБАВИЛ: иконки для профиля/модалки === */
+import { ChevronRight, Globe, Bell, Shield, X } from "lucide-react";
+/* === /добавил === */
+
 const API = "https://hotelproject-8cip.onrender.com";
 
 /* -------- Заглушка -------- */
@@ -203,10 +207,116 @@ function ObjectDetails({ obj, user, onBack }) {
   );
 }
 
+/* === ДОБАВИЛ: простая модалка === */
+function Modal({ open, onClose, title, children }) {
+  if (!open) return null;
+  return (
+    <div className="modal__backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal__header">
+          <div className="modal__title">{title}</div>
+          <button className="modal__close" type="button" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+        <div className="modal__body">{children}</div>
+      </div>
+    </div>
+  );
+}
+/* === /добавил === */
+
+/* === ДОБАВИЛ: поле формы для профиля === */
+function Field({ label, children }) {
+  return (
+    <label className="form__group" style={{ marginBottom: 12 }}>
+      {label ? <span className="form__label">{label}</span> : null}
+      {children}
+    </label>
+  );
+}
+/* === /добавил === */
+
+/* === ДОБАВИЛ: список заявок пользователя для модалки === */
+function BookingsList({ userId }) {
+  const [loading, setLoading] = React.useState(true);
+  const [items, setItems] = React.useState([]);
+  const [error, setError] = React.useState("");
+
+  const fmt = (iso) =>
+    new Date(iso).toLocaleDateString("ru-RU", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+
+  const load = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await fetch(`${API}/api/bookings`);
+      const data = await res.json();
+      const arr = Array.isArray(data) ? data : [];
+      const mine = arr.filter((b) => Number(b.user_id) === Number(userId));
+      setItems(mine);
+    } catch (e) {
+      console.error(e);
+      setError("Не удалось загрузить заявки");
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  React.useEffect(() => {
+    load();
+  }, [load]);
+
+  if (loading) return <div className="empty">Загрузка…</div>;
+  if (error) return <div className="empty">Ошибка: {error}</div>;
+  if (!items.length) return <div className="empty">Заявок пока нет</div>;
+
+  return (
+    <div className="vstack-12">
+      <div className="hstack-8" style={{ justifyContent: "flex-end" }}>
+        <button className="btn-secondary" type="button" onClick={load}>
+          <RefreshCw size={16} style={{ marginRight: 6 }} />
+          Обновить
+        </button>
+      </div>
+
+      {items.map((b) => (
+        <div key={b.id} className="booking-card">
+          <div className="booking-header">{b.object_title || "Объект"}</div>
+          <div className="booking-sub">
+            📅 {fmt(b.start_date)} → {fmt(b.end_date)}
+          </div>
+          <div className={`booking-status ${b.status}`} style={{ marginTop: 6 }}>
+            {b.status === "pending"
+              ? "⏳ Ожидает подтверждения"
+              : b.status === "confirmed"
+              ? "✅ Подтверждено"
+              : "❌ Отклонено"}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+/* === /добавил === */
+
 /* -------- Страница пользователя -------- */
 export default function User({ user }) {
   const [page, setPage] = React.useState("objects");
   const [openedObject, setOpenedObject] = React.useState(null);
+
+  /* === ДОБАВИЛ: состояние профиля и модалки проверки заявки === */
+  const [fullName, setFullName] = React.useState(user?.full_name || "");
+  const [email, setEmail] = React.useState(user?.email || "");
+  const [phone, setPhone] = React.useState(user?.phone || "");
+  const [lang, setLang] = React.useState("ru");
+  const [notify, setNotify] = React.useState(true);
+  const [openCheck, setOpenCheck] = React.useState(false);
+  /* === /добавил === */
 
   const renderContent = () => {
     if (!user?.id) {
@@ -222,13 +332,167 @@ export default function User({ user }) {
     if (page === "exchange") {
       return <EmptyScreen title="Обмен домами" note="Позже подключим логику обмена." />;
     }
-    return <EmptyScreen title="Профиль" note={`Ваш ID: ${user.id}`} />;
+
+    /* === ЗАМЕНА ПРОФИЛЯ: вместо EmptyScreen рендерим экран профиля === */
+    return (
+      <div className="card" style={{ padding: 16, maxWidth: 520, marginInline: "auto" }}>
+        <div
+          className="title"
+          style={{
+            marginTop: 4,
+            marginBottom: 12,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <span>Профиль</span>
+          <span
+            style={{
+              fontSize: 12,
+              padding: "4px 8px",
+              background: "rgba(0,0,0,.06)",
+              borderRadius: 8,
+              opacity: 0.85,
+            }}
+          >
+            1/8
+          </span>
+        </div>
+
+        <Field>
+          <input
+            className="input"
+            placeholder="Иван Иванов"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+          />
+        </Field>
+
+        <Field>
+          <input
+            className="input"
+            placeholder="mail@demo.ru"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </Field>
+
+        <Field>
+          <input
+            className="input"
+            placeholder="+7 930 245 15 20"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+        </Field>
+
+        {/* Язык */}
+        <button
+          className="card"
+          type="button"
+          style={{
+            width: "100%",
+            padding: "12px 14px",
+            marginTop: 6,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            borderRadius: 12,
+          }}
+        >
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, fontWeight: 500 }}>
+            <Globe size={18} />
+            Язык
+          </div>
+          <div style={{ display: "inline-flex", alignItems: "center", opacity: 0.9 }}>
+            {lang === "ru" ? "Русский" : "English"}
+            <ChevronRight size={18} style={{ marginLeft: 8 }} />
+          </div>
+        </button>
+
+        {/* Уведомления */}
+        <div
+          className="card"
+          style={{
+            width: "100%",
+            padding: "12px 14px",
+            marginTop: 8,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            borderRadius: 12,
+          }}
+        >
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, fontWeight: 500 }}>
+            <Bell size={18} />
+            Уведомления
+          </div>
+          <div style={{ display: "inline-flex", alignItems: "center" }}>
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={notify}
+                onChange={(e) => setNotify(e.target.checked)}
+              />
+              <span className="slider" />
+            </label>
+          </div>
+        </div>
+
+        {/* Безопасность */}
+        <button
+          className="card"
+          type="button"
+          style={{
+            width: "100%",
+            padding: "12px 14px",
+            marginTop: 8,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            borderRadius: 12,
+          }}
+        >
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, fontWeight: 500 }}>
+            <Shield size={18} />
+            Безопасность
+          </div>
+          <div>
+            <ChevronRight size={18} />
+          </div>
+        </button>
+
+        {/* Проверка заявки */}
+        <div style={{ marginTop: 20 }}>
+          <button
+            className="btn-secondary"
+            type="button"
+            onClick={() => setOpenCheck(true)}
+            style={{ width: "100%" }}
+          >
+            Проверка заявки
+          </button>
+        </div>
+      </div>
+    );
+    /* === /замена === */
   };
 
   return (
     <div className="app" style={{ paddingBottom: 80 }}>
       <main className="container">{renderContent()}</main>
       <BottomNav current={page} onChange={setPage} />
+
+      {/* === ДОБАВИЛ: модалка «Проверка заявки» === */}
+      <Modal open={openCheck} onClose={() => setOpenCheck(false)} title="Мои заявки">
+        {user?.id ? (
+          <BookingsList userId={user.id} />
+        ) : (
+          <div className="empty">Войдите в аккаунт, чтобы видеть заявки</div>
+        )}
+      </Modal>
+      {/* === /добавил === */}
     </div>
   );
 }

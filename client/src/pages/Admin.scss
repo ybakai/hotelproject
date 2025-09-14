@@ -392,3 +392,40 @@ border-radius: 0px !important;
 .rdp-selected .rdp-day_button {
 border: none !important;
 }
+
+/* Тумблер уведомлений (если ещё нет) */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; inset: 0; border-radius: 999px;
+  background: rgba(255,255,255,.15); transition: .2s;
+}
+.slider:before {
+  content: ""; position: absolute; top: 3px; left: 3px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; transition: .2s;
+}
+.switch input:checked + .slider { background: #22c55e; }
+.switch input:checked + .slider:before { transform: translateX(18px); }
+
+/* Базовые стили модалки — у тебя они уже есть, на всякий случай: */
+.modal__backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: grid; place-items: center; z-index: 1000; }
+.modal { width: min(720px, 92vw); background: var(--surface, #111); color: var(--text, #fff); border-radius: 16px; border: 1px solid rgba(255,255,255,.1); box-shadow: 0 12px 40px rgba(0,0,0,.4); }
+.modal__header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.modal__title { font-weight: 600; }
+.modal__close { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; border: 1px solid rgba(255,255,255,.1); background: transparent; cursor: pointer; }
+.modal__body { padding: 16px; }
+
+/* Карточки заявок (если нет) */
+.booking-card { border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 12px; background: var(--surface, #111); }
+.booking-header { font-weight: 600; margin-bottom: 4px; }
+.booking-sub { opacity: .9; margin-top: 2px; }
+.booking-status { margin-top: 6px; font-weight: 600; }
+.booking-status.pending { color: #eab308; }
+.booking-status.confirmed { color: #22c55e; }
+.booking-status.rejected { color: #ef4444; }
