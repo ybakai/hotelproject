@@ -186,43 +186,19 @@ function formatDate(iso) {
   });
 }
 
-function BookingsTab({ onChange }) {
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
+function BookingsTab({ bookings, reload, updateStatus }) {
+  const [loading, setLoading] = useState(false);
 
-  async function loadBookings() {
+  async function changeStatus(id, status) {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/bookings`);
-      const data = await res.json();
-      setBookings(Array.isArray(data) ? data : []);
-      onChange?.(data.filter((b) => b.status === "confirmed"));
-    } catch (err) {
-      console.error("Ошибка загрузки броней:", err);
+      await updateStatus(id, status);
+      await reload();
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {
-    loadBookings();
-  }, []);
-
-  async function updateStatus(id, status) {
-    try {
-      const res = await fetch(`${API}/api/bookings/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      await loadBookings();
-    } catch (err) {
-      alert("Ошибка изменения статуса: " + err.message);
-    }
-  }
-
-  if (loading) return <div className="empty">Загрузка…</div>;
   if (!bookings.length) return <div className="empty">Броней пока нет</div>;
 
   return (
@@ -249,13 +225,15 @@ function BookingsTab({ onChange }) {
             <div className="booking-actions">
               <button
                 className="btn-primary"
-                onClick={() => updateStatus(b.id, "confirmed")}
+                onClick={() => changeStatus(b.id, "confirmed")}
+                disabled={loading}
               >
                 Подтвердить
               </button>
               <button
                 className="btn-secondary"
-                onClick={() => updateStatus(b.id, "rejected")}
+                onClick={() => changeStatus(b.id, "rejected")}
+                disabled={loading}
               >
                 Отклонить
               </button>
@@ -300,7 +278,37 @@ export default function Admin() {
   const [page, setPage] = useState("manage");
   const [section, setSection] = useState("users");
   const [range, setRange] = useState();
-  const [confirmedRanges, setConfirmedRanges] = useState([]);
+  const [bookings, setBookings] = useState([]);
+
+  async function loadBookings() {
+    try {
+      const res = await fetch(`${API}/api/bookings`);
+      const data = await res.json();
+      setBookings(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Ошибка загрузки броней:", err);
+    }
+  }
+
+  async function updateStatus(id, status) {
+    const res = await fetch(`${API}/api/bookings/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+  }
+
+  useEffect(() => {
+    loadBookings();
+  }, []);
+
+  const confirmedRanges = bookings
+    .filter((b) => b.status === "confirmed")
+    .map((b) => ({
+      start: b.start_date,
+      end: b.end_date,
+    }));
 
   const renderContent = () => {
     if (page === "manage") {
@@ -312,11 +320,21 @@ export default function Admin() {
           <div className="mt-14">
             <AnimatePresence mode="wait">
               {section === "users" ? (
-                <motion.div key="users" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                <motion.div
+                  key="users"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                >
                   <UsersTab />
                 </motion.div>
               ) : (
-                <motion.div key="objects" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                <motion.div
+                  key="objects"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                >
                   <ObjectsTab />
                 </motion.div>
               )}
@@ -330,10 +348,7 @@ export default function Admin() {
         <div style={{ padding: 20 }}>
           <AdminCalendar
             months={1}
-            bookedRanges={confirmedRanges.map((b) => ({
-              start: b.start_date,
-              end: b.end_date,
-            }))}
+            bookedRanges={confirmedRanges}
             selected={range}
             onSelectRange={setRange}
             readOnly={false}
@@ -342,7 +357,13 @@ export default function Admin() {
       );
     }
     if (page === "bookings") {
-      return <BookingsTab onChange={setConfirmedRanges} />;
+      return (
+        <BookingsTab
+          bookings={bookings}
+          reload={loadBookings}
+          updateStatus={updateStatus}
+        />
+      );
     }
     return null;
   };
