@@ -186,7 +186,7 @@ function formatDate(iso) {
   });
 }
 
-function BookingsTab() {
+function BookingsTab({ onBookingsChange }) {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -195,7 +195,9 @@ function BookingsTab() {
     try {
       const res = await fetch(`${API}/api/bookings`);
       const data = await res.json();
-      setBookings(Array.isArray(data) ? data : []);
+      const arr = Array.isArray(data) ? data : [];
+      setBookings(arr);
+      onBookingsChange?.(arr); // 👈 передаём список наверх в Admin
     } catch (err) {
       console.error("Ошибка загрузки броней:", err);
     } finally {
@@ -298,12 +300,16 @@ function BottomNav({ current, onChange }) {
 export default function Admin() {
   const [page, setPage] = useState("manage");
   const [section, setSection] = useState("users");
-  const [range, setRange] = React.useState();
+  const [range, setRange] = useState();
+  const [bookings, setBookings] = useState([]);
 
-  const bookedRanges = [
-    { start: "2025-08-12", end: "2025-08-15" },
-    { start: "2025-08-20", end: "2025-08-23" },
-  ];
+  // фильтруем только подтверждённые
+  const bookedRanges = bookings
+    .filter((b) => b.status === "confirmed")
+    .map((b) => ({
+      start: b.start_date,
+      end: b.end_date,
+    }));
 
   const renderContent = () => {
     if (page === "manage") {
@@ -346,13 +352,13 @@ export default function Admin() {
             bookedRanges={bookedRanges}
             selected={range}
             onSelectRange={setRange}
-            readOnly={false}
+            readOnly={true}
           />
         </div>
       );
     }
     if (page === "bookings") {
-      return <BookingsTab />;
+      return <BookingsTab onBookingsChange={setBookings} />;
     }
     return null;
   };
