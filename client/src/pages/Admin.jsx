@@ -186,7 +186,7 @@ function formatDate(iso) {
   });
 }
 
-function BookingsTab({ onStatusChange }) {
+function BookingsTab({ onChange }) {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -196,7 +196,7 @@ function BookingsTab({ onStatusChange }) {
       const res = await fetch(`${API}/api/bookings`);
       const data = await res.json();
       setBookings(Array.isArray(data) ? data : []);
-      onStatusChange(data); // передаём в Admin.jsx для календаря
+      onChange?.(data.filter((b) => b.status === "confirmed"));
     } catch (err) {
       console.error("Ошибка загрузки броней:", err);
     } finally {
@@ -299,15 +299,8 @@ function BottomNav({ current, onChange }) {
 export default function Admin() {
   const [page, setPage] = useState("manage");
   const [section, setSection] = useState("users");
-  const [range, setRange] = React.useState();
-  const [confirmedBookings, setConfirmedBookings] = useState([]);
-
-  const bookedRanges = confirmedBookings
-    .filter((b) => b.status === "confirmed")
-    .map((b) => ({
-      start: b.start_date.split("T")[0],
-      end: b.end_date.split("T")[0],
-    }));
+  const [range, setRange] = useState();
+  const [confirmedRanges, setConfirmedRanges] = useState([]);
 
   const renderContent = () => {
     if (page === "manage") {
@@ -319,21 +312,11 @@ export default function Admin() {
           <div className="mt-14">
             <AnimatePresence mode="wait">
               {section === "users" ? (
-                <motion.div
-                  key="users"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                >
+                <motion.div key="users" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
                   <UsersTab />
                 </motion.div>
               ) : (
-                <motion.div
-                  key="objects"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                >
+                <motion.div key="objects" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
                   <ObjectsTab />
                 </motion.div>
               )}
@@ -347,7 +330,10 @@ export default function Admin() {
         <div style={{ padding: 20 }}>
           <AdminCalendar
             months={1}
-            bookedRanges={bookedRanges}
+            bookedRanges={confirmedRanges.map((b) => ({
+              start: b.start_date,
+              end: b.end_date,
+            }))}
             selected={range}
             onSelectRange={setRange}
             readOnly={false}
@@ -356,7 +342,7 @@ export default function Admin() {
       );
     }
     if (page === "bookings") {
-      return <BookingsTab onStatusChange={setConfirmedBookings} />;
+      return <BookingsTab onChange={setConfirmedRanges} />;
     }
     return null;
   };
