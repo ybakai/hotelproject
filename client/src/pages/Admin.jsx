@@ -1,4 +1,3 @@
-// Admin.jsx
 import React, { useMemo, useState, useEffect } from "react";
 import {
   Home,
@@ -135,215 +134,43 @@ function UsersTab() {
 function ObjectsTab() {
   const [objects, setObjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [ownerId, setOwnerId] = useState("");
-  const [ownerName, setOwnerName] = useState("");
-  const [ownerContact, setOwnerContact] = useState("");
-  const [files, setFiles] = useState([]);
 
-  const loadObjects = () => {
-    setLoading(true);
+  useEffect(() => {
     fetch(`${API}/api/objects`)
       .then((r) => r.json())
       .then((data) => setObjects(Array.isArray(data) ? data : []))
       .catch((e) => console.error("objects load error:", e))
       .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    loadObjects();
   }, []);
 
-  const onSelectFiles = (e) => {
-    setFiles(Array.from(e.target.files || []).slice(0, 6));
-  };
-
-  const resetForm = () => {
-    setTitle("");
-    setDescription("");
-    setOwnerId("");
-    setOwnerName("");
-    setOwnerContact("");
-    setFiles([]);
-  };
-
-  const onCreate = async (e) => {
-    e.preventDefault();
-    if (!title.trim()) return alert("Введите название объекта");
-
-    const fd = new FormData();
-    fd.append("title", title.trim());
-    if (description.trim()) fd.append("description", description.trim());
-    if (ownerId) fd.append("owner_id", ownerId);
-    if (ownerName.trim()) fd.append("owner_name", ownerName.trim());
-    if (ownerContact.trim()) fd.append("owner_contact", ownerContact.trim());
-    for (const f of files) fd.append("images", f);
-
-    try {
-      const res = await fetch(`${API}/api/objects`, {
-        method: "POST",
-        body: fd,
-      });
-      if (!res.ok) {
-        const t = await res.text();
-        throw new Error(t || `HTTP ${res.status}`);
-      }
-      const created = await res.json();
-      setObjects((prev) => [created, ...prev]);
-      setShowModal(false);
-      resetForm();
-    } catch (err) {
-      console.error("Create object failed:", err);
-      alert("Не удалось создать объект");
-    }
-  };
+  if (loading) return <div className="empty">Загрузка…</div>;
+  if (!objects.length) return <div className="empty">Объектов пока нет</div>;
 
   return (
-    <div>
-      <div className="objects-toolbar">
-        <div className="objects-title">Объекты</div>
-        <button
-          className="btn-primary"
-          type="button"
-          onClick={() => setShowModal(true)}
-        >
-          Добавить объект
-        </button>
-      </div>
-
-      {loading ? (
-        <div className="empty">Загрузка…</div>
-      ) : objects.length === 0 ? (
-        <div className="empty">Объектов пока нет</div>
-      ) : (
-        <div className="grid-2-12">
-          {objects.map((o) => (
-            <div key={o.id} className="tile">
-              {Array.isArray(o.images) && o.images[0] ? (
-                <div className="tile__imgwrap">
-                  <img className="tile__img" src={o.images[0]} alt={o.title} />
-                </div>
-              ) : (
-                <div className="tile__imgwrap tile__imgwrap--empty">Нет фото</div>
-              )}
-              <div className="tile__body">
-                <div className="tile__title">{o.title}</div>
-                {o.description ? (
-                  <div className="tile__sub">{o.description}</div>
-                ) : null}
-                {o.owner_name ? (
-                  <div className="tile__sub">Владелец: {o.owner_name}</div>
-                ) : null}
-                {o.owner_contact ? (
-                  <div className="tile__sub">Контакт: {o.owner_contact}</div>
-                ) : null}
-              </div>
+    <div className="grid-2-12">
+      {objects.map((o) => (
+        <div key={o.id} className="tile">
+          {Array.isArray(o.images) && o.images[0] ? (
+            <div className="tile__imgwrap">
+              <img className="tile__img" src={o.images[0]} alt={o.title} />
             </div>
-          ))}
-        </div>
-      )}
-
-      {showModal && (
-        <div className="modal__backdrop" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal__header">
-              <div className="modal__title">Новый объект</div>
-              <button
-                className="modal__close"
-                type="button"
-                onClick={() => setShowModal(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <form className="form" onSubmit={onCreate}>
-              <label className="form__group">
-                <span className="form__label">Название *</span>
-                <input
-                  className="input"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                />
-              </label>
-
-              <label className="form__group">
-                <span className="form__label">Описание</span>
-                <textarea
-                  className="textarea"
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </label>
-
-              <label className="form__group">
-                <span className="form__label">Имя владельца</span>
-                <input
-                  className="input"
-                  value={ownerName}
-                  onChange={(e) => setOwnerName(e.target.value)}
-                />
-              </label>
-
-              <label className="form__group">
-                <span className="form__label">Контакт</span>
-                <input
-                  className="input"
-                  value={ownerContact}
-                  onChange={(e) => setOwnerContact(e.target.value)}
-                />
-              </label>
-
-              <label className="form__group">
-                <span className="form__label">ID владельца</span>
-                <input
-                  className="input"
-                  value={ownerId}
-                  onChange={(e) => setOwnerId(e.target.value)}
-                />
-              </label>
-
-              <label className="form__group">
-                <span className="form__label">Картинки (до 6)</span>
-                <input
-                  className="input"
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={onSelectFiles}
-                />
-              </label>
-
-              {files.length > 0 && (
-                <div className="previews">
-                  {files.map((f, i) => (
-                    <div key={i} className="preview">
-                      <img src={URL.createObjectURL(f)} alt={f.name} />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="form__actions">
-                <button
-                  className="btn-secondary"
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                >
-                  Отмена
-                </button>
-                <button className="btn-primary" type="submit">
-                  Создать
-                </button>
-              </div>
-            </form>
+          ) : (
+            <div className="tile__imgwrap tile__imgwrap--empty">Нет фото</div>
+          )}
+          <div className="tile__body">
+            <div className="tile__title">{o.title}</div>
+            {o.description ? (
+              <div className="tile__sub">{o.description}</div>
+            ) : null}
+            {o.owner_name ? (
+              <div className="tile__sub">Владелец: {o.owner_name}</div>
+            ) : null}
+            {o.owner_contact ? (
+              <div className="tile__sub">Контакт: {o.owner_contact}</div>
+            ) : null}
           </div>
         </div>
-      )}
+      ))}
     </div>
   );
 }
@@ -351,44 +178,24 @@ function ObjectsTab() {
 /* -------------------- Bookings Tab -------------------- */
 function formatDate(iso) {
   if (!iso) return "";
-  return new Date(iso).toLocaleDateString("ru-RU");
+  const d = new Date(iso);
+  return d.toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
-function BookingsTab() {
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  async function loadBookings() {
-    setLoading(true);
+function BookingsTab({ bookings, reload, updateStatus }) {
+  async function changeStatus(id, status) {
     try {
-      const res = await fetch(`${API}/api/bookings`);
-      const data = await res.json();
-      setBookings(Array.isArray(data) ? data : []);
+      await updateStatus(id, status);
+      await reload();
     } catch (err) {
-      console.error("Ошибка загрузки броней:", err);
-    } finally {
-      setLoading(false);
+      alert("Ошибка: " + err.message);
     }
   }
 
-  useEffect(() => {
-    loadBookings();
-  }, []);
-
-  async function updateStatus(id, status) {
-    try {
-      const res = await fetch(`${API}/api/bookings/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      await loadBookings();
-    } catch (err) {
-      alert("Ошибка изменения статуса: " + err.message);
-    }
-  }
-
-  if (loading) return <div className="empty">Загрузка…</div>;
   if (!bookings.length) return <div className="empty">Броней пока нет</div>;
 
   return (
@@ -396,19 +203,33 @@ function BookingsTab() {
       {bookings.map((b) => (
         <div key={b.id} className="booking-card">
           <div className="booking-header">
-            {b.user_name || "Пользователь"} {b.user_phone ? `(${b.user_phone})` : ""}
+            {b.user_name || "Пользователь"}{" "}
+            {b.user_phone ? `(${b.user_phone})` : ""}
           </div>
-          <div className="booking-sub">🏠 {b.object_title}</div>
+          <div className="booking-sub">🏠 {b.object_title || "Объект"}</div>
           <div className="booking-sub">
             📅 {formatDate(b.start_date)} → {formatDate(b.end_date)}
           </div>
-          <div className={`booking-status ${b.status}`}>{b.status}</div>
+          <div className={`booking-status ${b.status}`}>
+            {b.status === "pending"
+              ? "⏳ Ожидает"
+              : b.status === "confirmed"
+              ? "✅ Подтверждено"
+              : "❌ Отклонено"}
+          </div>
+
           {b.status === "pending" && (
             <div className="booking-actions">
-              <button className="btn-primary" onClick={() => updateStatus(b.id, "confirmed")}>
+              <button
+                className="btn-primary"
+                onClick={() => changeStatus(b.id, "confirmed")}
+              >
                 Подтвердить
               </button>
-              <button className="btn-secondary" onClick={() => updateStatus(b.id, "rejected")}>
+              <button
+                className="btn-secondary"
+                onClick={() => changeStatus(b.id, "rejected")}
+              >
                 Отклонить
               </button>
             </div>
@@ -454,16 +275,36 @@ export default function Admin() {
   const [range, setRange] = useState();
   const [bookings, setBookings] = useState([]);
 
+  async function loadBookings() {
+    try {
+      const res = await fetch(`${API}/api/bookings`);
+      const data = await res.json();
+      setBookings(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Ошибка загрузки броней:", err);
+    }
+  }
+
+  async function updateStatus(id, status) {
+    const res = await fetch(`${API}/api/bookings/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+  }
+
   useEffect(() => {
-    fetch(`${API}/api/bookings`)
-      .then((r) => r.json())
-      .then((data) => setBookings(Array.isArray(data) ? data : []))
-      .catch((e) => console.error("calendar bookings load error:", e));
+    loadBookings();
   }, []);
 
-  const bookedRanges = bookings
+  // confirmed → для календаря
+  const confirmedRanges = bookings
     .filter((b) => b.status === "confirmed")
-    .map((b) => ({ start: b.start_date, end: b.end_date }));
+    .map((b) => ({
+      start: b.start_date.split("T")[0], // YYYY-MM-DD
+      end: b.end_date.split("T")[0],
+    }));
 
   const renderContent = () => {
     if (page === "manage") {
@@ -475,11 +316,21 @@ export default function Admin() {
           <div className="mt-14">
             <AnimatePresence mode="wait">
               {section === "users" ? (
-                <motion.div key="users" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <motion.div
+                  key="users"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                >
                   <UsersTab />
                 </motion.div>
               ) : (
-                <motion.div key="objects" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <motion.div
+                  key="objects"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                >
                   <ObjectsTab />
                 </motion.div>
               )}
@@ -493,7 +344,7 @@ export default function Admin() {
         <div style={{ padding: 20 }}>
           <AdminCalendar
             months={1}
-            bookedRanges={bookedRanges}
+            bookedRanges={confirmedRanges}
             selected={range}
             onSelectRange={setRange}
             readOnly={true}
@@ -501,7 +352,15 @@ export default function Admin() {
         </div>
       );
     }
-    if (page === "bookings") return <BookingsTab />;
+    if (page === "bookings") {
+      return (
+        <BookingsTab
+          bookings={bookings}
+          reload={loadBookings}
+          updateStatus={updateStatus}
+        />
+      );
+    }
     return null;
   };
 
