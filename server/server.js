@@ -293,6 +293,87 @@ app.patch("/api/bookings/:id", async (req, res) => {
   }
 });
 
+// Обновить объект
+app.patch("/api/objects/:id", upload.array("images", 6), async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: "invalid id" });
+
+    // 1) текущая запись
+    const curQ = await pool.query(`SELECT * FROM objects WHERE id = $1`, [id]);
+    if (curQ.rowCount === 0) return res.status(404).json({ error: "not_found" });
+    const cur = curQ.rows[0];
+
+    // 2) поля из формы (multipart -> всё в строках)
+    const title = (req.body.title ?? cur.title)?.trim();
+    const description =
+      (req.body.description ?? cur.description)?.trim() || null;
+    const owner_name = (req.body.owner_name ?? cur.owner_name)?.trim() || null;
+    const owner_contact =
+      (req.body.owner_contact ?? cur.owner_contact)?.trim() || null;
+    const owner_id = req.body.owner_id
+      ? Number(req.body.owner_id)
+      : cur.owner_id ?? null;
+
+    // 3) обработка картинок
+    // существующий массив
+    let images = Array.isArray(cur.images) ? [...cur.images] : [];
+
+    // (опционально) список URL, которые нужно удалить — приходит как JSON-массив строк
+    // пример на фронте: fd.append("remove_images", JSON.stringify([url1, url2]))
+    if (req.body.remove_images) {
+      try {
+        const toRemove = JSON.parse(req.body.remove_images);
+        if (Array.isArray(toRemove) && toRemove.length) {
+          images = images.filter((u) => !toRemove.includes(u));
+        }
+      } catch (e) {
+        console.warn("remove_images parse error:", e);
+      }
+    }
+
+    // новые файлы -> заливаем в Cloudinary (если настроен)
+    if (Array.isArray(req.files) && req.files.length) {
+      if (cloudOK) {
+        for (const file of req.files) {
+          const uploaded = await new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              { folder: "hotel_objects" },
+              (err, result) => (err ? reject(err) : resolve(result))
+            );
+            stream.end(file.buffer);
+          });
+          images.push(uploaded.secure_url);
+        }
+      } else {
+        console.warn(
+          "Images provided, but Cloudinary is not configured — skipping upload."
+        );
+      }
+    }
+
+    // 4) апдейт в БД
+    const updQ = await pool.query(
+      `UPDATE objects
+         SET title = $1,
+             description = $2,
+             owner_id = $3,
+             owner_name = $4,
+             owner_contact = $5,
+             images = $6
+       WHERE id = $7
+       RETURNING id, owner_id, title, description, images, owner_name, owner_contact, created_at`,
+      [title, description, owner_id, owner_name, owner_contact, images, id]
+    );
+
+    res.json(updQ.rows[0]);
+  } catch (e) {
+    console.error("PATCH /api/objects/:id:", e);
+    res.status(500).json({ error: e.message || "Server error" });
+  }
+});
+
+
 
 
 
