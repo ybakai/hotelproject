@@ -379,7 +379,11 @@ background-color: black !important;
 color: var(--rdp-range_start-color);
 }
 
-.rdp-range_start .rdp-day_button {
-background-color: black !important;
+.rdp-range_end .rdp-day_button {
 color: var(--rdp-range_start-color);
+background-color: black !important;
+}
+
+.rdp-selected .rdp-day_button {
+border: none !important;
 }
