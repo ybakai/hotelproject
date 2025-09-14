@@ -188,7 +188,7 @@ function ObjectDetails({ obj, user, onBack }) {
           onSelectRange={setRange}
           readOnly={false}
         />
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>
           <button className="btn-primary" type="button" onClick={handleBook} disabled={loading}>
             {loading ? "Бронируем..." : "Забронировать"}
           </button>
