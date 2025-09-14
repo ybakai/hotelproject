@@ -456,4 +456,13 @@
   margin-top: 8px;
   display: flex;
   gap: 8px;
+}
+
+.rdp-chevron {
+  fill: black !important;
+}
+
+.rdp-range_start .rdp-day_button {
+  border-radius: 0px !important;
+  background-color: black !important;
 }/*# sourceMappingURL=Admin.css.map */

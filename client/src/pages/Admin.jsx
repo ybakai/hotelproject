@@ -347,7 +347,7 @@ export default function Admin() {
             bookedRanges={confirmedRanges}
             selected={range}
             onSelectRange={setRange}
-            readOnly={false}
+            readOnly={true}
           />
         </div>
       );
