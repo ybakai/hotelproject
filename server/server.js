@@ -255,14 +255,15 @@ app.get("/api/bookings", async (req, res) => {
   try {
     const q = await pool.query(
       `SELECT b.id, b.start_date, b.end_date, b.status,
-              b.object_id,  -- 👈 добавляем
-              u.full_name AS user_name,
-              u.phone AS user_phone,
-              o.title AS object_title
-       FROM bookings b
-       LEFT JOIN users u ON b.user_id = u.id
-       LEFT JOIN objects o ON b.object_id = o.id
-       ORDER BY b.created_at DESC`
+       b.object_id,
+       b.user_id,            -- ← добавить это поле
+       u.full_name AS user_name,
+       u.phone AS user_phone,
+       o.title AS object_title
+FROM bookings b
+LEFT JOIN users u ON b.user_id = u.id
+LEFT JOIN objects o ON b.object_id = o.id
+ORDER BY b.created_at DESC;`
     );
     res.json(q.rows);
   } catch (err) {
