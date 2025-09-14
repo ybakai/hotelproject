@@ -95,23 +95,23 @@ function ObjectsList({ onOpen }) {
 function ObjectDetails({ obj, user, onBack }) {
   const [range, setRange] = React.useState(); // { from, to }
   const [loading, setLoading] = React.useState(false);
-  const [bookedRanges, setBookedRanges] = React.useState([]); // ✅ подсветка броней
+  const [bookedRanges, setBookedRanges] = React.useState([]);
 
-  // Загружаем подтверждённые брони для объекта
+  // Загружаем брони для этого объекта
   React.useEffect(() => {
     async function loadBookings() {
       try {
         const res = await fetch(`${API}/api/bookings`);
         const data = await res.json();
-        if (Array.isArray(data)) {
-          const confirmed = data
-            .filter((b) => b.object_id === obj.id && b.status === "confirmed")
-            .map((b) => ({
-              start: b.start_date,
-              end: b.end_date,
-            }));
-          setBookedRanges(confirmed);
-        }
+        const confirmed = (Array.isArray(data) ? data : []).filter(
+          (b) => b.status === "confirmed" && b.object_id === obj.id
+        );
+        setBookedRanges(
+          confirmed.map((b) => ({
+            start: b.start_date,
+            end: b.end_date,
+          }))
+        );
       } catch (err) {
         console.error("Ошибка загрузки броней:", err);
       }
@@ -179,7 +179,7 @@ function ObjectDetails({ obj, user, onBack }) {
       <div style={{ marginTop: 12 }}>
         <AdminCalendar
           months={1}
-          bookedRanges={bookedRanges}   // ✅ теперь занятые даты подсвечиваются
+          bookedRanges={bookedRanges}   // 🔥 показываем подтверждённые брони
           selected={range}
           onSelectRange={setRange}
           readOnly={false}

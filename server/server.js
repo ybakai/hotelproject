@@ -250,10 +250,12 @@ app.post("/api/bookings", async (req, res) => {
 });
 
 // Получить все бронирования
+// Получить все бронирования
 app.get("/api/bookings", async (req, res) => {
   try {
     const q = await pool.query(
       `SELECT b.id, b.start_date, b.end_date, b.status,
+              b.object_id,  -- 👈 добавляем
               u.full_name AS user_name,
               u.phone AS user_phone,
               o.title AS object_title
@@ -268,6 +270,7 @@ app.get("/api/bookings", async (req, res) => {
     res.status(500).json({ error: "server error" });
   }
 });
+
 
 // Изменить статус брони
 app.patch("/api/bookings/:id", async (req, res) => {
