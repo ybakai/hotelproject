@@ -272,6 +272,46 @@ ORDER BY b.created_at DESC;`
   }
 });
 
+// Обновить профиль пользователя
+app.patch("/api/users/:id", async (req, res) => {
+  const { id } = req.params;
+  // Принимаем любые из полей; если какое-то не пришло — не трогаем его
+  let { full_name, email, phone } = req.body || {};
+
+  // Нормализация
+  if (typeof full_name === "string") full_name = full_name.trim();
+  if (typeof email === "string") email = email.trim().toLowerCase();
+  if (typeof phone === "string") phone = phone.trim();
+
+  try {
+    const q = await pool.query(
+      `UPDATE users SET
+         full_name = COALESCE($1, full_name),
+         email     = COALESCE($2, email),
+         phone     = COALESCE($3, phone)
+       WHERE id = $4
+       RETURNING id, email, full_name, phone, role, created_at`,
+      [
+        full_name ?? null,
+        email ?? null,
+        phone ?? null,
+        Number(id),
+      ]
+    );
+
+    if (q.rowCount === 0) return res.status(404).json({ error: "not_found" });
+    res.json(q.rows[0]);
+  } catch (e) {
+    // конфликт уникальности email и пр.
+    if (e.code === "23505") {
+      return res.status(409).json({ error: "email already exists" });
+    }
+    console.error("PATCH /api/users/:id:", e);
+    res.status(500).json({ error: "server error" });
+  }
+});
+
+
 
 // Изменить статус брони
 app.patch("/api/bookings/:id", async (req, res) => {
