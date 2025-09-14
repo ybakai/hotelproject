@@ -130,18 +130,30 @@ function UsersTab() {
   );
 }
 
-/* -------------------- Objects Tab (с твоей модалкой добавления) -------------------- */
+/* -------------------- Objects Tab (создание + редактирование) -------------------- */
 function ObjectsTab() {
   const [objects, setObjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [showModal, setShowModal] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [ownerId, setOwnerId] = useState("");
-  const [ownerName, setOwnerName] = useState("");
-  const [ownerContact, setOwnerContact] = useState("");
-  const [files, setFiles] = useState([]); // File[]
+  // создание
+  const [showCreate, setShowCreate] = useState(false);
+  const [cTitle, setCTitle] = useState("");
+  const [cDescription, setCDescription] = useState("");
+  const [cOwnerId, setCOwnerId] = useState("");
+  const [cOwnerName, setCOwnerName] = useState("");
+  const [cOwnerContact, setCOwnerContact] = useState("");
+  const [cFiles, setCFiles] = useState([]); // File[]
+
+  // редактирование
+  const [showEdit, setShowEdit] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [eTitle, setETitle] = useState("");
+  const [eDescription, setEDescription] = useState("");
+  const [eOwnerId, setEOwnerId] = useState("");
+  const [eOwnerName, setEOwnerName] = useState("");
+  const [eOwnerContact, setEOwnerContact] = useState("");
+  const [eFiles, setEFiles] = useState([]); // новые картинки (опционально)
+  const [eImages, setEImages] = useState([]); // существующие ссылки (read-only превью)
 
   const loadObjects = () => {
     setLoading(true);
@@ -156,30 +168,31 @@ function ObjectsTab() {
     loadObjects();
   }, []);
 
-  const onSelectFiles = (e) => {
-    setFiles(Array.from(e.target.files || []).slice(0, 6));
+  /* ---- helpers for create ---- */
+  const onSelectCreateFiles = (e) => {
+    setCFiles(Array.from(e.target.files || []).slice(0, 6));
   };
 
-  const resetForm = () => {
-    setTitle("");
-    setDescription("");
-    setOwnerId("");
-    setOwnerName("");
-    setOwnerContact("");
-    setFiles([]);
+  const resetCreateForm = () => {
+    setCTitle("");
+    setCDescription("");
+    setCOwnerId("");
+    setCOwnerName("");
+    setCOwnerContact("");
+    setCFiles([]);
   };
 
   const onCreate = async (e) => {
     e.preventDefault();
-    if (!title.trim()) return alert("Введите название объекта");
+    if (!cTitle.trim()) return alert("Введите название объекта");
 
     const fd = new FormData();
-    fd.append("title", title.trim());
-    if (description.trim()) fd.append("description", description.trim());
-    if (ownerId) fd.append("owner_id", ownerId);
-    if (ownerName.trim()) fd.append("owner_name", ownerName.trim());
-    if (ownerContact.trim()) fd.append("owner_contact", ownerContact.trim());
-    for (const f of files) fd.append("images", f);
+    fd.append("title", cTitle.trim());
+    if (cDescription.trim()) fd.append("description", cDescription.trim());
+    if (cOwnerId) fd.append("owner_id", cOwnerId);
+    if (cOwnerName.trim()) fd.append("owner_name", cOwnerName.trim());
+    if (cOwnerContact.trim()) fd.append("owner_contact", cOwnerContact.trim());
+    for (const f of cFiles) fd.append("images", f);
 
     try {
       const res = await fetch(`${API}/api/objects`, {
@@ -192,11 +205,62 @@ function ObjectsTab() {
       }
       const created = await res.json();
       setObjects((prev) => [created, ...prev]);
-      setShowModal(false);
-      resetForm();
+      setShowCreate(false);
+      resetCreateForm();
     } catch (err) {
       console.error("Create object failed:", err);
       alert("Не удалось создать объект");
+    }
+  };
+
+  /* ---- helpers for edit ---- */
+  const openEdit = (obj) => {
+    setEditingId(obj.id);
+    setETitle(obj.title || "");
+    setEDescription(obj.description || "");
+    setEOwnerId(obj.owner_id || "");
+    setEOwnerName(obj.owner_name || "");
+    setEOwnerContact(obj.owner_contact || "");
+    setEFiles([]);
+    setEImages(Array.isArray(obj.images) ? obj.images : []);
+    setShowEdit(true);
+  };
+
+  const onSelectEditFiles = (e) => {
+    setEFiles(Array.from(e.target.files || []).slice(0, 6));
+  };
+
+  const onUpdate = async (e) => {
+    e.preventDefault();
+    if (!editingId) return;
+
+    const fd = new FormData();
+    fd.append("title", eTitle.trim());
+    if (eDescription?.trim()) fd.append("description", eDescription.trim());
+    if (eOwnerId) fd.append("owner_id", eOwnerId);
+    if (eOwnerName?.trim()) fd.append("owner_name", eOwnerName.trim());
+    if (eOwnerContact?.trim()) fd.append("owner_contact", eOwnerContact.trim());
+    // добавляем НОВЫЕ картинки (если выбраны)
+    for (const f of eFiles) fd.append("images", f);
+
+    try {
+      const res = await fetch(`${API}/api/objects/${editingId}`, {
+        method: "PATCH",
+        body: fd,
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || `HTTP ${res.status}`);
+      }
+      const updated = await res.json();
+      setObjects((prev) =>
+        prev.map((it) => (it.id === updated.id ? updated : it))
+      );
+      setShowEdit(false);
+      setEditingId(null);
+    } catch (err) {
+      console.error("Update object failed:", err);
+      alert("Не удалось обновить объект");
     }
   };
 
@@ -210,7 +274,7 @@ function ObjectsTab() {
         <button
           className="btn-primary"
           type="button"
-          onClick={() => setShowModal(true)}
+          onClick={() => setShowCreate(true)}
         >
           Добавить объект
         </button>
@@ -241,22 +305,32 @@ function ObjectsTab() {
                 {o.owner_contact ? (
                   <div className="tile__sub">Контакт: {o.owner_contact}</div>
                 ) : null}
+
+                <div className="hstack-8" style={{ marginTop: 8 }}>
+                  <button
+                    className="btn-secondary"
+                    type="button"
+                    onClick={() => openEdit(o)}
+                  >
+                    Редактировать
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* модалка */}
-      {showModal && (
-        <div className="modal__backdrop" onClick={() => setShowModal(false)}>
+      {/* ---- модалка СОЗДАНИЯ ---- */}
+      {showCreate && (
+        <div className="modal__backdrop" onClick={() => setShowCreate(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal__header">
               <div className="modal__title">Новый объект</div>
               <button
                 className="modal__close"
                 type="button"
-                onClick={() => setShowModal(false)}
+                onClick={() => setShowCreate(false)}
               >
                 ✕
               </button>
@@ -267,8 +341,8 @@ function ObjectsTab() {
                 <span className="form__label">Название *</span>
                 <input
                   className="input"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  value={cTitle}
+                  onChange={(e) => setCTitle(e.target.value)}
                   placeholder="Напр. Villa Fir"
                   required
                 />
@@ -279,8 +353,8 @@ function ObjectsTab() {
                 <textarea
                   className="textarea"
                   rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  value={cDescription}
+                  onChange={(e) => setCDescription(e.target.value)}
                   placeholder="Краткое описание"
                 />
               </label>
@@ -289,8 +363,8 @@ function ObjectsTab() {
                 <span className="form__label">Имя владельца</span>
                 <input
                   className="input"
-                  value={ownerName}
-                  onChange={(e) => setOwnerName(e.target.value)}
+                  value={cOwnerName}
+                  onChange={(e) => setCOwnerName(e.target.value)}
                   placeholder="Напр. Иван Иванов"
                 />
               </label>
@@ -299,8 +373,8 @@ function ObjectsTab() {
                 <span className="form__label">Контакт (телефон/email)</span>
                 <input
                   className="input"
-                  value={ownerContact}
-                  onChange={(e) => setOwnerContact(e.target.value)}
+                  value={cOwnerContact}
+                  onChange={(e) => setCOwnerContact(e.target.value)}
                   placeholder="+380 67 123 4567 или email"
                 />
               </label>
@@ -309,8 +383,8 @@ function ObjectsTab() {
                 <span className="form__label">ID владельца (опционально)</span>
                 <input
                   className="input"
-                  value={ownerId}
-                  onChange={(e) => setOwnerId(e.target.value)}
+                  value={cOwnerId}
+                  onChange={(e) => setCOwnerId(e.target.value)}
                   placeholder="id пользователя"
                   inputMode="numeric"
                 />
@@ -323,13 +397,13 @@ function ObjectsTab() {
                   type="file"
                   accept="image/*"
                   multiple
-                  onChange={onSelectFiles}
+                  onChange={onSelectCreateFiles}
                 />
               </label>
 
-              {files.length > 0 && (
+              {cFiles.length > 0 && (
                 <div className="previews">
-                  {files.map((f, i) => (
+                  {cFiles.map((f, i) => (
                     <div key={i} className="preview">
                       <img src={URL.createObjectURL(f)} alt={f.name} />
                     </div>
@@ -341,12 +415,128 @@ function ObjectsTab() {
                 <button
                   className="btn-secondary"
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => setShowCreate(false)}
                 >
                   Отмена
                 </button>
                 <button className="btn-primary" type="submit">
                   Создать
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ---- модалка РЕДАКТИРОВАНИЯ ---- */}
+      {showEdit && (
+        <div className="modal__backdrop" onClick={() => setShowEdit(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__header">
+              <div className="modal__title">Редактирование объекта</div>
+              <button
+                className="modal__close"
+                type="button"
+                onClick={() => setShowEdit(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form className="form" onSubmit={onUpdate}>
+              <label className="form__group">
+                <span className="form__label">Название *</span>
+                <input
+                  className="input"
+                  value={eTitle}
+                  onChange={(e) => setETitle(e.target.value)}
+                  required
+                />
+              </label>
+
+              <label className="form__group">
+                <span className="form__label">Описание</span>
+                <textarea
+                  className="textarea"
+                  rows={3}
+                  value={eDescription}
+                  onChange={(e) => setEDescription(e.target.value)}
+                />
+              </label>
+
+              <label className="form__group">
+                <span className="form__label">Имя владельца</span>
+                <input
+                  className="input"
+                  value={eOwnerName}
+                  onChange={(e) => setEOwnerName(e.target.value)}
+                />
+              </label>
+
+              <label className="form__group">
+                <span className="form__label">Контакт (телефон/email)</span>
+                <input
+                  className="input"
+                  value={eOwnerContact}
+                  onChange={(e) => setEOwnerContact(e.target.value)}
+                />
+              </label>
+
+              <label className="form__group">
+                <span className="form__label">ID владельца (опционально)</span>
+                <input
+                  className="input"
+                  value={eOwnerId}
+                  onChange={(e) => setEOwnerId(e.target.value)}
+                  inputMode="numeric"
+                />
+              </label>
+
+              {/* Превью текущих изображений (если есть) */}
+              {eImages?.length > 0 && (
+                <div className="form__group">
+                  <span className="form__label">Текущие изображения</span>
+                  <div className="previews">
+                    {eImages.map((url, i) => (
+                      <div key={i} className="preview">
+                        <img src={url} alt={`img-${i}`} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <label className="form__group">
+                <span className="form__label">Добавить новые картинки</span>
+                <input
+                  className="input"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={onSelectEditFiles}
+                />
+              </label>
+
+              {eFiles.length > 0 && (
+                <div className="previews">
+                  {eFiles.map((f, i) => (
+                    <div key={i} className="preview">
+                      <img src={URL.createObjectURL(f)} alt={f.name} />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="form__actions">
+                <button
+                  className="btn-secondary"
+                  type="button"
+                  onClick={() => setShowEdit(false)}
+                >
+                  Отмена
+                </button>
+                <button className="btn-primary" type="submit">
+                  Сохранить
                 </button>
               </div>
             </form>
