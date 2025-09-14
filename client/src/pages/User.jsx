@@ -314,7 +314,7 @@ export default function User({ user }) {
   const [notify, setNotify] = React.useState(true);
   const [openCheck, setOpenCheck] = React.useState(false);
 
-  // редактирование профиля — одна кнопка
+  // редактирование профиля — одна кнопка + отдельная "Сохранить"
   const [editing, setEditing] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
@@ -336,6 +336,8 @@ export default function User({ user }) {
         throw new Error(t || `HTTP ${res.status}`);
       }
       setEditing(false);
+      // опционально: можно показать тост/alert
+      // alert("Изменения сохранены");
     } catch (e) {
       console.error("save profile error:", e);
       alert("Не удалось сохранить профиль");
@@ -345,12 +347,9 @@ export default function User({ user }) {
   }
 
   const onEditClick = () => {
-    if (!editing) {
-      setEditing(true); // включаем редактирование
-    } else {
-      // при повторном нажатии сохраняем
-      saveProfile();
-    }
+    // одна кнопка «Изменить» в шапке: включает режим редактирования
+    // (сохранение теперь можно сделать и отдельной кнопкой ниже)
+    setEditing((v) => !v);
   };
 
   const renderContent = () => {
@@ -379,7 +378,7 @@ export default function User({ user }) {
             onClick={onEditClick}
             disabled={saving}
           >
-            {saving ? "Сохраняем..." : editing ? "Сохранить" : "Изменить"}
+            {editing ? "Готово" : "Изменить"}
           </button>
         </div>
 
@@ -425,7 +424,7 @@ export default function User({ user }) {
           </div>
         </button>
 
-        {/* Уведомления — локально переключается, не сохраняем на сервер сейчас */}
+        {/* Уведомления — локально переключаем, не сохраняем на сервер сейчас */}
         <div className="row-profile">
           <div className="row-profile__left">
             <Bell size={18} className="row-profile__icon" />
@@ -444,16 +443,17 @@ export default function User({ user }) {
           </div>
         </div>
 
-        {/* Безопасность — заглушка */}
-        <button className="row-profile" type="button" disabled>
-          <div className="row-profile__left">
-            <Shield size={18} className="row-profile__icon" />
-            Безопасность
-          </div>
-          <div className="row-profile__right">
-            <ChevronRight size={18} className="row-profile__chev" />
-          </div>
-        </button>
+        {/* КНОПКА СОХРАНИТЬ — СВЕРХУ НАД ЗАЯВКАМИ */}
+        <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+          <button
+            className="btn-primary"
+            type="button"
+            onClick={saveProfile}
+            disabled={saving || !editing}
+          >
+            {saving ? "Сохраняем..." : "Сохранить"}
+          </button>
+        </div>
 
         {/* Проверка заявки */}
         <div style={{ marginTop: 20 }}>
