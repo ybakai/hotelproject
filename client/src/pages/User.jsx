@@ -97,25 +97,29 @@ function ObjectDetails({ obj, user, onBack }) {
   const [loading, setLoading] = React.useState(false);
   const [bookedRanges, setBookedRanges] = React.useState([]);
 
-  // Загружаем брони для этого объекта
+  // Загружаем подтверждённые брони для текущего объекта
   React.useEffect(() => {
     async function loadBookings() {
       try {
         const res = await fetch(`${API}/api/bookings`);
         const data = await res.json();
+
         const confirmed = (Array.isArray(data) ? data : []).filter(
           (b) => b.status === "confirmed" && b.object_id === obj.id
         );
+
+        // нормализуем даты
         setBookedRanges(
           confirmed.map((b) => ({
-            start: b.start_date,
-            end: b.end_date,
+            start: b.start_date.slice(0, 10), // YYYY-MM-DD
+            end: b.end_date.slice(0, 10),     // YYYY-MM-DD
           }))
         );
       } catch (err) {
         console.error("Ошибка загрузки броней:", err);
       }
     }
+
     loadBookings();
   }, [obj.id]);
 
@@ -179,7 +183,7 @@ function ObjectDetails({ obj, user, onBack }) {
       <div style={{ marginTop: 12 }}>
         <AdminCalendar
           months={1}
-          bookedRanges={bookedRanges}   // 🔥 показываем подтверждённые брони
+          bookedRanges={bookedRanges}
           selected={range}
           onSelectRange={setRange}
           readOnly={false}
