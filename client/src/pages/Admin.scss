@@ -238,7 +238,8 @@ overflow-y: auto;   }
   border-radius: 16px;
   padding: 16px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-
+height: 80%;
+overflow-y: auto;
   width: 100%;          /* по ширине экрана */
   max-width: 480px;     /* но не больше 480px */
   box-sizing: border-box; /* чтобы padding учитывался в ширину */
