@@ -374,7 +374,14 @@ overflow-y: auto;   }
   fill:black !important;
 }
 
-.rdp-range_start .rdp-day_button{
+.rdp-range_start{
   border-radius: 0px !important;
   background-color: black !important;
+  border: none !important;
+}
+
+.rdp-day_button{
+  border-radius: 0px !important;
+  background-color: black !important;
+  border: none !important;
 }
