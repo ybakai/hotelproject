@@ -23,6 +23,15 @@ function EmptyScreen({ title, note }) {
   );
 }
 
+// helper: красиво форматируем площадь
+const fmtArea = (v) => {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return null;
+  const s = Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/,'');
+  return `${s} м²`;
+};
+
+
 /* -------- Нижнее меню -------- */
 function BottomNav({ current, onChange }) {
   const items = [
@@ -101,7 +110,6 @@ function ObjectDetails({ obj, user, onBack }) {
   const [loading, setLoading] = React.useState(false);
   const [bookedRanges, setBookedRanges] = React.useState([]);
 
-  // Загружаем подтверждённые брони для текущего объекта
   React.useEffect(() => {
     async function loadBookings() {
       try {
@@ -112,18 +120,16 @@ function ObjectDetails({ obj, user, onBack }) {
           (b) => b.status === "confirmed" && b.object_id === obj.id
         );
 
-        // нормализуем даты
         setBookedRanges(
           confirmed.map((b) => ({
-            start: b.start_date.slice(0, 10), // YYYY-MM-DD
-            end: b.end_date.slice(0, 10),     // YYYY-MM-DD
+            start: b.start_date.slice(0, 10),
+            end: b.end_date.slice(0, 10),
           }))
         );
       } catch (err) {
         console.error("Ошибка загрузки броней:", err);
       }
     }
-
     loadBookings();
   }, [obj.id]);
 
@@ -136,9 +142,7 @@ function ObjectDetails({ obj, user, onBack }) {
       alert("❌ Нет user.id — повторите вход");
       return;
     }
-
     const iso = (d) => d.toISOString().slice(0, 10);
-
     try {
       setLoading(true);
       const res = await fetch(`${API}/api/bookings`, {
@@ -169,6 +173,14 @@ function ObjectDetails({ obj, user, onBack }) {
     }
   }
 
+  // Собираем строку характеристик
+  const infoParts = [];
+  const areaStr = fmtArea(obj.area);
+  if (areaStr) infoParts.push(`Площадь: ${areaStr}`);
+  if (obj.rooms !== null && obj.rooms !== undefined && String(obj.rooms) !== "")
+    infoParts.push(`Комнат: ${obj.rooms}`);
+  if (obj.share) infoParts.push(`Доля: ${obj.share}`);
+
   return (
     <div style={{ padding: 16 }}>
       <button className="btn-secondary" type="button" onClick={onBack} style={{ marginBottom: 12 }}>
@@ -184,6 +196,14 @@ function ObjectDetails({ obj, user, onBack }) {
       <h2 className="title" style={{ marginTop: 0 }}>{obj.title}</h2>
       {obj.description ? <p style={{ marginTop: 6 }}>{obj.description}</p> : null}
 
+      {/* Новая строка: площадь • комнаты • доля */}
+      {infoParts.length > 0 && (
+        <div className="text-sub" style={{ marginTop: 8 }}>
+          {infoParts.join(" · ")}
+        </div>
+      )}
+
+      {/* Календарь */}
       <div style={{ marginTop: 12 }}>
         <AdminCalendar
           months={1}
@@ -199,13 +219,15 @@ function ObjectDetails({ obj, user, onBack }) {
         </div>
       </div>
 
+      {/* Контакты ниже календаря */}
       <div style={{ marginTop: 16 }}>
-        {obj.owner_name ? <div className="text-sub">Владелец: {obj.owner_name}</div> : null}
-        {obj.owner_contact ? <div className="text-sub">Контакт: {obj.owner_contact}</div> : null}
+        {obj.owner_name ? <div className="text-sub">Имя: {obj.owner_name}</div> : null}
+        {obj.owner_contact ? <div className="text-sub">Телефон/контакт: {obj.owner_contact}</div> : null}
       </div>
     </div>
   );
 }
+
 
 /* === Модалка === */
 function Modal({ open, onClose, title, children }) {
