@@ -548,6 +548,7 @@ function ObjectsTab() {
 }
 
 /* -------------------- Bookings Tab -------------------- */
+/* -------------------- Bookings Tab -------------------- */
 function formatDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -568,6 +569,22 @@ function BookingsTab({ bookings, reload, updateStatus }) {
     }
   }
 
+  async function deleteBooking(id) {
+    if (!id) return;
+    if (!confirm("Точно отменить и удалить эту бронь?")) return;
+    try {
+      const res = await fetch(`${API}/api/bookings/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || `HTTP ${res.status}`);
+      }
+      await reload(); // перечитать список и обновить календарь выше
+    } catch (err) {
+      console.error("delete booking error:", err);
+      alert("Не удалось удалить бронь");
+    }
+  }
+
   if (!bookings.length) return <div className="empty">Броней пока нет</div>;
 
   return (
@@ -575,37 +592,42 @@ function BookingsTab({ bookings, reload, updateStatus }) {
       {bookings.map((b) => (
         <div key={b.id} className="booking-card">
           <div className="booking-header">
-            {b.user_name || "Пользователь"}{" "}
-            {b.user_phone ? `(${b.user_phone})` : ""}
+            {b.user_name || "Пользователь"} {b.user_phone ? `(${b.user_phone})` : ""}
           </div>
           <div className="booking-sub">🏠 {b.object_title || "Объект"}</div>
-          <div className="booking-sub">
-            📅 {formatDate(b.start_date)} → {formatDate(b.end_date)}
-          </div>
+          <div className="booking-sub">📅 {formatDate(b.start_date)} → {formatDate(b.end_date)}</div>
+
           <div className={`booking-status ${b.status}`}>
             {b.status === "pending"
               ? "⏳ Ожидает"
               : b.status === "confirmed"
               ? "✅ Подтверждено"
+              : b.status === "cancelled"
+              ? "🚫 Отменена"
               : "❌ Отклонено"}
           </div>
 
           {b.status === "pending" && (
             <div className="booking-actions">
-              <button
-                className="btn-primary"
-                onClick={() => changeStatus(b.id, "confirmed")}
-              >
+              <button className="btn-primary" onClick={() => changeStatus(b.id, "confirmed")}>
                 Подтвердить
               </button>
-              <button
-                className="btn-secondary"
-                onClick={() => changeStatus(b.id, "rejected")}
-              >
+              <button className="btn-secondary" onClick={() => changeStatus(b.id, "rejected")}>
                 Отклонить
               </button>
             </div>
           )}
+
+          {/* Кнопка отмены/удаления — всегда доступна */}
+          <div className="booking-actions" style={{ marginTop: 8 }}>
+            <button
+              className="btn-secondary"
+              onClick={() => deleteBooking(b.id)}
+              style={{ background: "#fee2e2", color: "#991b1b" }} // легко заметный «опасный» вид
+            >
+              Отменить (удалить)
+            </button>
+          </div>
         </div>
       ))}
     </div>

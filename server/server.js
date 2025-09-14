@@ -311,6 +311,21 @@ app.patch("/api/users/:id", async (req, res) => {
   }
 });
 
+// Удалить бронирование
+app.delete("/api/bookings/:id", async (req, res) => {
+  try {
+    const q = await pool.query(
+      `DELETE FROM bookings WHERE id = $1 RETURNING id`,
+      [req.params.id]
+    );
+    if (q.rowCount === 0) return res.status(404).json({ error: "not_found" });
+    res.json({ ok: true, id: q.rows[0].id });
+  } catch (err) {
+    console.error("DELETE /api/bookings/:id:", err);
+    res.status(500).json({ error: "server error" });
+  }
+});
+
 
 
 // Изменить статус брони
