@@ -207,7 +207,7 @@ function ObjectDetails({ obj, user, onBack }) {
   );
 }
 
-/* === ДОБАВИЛ: простая модалка (можно переиспользовать твои modal__* стили) === */
+/* === Модалка === */
 function Modal({ open, onClose, title, children }) {
   if (!open) return null;
   return (
@@ -224,9 +224,8 @@ function Modal({ open, onClose, title, children }) {
     </div>
   );
 }
-/* === /добавил === */
 
-/* === ДОБАВИЛ: поле формы для профиля (использует твои form__* стили) === */
+/* === Поле формы === */
 function Field({ label, children }) {
   return (
     <label className="form__group" style={{ marginBottom: 12 }}>
@@ -235,9 +234,8 @@ function Field({ label, children }) {
     </label>
   );
 }
-/* === /добавил === */
 
-/* === ДОБАВИЛ: список заявок пользователя для модалки === */
+/* === Список заявок пользователя === */
 function BookingsList({ userId }) {
   const [loading, setLoading] = React.useState(true);
   const [items, setItems] = React.useState([]);
@@ -302,21 +300,58 @@ function BookingsList({ userId }) {
     </div>
   );
 }
-/* === /добавил === */
 
 /* -------- Страница пользователя -------- */
 export default function User({ user }) {
   const [page, setPage] = React.useState("objects");
   const [openedObject, setOpenedObject] = React.useState(null);
 
-  /* === ДОБАВИЛ: состояние профиля и модалки проверки заявки === */
+  // состояния профиля + модалка заявок
   const [fullName, setFullName] = React.useState(user?.full_name || "");
   const [email, setEmail] = React.useState(user?.email || "");
   const [phone, setPhone] = React.useState(user?.phone || "");
-  const [lang, setLang] = React.useState("ru");
+  const [lang] = React.useState("ru");
   const [notify, setNotify] = React.useState(true);
   const [openCheck, setOpenCheck] = React.useState(false);
-  /* === /добавил === */
+
+  // редактирование профиля — одна кнопка
+  const [editing, setEditing] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+
+  async function saveProfile() {
+    try {
+      setSaving(true);
+      const res = await fetch(`${API}/api/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // если используешь куки/сессии
+        body: JSON.stringify({
+          full_name: fullName?.trim() || null,
+          email: email?.trim() || null,
+          phone: phone?.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || `HTTP ${res.status}`);
+      }
+      setEditing(false);
+    } catch (e) {
+      console.error("save profile error:", e);
+      alert("Не удалось сохранить профиль");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const onEditClick = () => {
+    if (!editing) {
+      setEditing(true); // включаем редактирование
+    } else {
+      // при повторном нажатии сохраняем
+      saveProfile();
+    }
+  };
 
   const renderContent = () => {
     if (!user?.id) {
@@ -333,12 +368,19 @@ export default function User({ user }) {
       return <EmptyScreen title="Обмен домами" note="Позже подключим логику обмена." />;
     }
 
-    /* === ПРОФИЛЬ С УНИКАЛЬНЫМИ КЛАССАМИ === */
+    // ПРОФИЛЬ
     return (
       <div className="card-profile" style={{ maxWidth: 520, marginInline: "auto" }}>
         <div className="profile-header">
           <span className="profile-title">Профиль</span>
-          <span className="profile-step">1/8</span>
+          <button
+            className="btn-primary"
+            type="button"
+            onClick={onEditClick}
+            disabled={saving}
+          >
+            {saving ? "Сохраняем..." : editing ? "Сохранить" : "Изменить"}
+          </button>
         </div>
 
         <Field>
@@ -347,6 +389,7 @@ export default function User({ user }) {
             placeholder="Иван Иванов"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
+            disabled={!editing || saving}
           />
         </Field>
 
@@ -356,6 +399,7 @@ export default function User({ user }) {
             placeholder="mail@demo.ru"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            disabled={!editing || saving}
           />
         </Field>
 
@@ -365,11 +409,12 @@ export default function User({ user }) {
             placeholder="+7 930 245 15 20"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+            disabled={!editing || saving}
           />
         </Field>
 
-        {/* Язык */}
-        <button className="row-profile" type="button">
+        {/* Язык — просто информер сейчас */}
+        <button className="row-profile" type="button" disabled>
           <div className="row-profile__left">
             <Globe size={18} className="row-profile__icon" />
             Язык
@@ -380,7 +425,7 @@ export default function User({ user }) {
           </div>
         </button>
 
-        {/* Уведомления */}
+        {/* Уведомления — локально переключается, не сохраняем на сервер сейчас */}
         <div className="row-profile">
           <div className="row-profile__left">
             <Bell size={18} className="row-profile__icon" />
@@ -392,14 +437,15 @@ export default function User({ user }) {
                 type="checkbox"
                 checked={notify}
                 onChange={(e) => setNotify(e.target.checked)}
+                disabled={!editing || saving}
               />
               <span className="slider-profile" />
             </label>
           </div>
         </div>
 
-        {/* Безопасность */}
-        <button className="row-profile" type="button">
+        {/* Безопасность — заглушка */}
+        <button className="row-profile" type="button" disabled>
           <div className="row-profile__left">
             <Shield size={18} className="row-profile__icon" />
             Безопасность
@@ -422,7 +468,6 @@ export default function User({ user }) {
         </div>
       </div>
     );
-    /* === /профиль === */
   };
 
   return (
