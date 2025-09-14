@@ -117,9 +117,13 @@ app.get("/api/users/:id/objects", async (req, res) => {
   }
 });
 
+// СОЗДАТЬ объект
 app.post("/api/objects", upload.array("images", 6), async (req, res) => {
   try {
-    const { title, description, owner_id, owner_name, owner_contact } = req.body;
+    const {
+      title, description, owner_id, owner_name, owner_contact,
+      address, area, rooms, share
+    } = req.body;
 
     if (!title) return res.status(400).json({ error: "Title is required" });
 
@@ -139,10 +143,19 @@ app.post("/api/objects", upload.array("images", 6), async (req, res) => {
       console.warn("Images were sent but Cloudinary isn't configured — skipping upload.");
     }
 
+    const areaNum  = area !== undefined && area !== null && String(area).trim() !== "" ? Number(area) : null;
+    const roomsInt = rooms !== undefined && rooms !== null && String(rooms).trim() !== "" ? parseInt(rooms, 10) : null;
+
     const { rows } = await pool.query(
-      `INSERT INTO objects (owner_id, title, description, images, owner_name, owner_contact)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, owner_id, title, description, images, owner_name, owner_contact, created_at`,
+      `INSERT INTO objects (
+         owner_id, title, description, images,
+         owner_name, owner_contact,
+         address, area, rooms, share
+       )
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       RETURNING id, owner_id, title, description, images,
+                 owner_name, owner_contact,
+                 address, area, rooms, share, created_at`,
       [
         owner_id ? Number(owner_id) : null,
         title.trim(),
@@ -150,6 +163,10 @@ app.post("/api/objects", upload.array("images", 6), async (req, res) => {
         urls,
         owner_name?.trim() || null,
         owner_contact?.trim() || null,
+        address?.trim() || null,
+        Number.isFinite(areaNum) ? areaNum : null,
+        Number.isInteger(roomsInt) ? roomsInt : null,
+        share?.trim() || null,
       ]
     );
 
@@ -159,6 +176,7 @@ app.post("/api/objects", upload.array("images", 6), async (req, res) => {
     res.status(500).json({ error: e.message || "Server error" });
   }
 });
+
 
 // ===================== HEALTH & AUTH =====================
 app.get("/healthz", async (_req, res) => {
@@ -350,6 +368,7 @@ app.patch("/api/bookings/:id", async (req, res) => {
 });
 
 // Обновить объект
+// ОБНОВИТЬ объект
 app.patch("/api/objects/:id", upload.array("images", 6), async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -360,23 +379,30 @@ app.patch("/api/objects/:id", upload.array("images", 6), async (req, res) => {
     if (curQ.rowCount === 0) return res.status(404).json({ error: "not_found" });
     const cur = curQ.rows[0];
 
-    // 2) поля из формы (multipart -> всё в строках)
-    const title = (req.body.title ?? cur.title)?.trim();
-    const description =
-      (req.body.description ?? cur.description)?.trim() || null;
-    const owner_name = (req.body.owner_name ?? cur.owner_name)?.trim() || null;
-    const owner_contact =
-      (req.body.owner_contact ?? cur.owner_contact)?.trim() || null;
-    const owner_id = req.body.owner_id
-      ? Number(req.body.owner_id)
-      : cur.owner_id ?? null;
+    // 2) поля из формы (multipart)
+    const title         = (req.body.title ?? cur.title)?.trim();
+    const description   = (req.body.description ?? cur.description)?.trim() || null;
+    const owner_name    = (req.body.owner_name ?? cur.owner_name)?.trim() || null;
+    const owner_contact = (req.body.owner_contact ?? cur.owner_contact)?.trim() || null;
+    const owner_id      = req.body.owner_id ? Number(req.body.owner_id) : (cur.owner_id ?? null);
 
-    // 3) обработка картинок
-    // существующий массив
+    const address       = (req.body.address ?? cur.address)?.trim() || null;
+
+    const areaRaw       = req.body.area ?? cur.area;
+    const areaNum       = areaRaw === null || areaRaw === undefined || String(areaRaw).trim() === ""
+                            ? null
+                            : Number(areaRaw);
+
+    const roomsRaw      = req.body.rooms ?? cur.rooms;
+    const roomsInt      = roomsRaw === null || roomsRaw === undefined || String(roomsRaw).trim() === ""
+                            ? null
+                            : parseInt(roomsRaw, 10);
+
+    const share         = (req.body.share ?? cur.share)?.trim() || null;
+
+    // 3) изображения
     let images = Array.isArray(cur.images) ? [...cur.images] : [];
 
-    // (опционально) список URL, которые нужно удалить — приходит как JSON-массив строк
-    // пример на фронте: fd.append("remove_images", JSON.stringify([url1, url2]))
     if (req.body.remove_images) {
       try {
         const toRemove = JSON.parse(req.body.remove_images);
@@ -388,7 +414,6 @@ app.patch("/api/objects/:id", upload.array("images", 6), async (req, res) => {
       }
     }
 
-    // новые файлы -> заливаем в Cloudinary (если настроен)
     if (Array.isArray(req.files) && req.files.length) {
       if (cloudOK) {
         for (const file of req.files) {
@@ -402,24 +427,40 @@ app.patch("/api/objects/:id", upload.array("images", 6), async (req, res) => {
           images.push(uploaded.secure_url);
         }
       } else {
-        console.warn(
-          "Images provided, but Cloudinary is not configured — skipping upload."
-        );
+        console.warn("Images provided, but Cloudinary is not configured — skipping upload.");
       }
     }
 
-    // 4) апдейт в БД
+    // 4) апдейт
     const updQ = await pool.query(
       `UPDATE objects
-         SET title = $1,
-             description = $2,
-             owner_id = $3,
-             owner_name = $4,
+         SET title         = $1,
+             description   = $2,
+             owner_id      = $3,
+             owner_name    = $4,
              owner_contact = $5,
-             images = $6
-       WHERE id = $7
-       RETURNING id, owner_id, title, description, images, owner_name, owner_contact, created_at`,
-      [title, description, owner_id, owner_name, owner_contact, images, id]
+             address       = $6,
+             area          = $7,
+             rooms         = $8,
+             share         = $9,
+             images        = $10
+       WHERE id = $11
+       RETURNING id, owner_id, title, description, images,
+                 owner_name, owner_contact,
+                 address, area, rooms, share, created_at`,
+      [
+        title,
+        description,
+        owner_id,
+        owner_name,
+        owner_contact,
+        address,
+        Number.isFinite(areaNum) ? areaNum : null,
+        Number.isInteger(roomsInt) ? roomsInt : null,
+        share,
+        images,
+        id
+      ]
     );
 
     res.json(updQ.rows[0]);
@@ -428,6 +469,7 @@ app.patch("/api/objects/:id", upload.array("images", 6), async (req, res) => {
     res.status(500).json({ error: e.message || "Server error" });
   }
 });
+
 
 
 

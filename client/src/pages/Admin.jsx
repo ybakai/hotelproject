@@ -142,6 +142,10 @@ function ObjectsTab() {
   const [cOwnerId, setCOwnerId] = useState("");
   const [cOwnerName, setCOwnerName] = useState("");
   const [cOwnerContact, setCOwnerContact] = useState("");
+  const [cAddress, setCAddress] = useState("");
+  const [cArea, setCArea] = useState("");   // оставляем строкой
+  const [cRooms, setCRooms] = useState(""); // строкой
+  const [cShare, setCShare] = useState("");
   const [cFiles, setCFiles] = useState([]); // File[]
 
   // редактирование
@@ -152,6 +156,10 @@ function ObjectsTab() {
   const [eOwnerId, setEOwnerId] = useState("");
   const [eOwnerName, setEOwnerName] = useState("");
   const [eOwnerContact, setEOwnerContact] = useState("");
+  const [eAddress, setEAddress] = useState("");
+  const [eArea, setEArea] = useState("");
+  const [eRooms, setERooms] = useState("");
+  const [eShare, setEShare] = useState("");
   const [eFiles, setEFiles] = useState([]); // новые картинки (опционально)
   const [eImages, setEImages] = useState([]); // существующие ссылки (read-only превью)
 
@@ -179,6 +187,10 @@ function ObjectsTab() {
     setCOwnerId("");
     setCOwnerName("");
     setCOwnerContact("");
+    setCAddress("");
+    setCArea("");
+    setCRooms("");
+    setCShare("");
     setCFiles([]);
   };
 
@@ -192,6 +204,10 @@ function ObjectsTab() {
     if (cOwnerId) fd.append("owner_id", cOwnerId);
     if (cOwnerName.trim()) fd.append("owner_name", cOwnerName.trim());
     if (cOwnerContact.trim()) fd.append("owner_contact", cOwnerContact.trim());
+    if (cAddress.trim()) fd.append("address", cAddress.trim());
+    if (String(cArea).trim() !== "") fd.append("area", cArea);
+    if (String(cRooms).trim() !== "") fd.append("rooms", cRooms);
+    if (cShare.trim()) fd.append("share", cShare.trim());
     for (const f of cFiles) fd.append("images", f);
 
     try {
@@ -221,6 +237,10 @@ function ObjectsTab() {
     setEOwnerId(obj.owner_id || "");
     setEOwnerName(obj.owner_name || "");
     setEOwnerContact(obj.owner_contact || "");
+    setEAddress(obj.address || "");
+    setEArea(obj.area ?? "");     // число/null -> строка
+    setERooms(obj.rooms ?? "");
+    setEShare(obj.share || "");
     setEFiles([]);
     setEImages(Array.isArray(obj.images) ? obj.images : []);
     setShowEdit(true);
@@ -240,6 +260,10 @@ function ObjectsTab() {
     if (eOwnerId) fd.append("owner_id", eOwnerId);
     if (eOwnerName?.trim()) fd.append("owner_name", eOwnerName.trim());
     if (eOwnerContact?.trim()) fd.append("owner_contact", eOwnerContact.trim());
+    if (eAddress?.trim()) fd.append("address", eAddress.trim());
+    if (String(eArea).trim() !== "") fd.append("area", eArea);
+    if (String(eRooms).trim() !== "") fd.append("rooms", eRooms);
+    if (eShare?.trim()) fd.append("share", eShare.trim());
     // добавляем НОВЫЕ картинки (если выбраны)
     for (const f of eFiles) fd.append("images", f);
 
@@ -390,6 +414,55 @@ function ObjectsTab() {
                 />
               </label>
 
+              {/* новые поля */}
+              <label className="form__group">
+                <span className="form__label">Адрес</span>
+                <input
+                  className="input"
+                  value={cAddress}
+                  onChange={(e) => setCAddress(e.target.value)}
+                  placeholder="Город, улица, дом/квартал"
+                />
+              </label>
+
+              <label className="form__group">
+                <span className="form__label">Площадь (м²)</span>
+                <input
+                  className="input"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  inputMode="decimal"
+                  value={cArea}
+                  onChange={(e) => setCArea(e.target.value)}
+                  placeholder="Напр. 75.5"
+                />
+              </label>
+
+              <label className="form__group">
+                <span className="form__label">Комнаты</span>
+                <input
+                  className="input"
+                  type="number"
+                  step="1"
+                  min="0"
+                  inputMode="numeric"
+                  value={cRooms}
+                  onChange={(e) => setCRooms(e.target.value)}
+                  placeholder="Напр. 3"
+                />
+              </label>
+
+              <label className="form__group">
+                <span className="form__label">Доля</span>
+                <input
+                  className="input"
+                  value={cShare}
+                  onChange={(e) => setCShare(e.target.value)}
+                  placeholder="Напр. 1/2 или 50%"
+                />
+              </label>
+
               <label className="form__group">
                 <span className="form__label">Картинки (до 6)</span>
                 <input
@@ -492,6 +565,51 @@ function ObjectsTab() {
                 />
               </label>
 
+              {/* новые поля */}
+              <label className="form__group">
+                <span className="form__label">Адрес</span>
+                <input
+                  className="input"
+                  value={eAddress}
+                  onChange={(e) => setEAddress(e.target.value)}
+                />
+              </label>
+
+              <label className="form__group">
+                <span className="form__label">Площадь (м²)</span>
+                <input
+                  className="input"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  inputMode="decimal"
+                  value={eArea}
+                  onChange={(e) => setEArea(e.target.value)}
+                />
+              </label>
+
+              <label className="form__group">
+                <span className="form__label">Комнаты</span>
+                <input
+                  className="input"
+                  type="number"
+                  step="1"
+                  min="0"
+                  inputMode="numeric"
+                  value={eRooms}
+                  onChange={(e) => setERooms(e.target.value)}
+                />
+              </label>
+
+              <label className="form__group">
+                <span className="form__label">Доля</span>
+                <input
+                  className="input"
+                  value={eShare}
+                  onChange={(e) => setEShare(e.target.value)}
+                />
+              </label>
+
               {/* Превью текущих изображений (если есть) */}
               {eImages?.length > 0 && (
                 <div className="form__group">
@@ -548,7 +666,6 @@ function ObjectsTab() {
 }
 
 /* -------------------- Bookings Tab -------------------- */
-/* -------------------- Bookings Tab -------------------- */
 function formatDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -578,7 +695,7 @@ function BookingsTab({ bookings, reload, updateStatus }) {
         const t = await res.text();
         throw new Error(t || `HTTP ${res.status}`);
       }
-      await reload(); // перечитать список и обновить календарь выше
+      await reload();
     } catch (err) {
       console.error("delete booking error:", err);
       alert("Не удалось удалить бронь");
@@ -618,12 +735,11 @@ function BookingsTab({ bookings, reload, updateStatus }) {
             </div>
           )}
 
-          {/* Кнопка отмены/удаления — всегда доступна */}
           <div className="booking-actions" style={{ marginTop: 8 }}>
             <button
               className="btn-secondary"
               onClick={() => deleteBooking(b.id)}
-              style={{ background: "#fee2e2", color: "#991b1b" }} // легко заметный «опасный» вид
+              style={{ background: "#fee2e2", color: "#991b1b" }}
             >
               Отменить (удалить)
             </button>
@@ -692,11 +808,10 @@ export default function Admin() {
     loadBookings();
   }, []);
 
-  // confirmed → для календаря
   const confirmedRanges = bookings
     .filter((b) => b.status === "confirmed")
     .map((b) => ({
-      start: b.start_date.split("T")[0], // YYYY-MM-DD
+      start: b.start_date.split("T")[0],
       end: b.end_date.split("T")[0],
     }));
 
