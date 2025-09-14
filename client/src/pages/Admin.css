@@ -481,125 +481,114 @@
   border: none !important;
 }
 
-/* Тумблер уведомлений (если ещё нет) */
-.switch {
+/* === Профиль: уникальные классы, чтобы не конфликтовать с .card и др. === */
+.card-profile {
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--surface, #111);
+  color: var(--text, #fff);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Шапка профиля */
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 2px 0 12px 0;
+}
+
+.profile-title {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.profile-step {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  opacity: 0.9;
+}
+
+/* Кнопки-строки */
+.row-profile {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  margin-top: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface, #111);
+  color: var(--text, #fff);
+  text-align: left;
+  cursor: pointer;
+}
+
+.row-profile__left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.row-profile__right {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.9;
+}
+
+.row-profile__icon {
+  opacity: 0.9;
+}
+
+.row-profile__chev {
+  margin-left: 8px;
+  opacity: 0.7;
+}
+
+/* Переключатель уведомлений (уникальные классы) */
+.switch-profile {
   position: relative;
   display: inline-block;
   width: 42px;
   height: 24px;
 }
 
-.switch input {
+.switch-profile input {
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.slider {
+.slider-profile {
   position: absolute;
+  cursor: pointer;
   inset: 0;
-  border-radius: 999px;
   background: rgba(255, 255, 255, 0.15);
   transition: 0.2s;
+  border-radius: 999px;
 }
 
-.slider:before {
+.slider-profile:before {
   content: "";
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 18px;
   height: 18px;
-  border-radius: 50%;
+  width: 18px;
+  left: 3px;
+  top: 3px;
   background: #fff;
   transition: 0.2s;
+  border-radius: 50%;
 }
 
-.switch input:checked + .slider {
+.switch-profile input:checked + .slider-profile {
   background: #22c55e;
 }
 
-.switch input:checked + .slider:before {
+.switch-profile input:checked + .slider-profile:before {
   transform: translateX(18px);
-}
-
-/* Базовые стили модалки — у тебя они уже есть, на всякий случай: */
-.modal__backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: grid;
-  place-items: center;
-  z-index: 1000;
-}
-
-.modal {
-  width: min(720px, 92vw);
-  background: var(--surface, #111);
-  color: var(--text, #fff);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-}
-
-.modal__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.modal__title {
-  font-weight: 600;
-}
-
-.modal__close {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: transparent;
-  cursor: pointer;
-}
-
-.modal__body {
-  padding: 16px;
-}
-
-/* Карточки заявок (если нет) */
-.booking-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 12px;
-  background: var(--surface, #111);
-}
-
-.booking-header {
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.booking-sub {
-  opacity: 0.9;
-  margin-top: 2px;
-}
-
-.booking-status {
-  margin-top: 6px;
-  font-weight: 600;
-}
-
-.booking-status.pending {
-  color: #eab308;
-}
-
-.booking-status.confirmed {
-  color: #22c55e;
-}
-
-.booking-status.rejected {
-  color: #ef4444;
 }/*# sourceMappingURL=Admin.css.map */

@@ -207,7 +207,7 @@ function ObjectDetails({ obj, user, onBack }) {
   );
 }
 
-/* === ДОБАВИЛ: простая модалка === */
+/* === ДОБАВИЛ: простая модалка (можно переиспользовать твои modal__* стили) === */
 function Modal({ open, onClose, title, children }) {
   if (!open) return null;
   return (
@@ -226,7 +226,7 @@ function Modal({ open, onClose, title, children }) {
 }
 /* === /добавил === */
 
-/* === ДОБАВИЛ: поле формы для профиля === */
+/* === ДОБАВИЛ: поле формы для профиля (использует твои form__* стили) === */
 function Field({ label, children }) {
   return (
     <label className="form__group" style={{ marginBottom: 12 }}>
@@ -333,31 +333,12 @@ export default function User({ user }) {
       return <EmptyScreen title="Обмен домами" note="Позже подключим логику обмена." />;
     }
 
-    /* === ЗАМЕНА ПРОФИЛЯ: вместо EmptyScreen рендерим экран профиля === */
+    /* === ПРОФИЛЬ С УНИКАЛЬНЫМИ КЛАССАМИ === */
     return (
-      <div className="card" style={{ padding: 16, maxWidth: 520, marginInline: "auto" }}>
-        <div
-          className="title"
-          style={{
-            marginTop: 4,
-            marginBottom: 12,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <span>Профиль</span>
-          <span
-            style={{
-              fontSize: 12,
-              padding: "4px 8px",
-              background: "rgba(0,0,0,.06)",
-              borderRadius: 8,
-              opacity: 0.85,
-            }}
-          >
-            1/8
-          </span>
+      <div className="card-profile" style={{ maxWidth: 520, marginInline: "auto" }}>
+        <div className="profile-header">
+          <span className="profile-title">Профиль</span>
+          <span className="profile-step">1/8</span>
         </div>
 
         <Field>
@@ -388,78 +369,43 @@ export default function User({ user }) {
         </Field>
 
         {/* Язык */}
-        <button
-          className="card"
-          type="button"
-          style={{
-            width: "100%",
-            padding: "12px 14px",
-            marginTop: 6,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            borderRadius: 12,
-          }}
-        >
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, fontWeight: 500 }}>
-            <Globe size={18} />
+        <button className="row-profile" type="button">
+          <div className="row-profile__left">
+            <Globe size={18} className="row-profile__icon" />
             Язык
           </div>
-          <div style={{ display: "inline-flex", alignItems: "center", opacity: 0.9 }}>
+          <div className="row-profile__right">
             {lang === "ru" ? "Русский" : "English"}
-            <ChevronRight size={18} style={{ marginLeft: 8 }} />
+            <ChevronRight size={18} className="row-profile__chev" />
           </div>
         </button>
 
         {/* Уведомления */}
-        <div
-          className="card"
-          style={{
-            width: "100%",
-            padding: "12px 14px",
-            marginTop: 8,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            borderRadius: 12,
-          }}
-        >
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, fontWeight: 500 }}>
-            <Bell size={18} />
+        <div className="row-profile">
+          <div className="row-profile__left">
+            <Bell size={18} className="row-profile__icon" />
             Уведомления
           </div>
-          <div style={{ display: "inline-flex", alignItems: "center" }}>
-            <label className="switch">
+          <div className="row-profile__right">
+            <label className="switch-profile">
               <input
                 type="checkbox"
                 checked={notify}
                 onChange={(e) => setNotify(e.target.checked)}
               />
-              <span className="slider" />
+              <span className="slider-profile" />
             </label>
           </div>
         </div>
 
         {/* Безопасность */}
-        <button
-          className="card"
-          type="button"
-          style={{
-            width: "100%",
-            padding: "12px 14px",
-            marginTop: 8,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            borderRadius: 12,
-          }}
-        >
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, fontWeight: 500 }}>
-            <Shield size={18} />
+        <button className="row-profile" type="button">
+          <div className="row-profile__left">
+            <Shield size={18} className="row-profile__icon" />
             Безопасность
           </div>
-          <div>
-            <ChevronRight size={18} />
+          <div className="row-profile__right">
+            <ChevronRight size={18} className="row-profile__chev" />
           </div>
         </button>
 
@@ -476,7 +422,7 @@ export default function User({ user }) {
         </div>
       </div>
     );
-    /* === /замена === */
+    /* === /профиль === */
   };
 
   return (
@@ -484,7 +430,7 @@ export default function User({ user }) {
       <main className="container">{renderContent()}</main>
       <BottomNav current={page} onChange={setPage} />
 
-      {/* === ДОБАВИЛ: модалка «Проверка заявки» === */}
+      {/* Модалка «Проверка заявки» */}
       <Modal open={openCheck} onClose={() => setOpenCheck(false)} title="Мои заявки">
         {user?.id ? (
           <BookingsList userId={user.id} />
@@ -492,7 +438,6 @@ export default function User({ user }) {
           <div className="empty">Войдите в аккаунт, чтобы видеть заявки</div>
         )}
       </Modal>
-      {/* === /добавил === */}
     </div>
   );
 }
