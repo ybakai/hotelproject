@@ -95,6 +95,29 @@ function ObjectsList({ onOpen }) {
 function ObjectDetails({ obj, user, onBack }) {
   const [range, setRange] = React.useState(); // { from, to }
   const [loading, setLoading] = React.useState(false);
+  const [bookedRanges, setBookedRanges] = React.useState([]); // ✅ подсветка броней
+
+  // Загружаем подтверждённые брони для объекта
+  React.useEffect(() => {
+    async function loadBookings() {
+      try {
+        const res = await fetch(`${API}/api/bookings`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          const confirmed = data
+            .filter((b) => b.object_id === obj.id && b.status === "confirmed")
+            .map((b) => ({
+              start: b.start_date,
+              end: b.end_date,
+            }));
+          setBookedRanges(confirmed);
+        }
+      } catch (err) {
+        console.error("Ошибка загрузки броней:", err);
+      }
+    }
+    loadBookings();
+  }, [obj.id]);
 
   async function handleBook() {
     if (!range?.from || !range?.to) {
@@ -113,10 +136,9 @@ function ObjectDetails({ obj, user, onBack }) {
       const res = await fetch(`${API}/api/bookings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // credentials не нужен, так как мы шлём userId явно
         body: JSON.stringify({
           objectId: obj.id,
-          userId: user.id,        // ← ВНУТРЕННИЙ ID из БД, пришёл после логина
+          userId: user.id,
           startDate: iso(range.from),
           endDate: iso(range.to),
         }),
@@ -157,7 +179,7 @@ function ObjectDetails({ obj, user, onBack }) {
       <div style={{ marginTop: 12 }}>
         <AdminCalendar
           months={1}
-          bookedRanges={[]}   // подключим позже
+          bookedRanges={bookedRanges}   // ✅ теперь занятые даты подсвечиваются
           selected={range}
           onSelectRange={setRange}
           readOnly={false}
@@ -183,7 +205,6 @@ export default function User({ user }) {
   const [openedObject, setOpenedObject] = React.useState(null);
 
   const renderContent = () => {
-    // если почему-то сюда пришли без user (напр. прямой заход) — подсказка
     if (!user?.id) {
       return <EmptyScreen title="Не авторизованы" note="Войдите, чтобы оформить бронь." />;
     }
