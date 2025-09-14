@@ -187,15 +187,12 @@ function formatDate(iso) {
 }
 
 function BookingsTab({ bookings, reload, updateStatus }) {
-  const [loading, setLoading] = useState(false);
-
   async function changeStatus(id, status) {
-    setLoading(true);
     try {
       await updateStatus(id, status);
       await reload();
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      alert("Ошибка: " + err.message);
     }
   }
 
@@ -226,14 +223,12 @@ function BookingsTab({ bookings, reload, updateStatus }) {
               <button
                 className="btn-primary"
                 onClick={() => changeStatus(b.id, "confirmed")}
-                disabled={loading}
               >
                 Подтвердить
               </button>
               <button
                 className="btn-secondary"
                 onClick={() => changeStatus(b.id, "rejected")}
-                disabled={loading}
               >
                 Отклонить
               </button>
@@ -303,11 +298,12 @@ export default function Admin() {
     loadBookings();
   }, []);
 
+  // confirmed → для календаря
   const confirmedRanges = bookings
     .filter((b) => b.status === "confirmed")
     .map((b) => ({
-      start: b.start_date,
-      end: b.end_date,
+      start: b.start_date.split("T")[0], // YYYY-MM-DD
+      end: b.end_date.split("T")[0],
     }));
 
   const renderContent = () => {
