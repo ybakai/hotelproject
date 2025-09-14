@@ -186,6 +186,8 @@ overflow-y: auto;   }
 .objects-toolbar {
   display: flex;
   align-items: center;
+  flex-direction: column;
+  gap: 10px;
   justify-content: space-between;
   margin: 8px 0 14px;
 }
