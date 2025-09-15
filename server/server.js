@@ -1,4 +1,3 @@
-// server.js
 import express from "express";
 import cors from "cors";
 import multer from "multer";
@@ -17,7 +16,6 @@ const pool = new Pool({
 
 // ===== bootstrap schema (создаём exchanges, если нет)
 async function ensureSchema() {
-  // таблица exchanges для заявок на обмен
   await pool.query(`
     CREATE TABLE IF NOT EXISTS exchanges (
       id SERIAL PRIMARY KEY,
@@ -33,7 +31,6 @@ async function ensureSchema() {
       decided_at TIMESTAMPTZ
     );
   `);
-  // индексы на поиск
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_exchanges_user ON exchanges(user_id);`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_exchanges_status ON exchanges(status);`);
 }
@@ -52,10 +49,10 @@ const cloudOK = Boolean(
 );
 console.log("Cloudinary configured:", cloudOK);
 
-// ===== Multer (приём файлов в память)
+// ===== Multer
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 8 * 1024 * 1024 }, // 8 MB
+  limits: { fileSize: 8 * 1024 * 1024 },
 });
 
 // ===== middlewares
@@ -88,10 +85,7 @@ app.put("/api/users/:id/status", async (req, res) => {
   const { id } = req.params;
   let { status } = req.body || {};
   status = String(status || "").toLowerCase();
-
-  if (!ALLOWED.has(status)) {
-    return res.status(400).json({ error: "Invalid status" });
-  }
+  if (!ALLOWED.has(status)) return res.status(400).json({ error: "Invalid status" });
 
   try {
     const { rows } = await pool.query(
@@ -101,7 +95,6 @@ app.put("/api/users/:id/status", async (req, res) => {
        RETURNING id, full_name, phone, status`,
       [status, id]
     );
-
     if (!rows.length) return res.status(404).json({ error: "User not found" });
     res.json(rows[0]);
   } catch (e) {
@@ -117,7 +110,6 @@ app.get("/api/objects", async (req, res) => {
     const q = owner_id
       ? { text: `SELECT * FROM objects WHERE owner_id = $1 ORDER BY created_at DESC`, values: [Number(owner_id)] }
       : { text: `SELECT * FROM objects ORDER BY created_at DESC`, values: [] };
-
     const { rows } = await pool.query(q);
     res.json(rows);
   } catch (e) {
@@ -214,9 +206,7 @@ app.get("/healthz", async (_req, res) => {
 app.post("/auth/register", async (req, res) => {
   try {
     const { email, password, fullName, phone } = req.body || {};
-    if (!email || !password) {
-      return res.status(400).json({ error: "email and password required" });
-    }
+    if (!email || !password) return res.status(400).json({ error: "email and password required" });
 
     const q = await pool.query(
       `INSERT INTO users (email, password_hash, full_name, phone, role)
@@ -236,9 +226,7 @@ app.post("/auth/register", async (req, res) => {
 app.post("/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    if (!email || !password) {
-      return res.status(400).json({ error: "email and password required" });
-    }
+    if (!email || !password) return res.status(400).json({ error: "email and password required" });
 
     const q = await pool.query(
       `SELECT id, email, password_hash, full_name, phone, role, created_at
@@ -262,38 +250,40 @@ app.post("/auth/login", async (req, res) => {
 });
 
 // ===================== BOOKINGS =====================
-// создать бронь
+// создать бронь (фикс: явные date-касты и понятные ответы)
 app.post("/api/bookings", async (req, res) => {
   try {
-    const { objectId, startDate, endDate, guests = 1, note = null, userId } = req.body;
+    const { objectId, startDate, endDate, guests = 1, note = null, userId } = req.body || {};
 
     if (!objectId || !startDate || !endDate || !userId) {
       return res.status(400).json({ error: "objectId, userId, startDate, endDate обязательны" });
     }
 
-    // проверяем пересечения (pending/confirmed блокируют)
+    // проверяем пересечения: даты считаем как DATE
     const conflict = await pool.query(
-      `SELECT 1 FROM bookings 
-       WHERE object_id = $1 AND status IN ('pending','confirmed')
-         AND NOT ($4 < start_date OR $3 > end_date)
-       LIMIT 1`,
-      [objectId, userId, startDate, endDate]
+      `SELECT 1
+         FROM bookings
+        WHERE object_id = $1
+          AND status IN ('pending','confirmed')
+          AND NOT ($3::date > end_date OR $4::date < start_date)
+        LIMIT 1`,
+      [Number(objectId), Number(userId), startDate, endDate]
     );
     if (conflict.rowCount > 0) {
       return res.status(409).json({ error: "Эти даты уже заняты" });
     }
 
-    const query = `
-      INSERT INTO bookings (object_id, user_id, status, start_date, end_date, guests, note)
-      VALUES ($1, $2, 'pending', $3, $4, $5, $6)
-      RETURNING *;`;
-    const values = [objectId, userId, startDate, endDate, guests, note];
+    const ins = await pool.query(
+      `INSERT INTO bookings (object_id, user_id, status, start_date, end_date, guests, note)
+       VALUES ($1, $2, 'pending', $3::date, $4::date, $5, $6)
+       RETURNING *;`,
+      [Number(objectId), Number(userId), startDate, endDate, Number(guests), note]
+    );
 
-    const { rows } = await pool.query(query, values);
-    res.status(201).json(rows[0]);
+    res.status(201).json(ins.rows[0]);
   } catch (err) {
     console.error("Error creating booking:", err);
-    res.status(500).json({ error: "server_error" });
+    res.status(500).json({ error: err?.message || "server_error" });
   }
 });
 
@@ -350,7 +340,7 @@ app.patch("/api/bookings/:id", async (req, res) => {
 
 // ===================== EXCHANGES (обмен неделями) =====================
 
-// список обменов (для админки/истории). Можно фильтровать по user_id
+// список обменов (можно ?user_id=)
 app.get("/api/exchanges", async (req, res) => {
   try {
     const { user_id } = req.query;
@@ -367,9 +357,9 @@ app.get("/api/exchanges", async (req, res) => {
              obase.title  AS base_object_title,
              otarget.title AS target_object_title
       FROM exchanges e
-      LEFT JOIN bookings bo ON bo.id = e.base_booking_id
-      LEFT JOIN objects obase ON obase.id = bo.object_id
-      LEFT JOIN objects otarget ON otarget.id = e.target_object_id
+      LEFT JOIN bookings bo  ON bo.id = e.base_booking_id
+      LEFT JOIN objects  obase  ON obase.id  = bo.object_id
+      LEFT JOIN objects  otarget ON otarget.id = e.target_object_id
       ${where}
       ORDER BY e.created_at DESC
       `,
@@ -390,50 +380,39 @@ app.post("/api/exchanges", async (req, res) => {
       return res.status(400).json({ error: "userId, baseBookingId, targetObjectId, startDate, endDate обязательны" });
     }
 
-    // 1) исходная бронь
     const baseQ = await pool.query(
       `SELECT b.*, o.title AS base_object_title
-       FROM bookings b
-       LEFT JOIN objects o ON o.id = b.object_id
-       WHERE b.id = $1`,
+         FROM bookings b
+    LEFT JOIN objects  o ON o.id = b.object_id
+        WHERE b.id = $1`,
       [Number(baseBookingId)]
     );
     if (baseQ.rowCount === 0) return res.status(404).json({ error: "base booking not found" });
     const base = baseQ.rows[0];
-    if (Number(base.user_id) !== Number(userId))
-      return res.status(403).json({ error: "not owner of booking" });
-    if (base.status !== "confirmed")
-      return res.status(400).json({ error: "исходная бронь должна быть подтверждена" });
+    if (Number(base.user_id) !== Number(userId)) return res.status(403).json({ error: "not owner of booking" });
+    if (base.status !== "confirmed") return res.status(400).json({ error: "исходная бронь должна быть подтверждена" });
 
-    // 2) длина должна совпасть
     const baseNights = Math.max(1, Math.round((new Date(base.end_date) - new Date(base.start_date)) / 86400000));
-    const selNights = Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000));
-    if (baseNights !== selNights) {
-      return res.status(400).json({ error: `нужно выбрать ровно ${baseNights} ночей` });
-    }
+    const selNights  = Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000));
+    if (baseNights !== selNights) return res.status(400).json({ error: `нужно выбрать ровно ${baseNights} ночей` });
 
-    // 3) нельзя тот же самый дом
-    if (Number(base.object_id) === Number(targetObjectId)) {
+    if (Number(base.object_id) === Number(targetObjectId))
       return res.status(400).json({ error: "нужно выбрать другой дом" });
-    }
 
-    // 4) проверяем доступность целевого объекта
     const conflict = await pool.query(
       `SELECT 1 FROM bookings 
-       WHERE object_id = $1 AND status IN ('pending','confirmed')
-         AND NOT ($3 < start_date OR $2 > end_date)
-       LIMIT 1`,
-      [Number(targetObjectId), startDate, endDate]
+        WHERE object_id = $1
+          AND status IN ('pending','confirmed')
+          AND NOT ($3::date > end_date OR $4::date < start_date)
+        LIMIT 1`,
+      [Number(targetObjectId), Number(userId), startDate, endDate]
     );
-    if (conflict.rowCount > 0) {
-      return res.status(409).json({ error: "на выбранные даты дом занят" });
-    }
+    if (conflict.rowCount > 0) return res.status(409).json({ error: "на выбранные даты дом занят" });
 
-    // 5) создаём заявку
     const ins = await pool.query(
       `INSERT INTO exchanges
          (user_id, base_booking_id, target_object_id, start_date, end_date, nights, message, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,'pending')
+       VALUES ($1,$2,$3,$4::date,$5::date,$6,$7,'pending')
        RETURNING *`,
       [Number(userId), Number(baseBookingId), Number(targetObjectId), startDate, endDate, baseNights, message]
     );
@@ -441,12 +420,11 @@ app.post("/api/exchanges", async (req, res) => {
     res.status(201).json(ins.rows[0]);
   } catch (e) {
     console.error("POST /api/exchanges", e);
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({ error: e?.message || "server error" });
   }
 });
 
-// изменить статус обмена (approve / reject)
-// approve: переносим базовую бронь на новый объект и новые даты (в транзакции)
+// изменить статус обмена
 app.patch("/api/exchanges/:id", async (req, res) => {
   const client = await pool.connect();
   try {
@@ -479,7 +457,6 @@ app.patch("/api/exchanges/:id", async (req, res) => {
     }
 
     // approve
-    // блокируем исходную бронь
     const baseQ = await client.query(`SELECT * FROM bookings WHERE id = $1 FOR UPDATE`, [ex.base_booking_id]);
     if (baseQ.rowCount === 0) {
       await client.query("ROLLBACK");
@@ -487,14 +464,13 @@ app.patch("/api/exchanges/:id", async (req, res) => {
     }
     const base = baseQ.rows[0];
 
-    // проверяем, что даты свободны по целевому объекту на момент подтверждения
     const conflict = await client.query(
       `SELECT 1 FROM bookings 
-       WHERE object_id = $1 
-         AND id <> $2
-         AND status IN ('pending','confirmed')
-         AND NOT ($4 < start_date OR $3 > end_date)
-       LIMIT 1`,
+        WHERE object_id = $1 
+          AND id <> $2
+          AND status IN ('pending','confirmed')
+          AND NOT ($4::date > end_date OR $3::date < start_date)
+        LIMIT 1`,
       [ex.target_object_id, base.id, ex.start_date, ex.end_date]
     );
     if (conflict.rowCount > 0) {
@@ -502,24 +478,22 @@ app.patch("/api/exchanges/:id", async (req, res) => {
       return res.status(409).json({ error: "даты уже заняты, подтвердить невозможно" });
     }
 
-    // переносим бронь
     const updBooking = await client.query(
       `UPDATE bookings
-         SET object_id = $1,
-             start_date = $2,
-             end_date = $3,
-             status = 'confirmed'
-       WHERE id = $4
-       RETURNING *`,
+          SET object_id = $1,
+              start_date = $2::date,
+              end_date   = $3::date,
+              status     = 'confirmed'
+        WHERE id = $4
+        RETURNING *`,
       [ex.target_object_id, ex.start_date, ex.end_date, base.id]
     );
 
-    // закрываем запрос обмена
     const updEx = await client.query(
       `UPDATE exchanges
-         SET status='approved', decided_at=NOW()
-       WHERE id = $1
-       RETURNING *`,
+          SET status='approved', decided_at=NOW()
+        WHERE id = $1
+        RETURNING *`,
       [id]
     );
 
@@ -528,7 +502,7 @@ app.patch("/api/exchanges/:id", async (req, res) => {
   } catch (e) {
     await client.query("ROLLBACK");
     console.error("PATCH /api/exchanges/:id", e);
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({ error: e?.message || "server error" });
   } finally {
     client.release();
   }
@@ -555,9 +529,7 @@ app.patch("/api/users/:id", async (req, res) => {
     if (q.rowCount === 0) return res.status(404).json({ error: "not_found" });
     res.json(q.rows[0]);
   } catch (e) {
-    if (e.code === "23505") {
-      return res.status(409).json({ error: "email already exists" });
-    }
+    if (e.code === "23505") return res.status(409).json({ error: "email already exists" });
     console.error("PATCH /api/users/:id:", e);
     res.status(500).json({ error: "server error" });
   }
