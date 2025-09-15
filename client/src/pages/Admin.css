@@ -453,8 +453,7 @@
 }
 
 .booking-status.rejected {
-  background: #ef4444;
-  color: #fff;
+  color: rgba(39, 52, 59, 0.0588235294);
 }
 
 .booking-card .booking-actions {
