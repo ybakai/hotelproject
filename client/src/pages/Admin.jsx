@@ -34,6 +34,25 @@ const overlaps = (aStart, aEnd, bStart, bEnd) => {
   return !(new Date(aEnd) < new Date(bStart) || new Date(bEnd) < new Date(aStart));
 };
 
+// дата только с точностью до дня (без часового пояса)
+const toDateOnly = (dLike) => {
+  const d = dLike instanceof Date ? dLike : new Date(dLike);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+};
+
+// кол-во ночей между датами YYYY-MM-DD или ISO
+const nightsBetween = (startIso, endIso) => {
+  const ms = toDateOnly(endIso) - toDateOnly(startIso);
+  return Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24)));
+};
+
+// цвет "из id" (для цветной полоски слева)
+const colorFromId = (id) => {
+  const n = Number(id) || 0;
+  const hue = (n * 47) % 360;
+  return `hsl(${hue} 70% 45%)`;
+};
+
 /* -------------------- Segmented Toggle -------------------- */
 function SegmentedToggle({ value, onChange }) {
   const options = useMemo(
@@ -581,14 +600,16 @@ function ObjectsTab() {
                 />
               </label>
 
-              <label className="form__group">
-                <span className="form__label">Адрес</span>
-                <input
-                  className="input"
-                  value={eAddress}
-                  onChange={(e) => setEAddress(e.target.value)}
-                />
-              </label>
+              {eAddress !== undefined && (
+                <label className="form__group">
+                  <span className="form__label">Адрес</span>
+                  <input
+                    className="input"
+                    value={eAddress}
+                    onChange={(e) => setEAddress(e.target.value)}
+                  />
+                </label>
+              )}
 
               <label className="form__group">
                 <span className="form__label">Площадь (м²)</span>
@@ -826,104 +847,6 @@ function BookingsTab({
   );
 }
 
-/* -------------------- Панель под календарём -------------------- */
-function CalendarBookingsPanel({ bookings, selectedRange }) {
-  const [filter, setFilter] = useState("all"); // all | confirmed | pending
-
-  // отберём брони по фильтру статуса
-  let arr = bookings.filter((b) =>
-    filter === "all" ? true : b.status === filter
-  );
-
-  // если выбрана область в календаре — оставляем только пересекающиеся
-  if (selectedRange?.from && selectedRange?.to) {
-    const from = toYMD(selectedRange.from);
-    const to = toYMD(selectedRange.to);
-    arr = arr.filter((b) =>
-      overlaps(from, to, toYMD(b.start_date), toYMD(b.end_date))
-    );
-  }
-
-  // упорядочим по дате заезда
-  arr.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
-
-  return (
-    <div className="calendar-panel">
-      <div className="calendar-panel__hdr">
-        <div className="objects-title" style={{ margin: 0 }}>
-          Занятость
-        </div>
-        <div className="calendar-filter">
-          <button
-            type="button"
-            className={`chip ${filter === "all" ? "is-active" : ""}`}
-            onClick={() => setFilter("all")}
-            title="Показать все статусы"
-          >
-            Все
-          </button>
-          <button
-            type="button"
-            className={`chip ${filter === "confirmed" ? "is-active" : ""}`}
-            onClick={() => setFilter("confirmed")}
-            title="Только подтверждённые"
-          >
-            Подтверждённые
-          </button>
-          <button
-            type="button"
-            className={`chip ${filter === "pending" ? "is-active" : ""}`}
-            onClick={() => setFilter("pending")}
-            title="Только в ожидании"
-          >
-            В ожидании
-          </button>
-        </div>
-      </div>
-
-      {selectedRange?.from && selectedRange?.to ? (
-        <div className="text-sub" style={{ marginTop: 6 }}>
-          Диапазон: {fmtDate(selectedRange.from)} → {fmtDate(selectedRange.to)}
-        </div>
-      ) : (
-        <div className="text-sub" style={{ marginTop: 6 }}>
-          Совет: выделите даты в календаре, чтобы отфильтровать брони по периоду.
-        </div>
-      )}
-
-      {arr.length === 0 ? (
-        <div className="empty" style={{ marginTop: 8 }}>
-          Ничего не найдено для выбранных условий
-        </div>
-      ) : (
-        <div className="vstack-12" style={{ marginTop: 12 }}>
-          {arr.map((b) => (
-            <div key={b.id} className="booking-card">
-              <div className="booking-header">
-                {b.user_name || "Пользователь"}{" "}
-                {b.user_phone ? `(${b.user_phone})` : ""}
-              </div>
-              <div className="booking-sub">🏠 {b.object_title || "Объект"}</div>
-              <div className="booking-sub">
-                📅 {fmtDate(b.start_date)} → {fmtDate(b.end_date)}
-              </div>
-              <div className={`booking-status ${b.status}`} style={{ marginTop: 6 }}>
-                {b.status === "pending"
-                  ? "⏳ Ожидает"
-                  : b.status === "confirmed"
-                  ? "✅ Подтверждено"
-                  : b.status === "cancelled"
-                  ? "🚫 Отменена"
-                  : "❌ Отклонено"}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* -------------------- Bottom Nav -------------------- */
 function BottomNav({ current, onChange }) {
   const items = [
@@ -956,7 +879,7 @@ function BottomNav({ current, onChange }) {
 export default function Admin() {
   const [page, setPage] = useState("manage");
   const [section, setSection] = useState("users");
-  const [range, setRange] = useState();
+  const [range, setRange] = useState(); // {from: Date, to: Date}
 
   const [bookings, setBookings] = useState([]);
   const [exchanges, setExchanges] = useState([]);
@@ -1014,14 +937,6 @@ export default function Admin() {
     reloadAll();
   }, []);
 
-  // закрашиваем в календаре pending + confirmed
-  const busyRanges = bookings
-    .filter((b) => ["pending", "confirmed"].includes(b.status))
-    .map((b) => ({
-      start: toYMD(b.start_date),
-      end: toYMD(b.end_date),
-    }));
-
   const renderContent = () => {
     if (page === "manage") {
       return (
@@ -1057,6 +972,33 @@ export default function Admin() {
     }
 
     if (page === "calendar") {
+      // интервалы для закраски в календаре: pending + confirmed
+      const busyRanges = bookings
+        .filter((b) => ["pending", "confirmed"].includes(b.status))
+        .map((b) => ({
+          start: toYMD(b.start_date),
+          end: toYMD(b.end_date),
+        }));
+
+      // список для панели: либо пересекающиеся с выбранным диапазоном, либо ближайшие подтверждённые
+      const now = new Date();
+      const actual = bookings.filter(
+        (b) => toDateOnly(b.end_date) >= toDateOnly(now)
+      );
+
+      const list =
+        range?.from && range?.to
+          ? actual
+              .filter((b) => b.status !== "cancelled")
+              .filter((b) =>
+                overlaps(toYMD(range.from), toYMD(range.to), toYMD(b.start_date), toYMD(b.end_date))
+              )
+              .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+          : actual
+              .filter((b) => b.status === "confirmed")
+              .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+              .slice(0, 30);
+
       return (
         <div style={{ padding: 20 }}>
           <AdminCalendar
@@ -1064,11 +1006,95 @@ export default function Admin() {
             bookedRanges={busyRanges}
             selected={range}
             onSelectRange={setRange}
-            readOnly={true}
+            readOnly={false} // можно выделять диапазон
           />
 
-          {/* ПАНЕЛЬ НИЖЕ КАЛЕНДАРЯ */}
-          <CalendarBookingsPanel bookings={bookings} selectedRange={range} />
+          {/* НОВАЯ ПАНЕЛЬ из второго кода */}
+          <AnimatePresence initial={false} mode="wait">
+            <motion.div
+              key={range?.from ? "panel-selected" : "panel-upcoming"}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="calendar-panel"
+            >
+              <div className="panel-header">
+                <div className="panel-title">
+                  {range?.from && range?.to ? (
+                    <>
+                      Брони за период: <b>{fmtDate(range.from)}</b> —{" "}
+                      <b>{fmtDate(range.to)}</b>
+                    </>
+                  ) : (
+                    <>Ближайшие бронирования</>
+                  )}
+                </div>
+                <div className="panel-actions">
+                  {range?.from && (
+                    <button
+                      className="btn-secondary btn-sm"
+                      onClick={() => setRange(undefined)}
+                    >
+                      Сбросить выбор
+                    </button>
+                  )}
+                  <button
+                    className="btn-secondary btn-sm"
+                    onClick={reloadAll}
+                    title="Обновить"
+                  >
+                    Обновить
+                  </button>
+                </div>
+              </div>
+
+              {list.length === 0 ? (
+                <div className="empty">Нет бронирований для выбранных дат</div>
+              ) : (
+                <div className="cal-list">
+                  {list.map((b) => {
+                    const color = colorFromId(b.object_id);
+                    const nights = nightsBetween(b.start_date, b.end_date);
+                    return (
+                      <div key={b.id} className="cal-item" style={{ borderLeftColor: color }}>
+                        <div className="cal-item__row">
+                          <div className="cal-item__object" title={`Object ID: ${b.object_id}`}>
+                            🏠 {b.object_title || "Объект"}
+                          </div>
+                          <span className={`badge badge--${b.status}`}>
+                            {b.status === "pending" && "Ожидает"}
+                            {b.status === "confirmed" && "Подтверждено"}
+                            {b.status === "rejected" && "Отклонено"}
+                            {b.status === "cancelled" && "Отменена"}
+                          </span>
+                        </div>
+                        <div className="cal-item__row">
+                          <div className="cal-item__user">
+                            👤 {b.user_name || "Пользователь"}
+                            {b.user_phone ? ` (${b.user_phone})` : ""}
+                          </div>
+                          <div className="cal-item__dates">
+                            📅 {fmtDate(b.start_date)} → {fmtDate(b.end_date)}{" "}
+                            <span className="muted">({nights} ноч.)</span>
+                          </div>
+                        </div>
+                        <div className="cal-item__actions">
+                          <button className="btn-link" onClick={() => setPage("bookings")}>
+                            Открыть в «Бронирования»
+                          </button>
+                          {b.status === "pending" && (
+                            <span className="muted">
+                              Нажмите «Бронирования», чтобы подтвердить или отклонить
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       );
     }
