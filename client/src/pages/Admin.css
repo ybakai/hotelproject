@@ -99,7 +99,6 @@
 }
 
 .text-sub {
-  font-size: 12px;
   color: #64748b;
   white-space: nowrap;
   overflow: hidden;
@@ -147,6 +146,7 @@
 .tile__title {
   font-size: 14px;
   font-weight: 700;
+  color: black;
 }
 
 .tile__sub {

@@ -220,14 +220,14 @@ function ObjectDetails({ obj, user, onBack }) {
       {obj.description ? (
         <p style={{ marginTop: 6 }}>{obj.description}</p>
       ) : null}
-
+<hr></hr>
       {/* Новая строка: площадь • комнаты • доля */}
       {infoParts.length > 0 && (
         <div className="text-sub" style={{ marginTop: 8 }}>
           {infoParts.join(" · ")}
         </div>
       )}
-
+<hr></hr>
       {/* Календарь */}
       <div style={{ marginTop: 12 }}>
         <AdminCalendar
