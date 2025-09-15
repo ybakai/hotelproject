@@ -5,7 +5,6 @@ import {
   CalendarDays,
   Building2,
   ClipboardList,
-  Shuffle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./Admin.css";
@@ -13,13 +12,39 @@ import AdminCalendar from "/src/components/calendarAdmin/CalendarAdmin.jsx";
 
 const API = "https://hotelproject-8cip.onrender.com";
 
-/* -------------------- helpers -------------------- */
-const fmtDate = (iso) =>
-  new Date(iso).toLocaleDateString("ru-RU", {
+/* -------------------- utils -------------------- */
+function formatDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString("ru-RU", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
+}
+function toDateOnly(isoOrYmd) {
+  const s = String(isoOrYmd);
+  const ymd = s.length > 10 ? s.slice(0, 10) : s;
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+function overlapsRange(booking, range) {
+  if (!range?.start || !range?.end) return false;
+  const bStart = toDateOnly(booking.start_date);
+  const bEnd = toDateOnly(booking.end_date);
+  const rStart = toDateOnly(range.start);
+  const rEnd = toDateOnly(range.end);
+  return bStart <= rEnd && rStart <= bEnd;
+}
+function nightsBetween(startIso, endIso) {
+  const ms = toDateOnly(endIso) - toDateOnly(startIso);
+  return Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24)));
+}
+function colorFromId(id) {
+  const n = Number(id) || 0;
+  const hue = (n * 47) % 360;
+  return `hsl(${hue} 70% 45%)`;
+}
 
 /* -------------------- Segmented Toggle -------------------- */
 function SegmentedToggle({ value, onChange }) {
@@ -139,7 +164,7 @@ function UsersTab() {
   );
 }
 
-/* -------------------- Objects Tab (создание + редактирование) -------------------- */
+/* -------------------- Objects Tab -------------------- */
 function ObjectsTab() {
   const [objects, setObjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -185,6 +210,7 @@ function ObjectsTab() {
     loadObjects();
   }, []);
 
+  /* ---- helpers for create ---- */
   const onSelectCreateFiles = (e) => {
     setCFiles(Array.from(e.target.files || []).slice(0, 6));
   };
@@ -237,6 +263,7 @@ function ObjectsTab() {
     }
   };
 
+  /* ---- helpers for edit ---- */
   const openEdit = (obj) => {
     setEditingId(obj.id);
     setETitle(obj.title || "");
@@ -349,7 +376,7 @@ function ObjectsTab() {
         </div>
       )}
 
-      {/* модалка создания */}
+      {/* ---- модалка СОЗДАНИЯ ---- */}
       {showCreate && (
         <div className="modal__backdrop" onClick={() => setShowCreate(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -418,6 +445,7 @@ function ObjectsTab() {
                 />
               </label>
 
+              {/* новые поля */}
               <label className="form__group">
                 <span className="form__label">Адрес</span>
                 <input
@@ -504,7 +532,7 @@ function ObjectsTab() {
         </div>
       )}
 
-      {/* модалка редактирования */}
+      {/* ---- модалка РЕДАКТИРОВАНИЯ ---- */}
       {showEdit && (
         <div className="modal__backdrop" onClick={() => setShowEdit(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -568,6 +596,7 @@ function ObjectsTab() {
                 />
               </label>
 
+              {/* новые поля */}
               <label className="form__group">
                 <span className="form__label">Адрес</span>
                 <input
@@ -667,16 +696,6 @@ function ObjectsTab() {
 }
 
 /* -------------------- Bookings Tab -------------------- */
-function formatDate(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return d.toLocaleDateString("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-}
-
 function BookingsTab({ bookings, reload, updateStatus }) {
   async function changeStatus(id, status) {
     try {
@@ -751,79 +770,12 @@ function BookingsTab({ bookings, reload, updateStatus }) {
   );
 }
 
-/* -------------------- Exchanges Tab (Новая вкладка) -------------------- */
-function ExchangesTab() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const r = await fetch(`${API}/api/exchanges`);
-      const d = await r.json();
-      setItems(Array.isArray(d) ? d : []);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  async function decide(id, action) {
-    try {
-      const r = await fetch(`${API}/api/exchanges/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }), // approve | reject
-      });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d?.error || "server error");
-      await load();
-      alert(action === "approve" ? "Обмен подтверждён" : "Обмен отклонён");
-    } catch (e) {
-      alert("Ошибка: " + e.message);
-    }
-  }
-
-  if (loading) return <div className="empty">Загрузка…</div>;
-  if (!items.length) return <div className="empty">Запросов на обмен нет</div>;
-
-  return (
-    <div className="vstack-12">
-      {items.map((x) => (
-        <div key={x.id} className="booking-card">
-          <div className="booking-header">
-            Запрос #{x.id} — {x.status === "pending" ? "⏳ Ожидает" : x.status === "approved" ? "✅ Разрешено" : "❌ Отклонено"}
-          </div>
-          <div className="booking-sub">Пользователь: {x.user_id}</div>
-          <div className="booking-sub">Исходная бронь: #{x.base_booking_id}</div>
-          <div className="booking-sub">Дом: {x.base_object_title} → {x.target_object_title}</div>
-          <div className="booking-sub">Даты: {fmtDate(x.start_date)} → {fmtDate(x.end_date)} ({x.nights} ноч.)</div>
-          {x.message ? <div className="booking-sub">Сообщение: {x.message}</div> : null}
-
-          {x.status === "pending" && (
-            <div className="booking-actions" style={{ marginTop: 8 }}>
-              <button className="btn-primary" onClick={() => decide(x.id, "approve")}>Разрешить</button>
-              <button className="btn-secondary" onClick={() => decide(x.id, "reject")}>Отклонить</button>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /* -------------------- Bottom Nav -------------------- */
 function BottomNav({ current, onChange }) {
   const items = [
     { key: "manage", label: "Управление", icon: <Home size={20} /> },
     { key: "calendar", label: "Календарь", icon: <CalendarDays size={20} /> },
     { key: "bookings", label: "Бронирования", icon: <ClipboardList size={20} /> },
-    { key: "exchanges", label: "Обмены", icon: <Shuffle size={20} /> },
   ];
   return (
     <nav className="bottom">
@@ -850,7 +802,7 @@ function BottomNav({ current, onChange }) {
 export default function Admin() {
   const [page, setPage] = useState("manage");
   const [section, setSection] = useState("users");
-  const [range, setRange] = useState();
+  const [range, setRange] = useState(); // {start:'YYYY-MM-DD', end:'YYYY-MM-DD'}
   const [bookings, setBookings] = useState([]);
 
   async function loadBookings() {
@@ -879,8 +831,8 @@ export default function Admin() {
   const confirmedRanges = bookings
     .filter((b) => b.status === "confirmed")
     .map((b) => ({
-      start: String(b.start_date).slice(0, 10),
-      end: String(b.end_date).slice(0, 10),
+      start: b.start_date.split("T")[0],
+      end: b.end_date.split("T")[0],
     }));
 
   const renderContent = () => {
@@ -916,19 +868,118 @@ export default function Admin() {
         </>
       );
     }
+
     if (page === "calendar") {
+      const now = new Date();
+      const actual = bookings.filter(
+        (b) => toDateOnly(b.end_date) >= toDateOnly(now.toISOString())
+      );
+
+      const list = range
+        ? // при выделении показываем все статусы, что пересекаются (кроме отменённых)
+          actual
+            .filter((b) => b.status !== "cancelled")
+            .filter((b) => overlapsRange(b, range))
+            .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+        : // без выделения — ближайшие подтверждённые
+          actual
+            .filter((b) => b.status === "confirmed")
+            .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+            .slice(0, 30);
+
       return (
-        <div style={{ padding: 20 }}>
+        <div style={{ }}>
           <AdminCalendar
             months={1}
             bookedRanges={confirmedRanges}
             selected={range}
             onSelectRange={setRange}
-            readOnly={true}
+            readOnly={false} // можно выделять диапазон для детального списка ниже
           />
+
+          {/* панель ниже календаря */}
+          <AnimatePresence initial={false} mode="wait">
+            <motion.div
+              key={range?.start ? "panel-selected" : "panel-upcoming"}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="calendar-panel"
+            >
+              <div className="panel-header">
+                <div className="panel-title">
+                  {range?.start && range?.end ? (
+                    <>
+                      Брони за период: <b>{formatDate(range.start)}</b> —{" "}
+                      <b>{formatDate(range.end)}</b>
+                    </>
+                  ) : (
+                    <>Ближайшие бронирования</>
+                  )}
+                </div>
+                <div className="panel-actions">
+                  {range?.start && (
+                    <button className="btn-secondary btn-sm" onClick={() => setRange(undefined)}>
+                      Сбросить выбор
+                    </button>
+                  )}
+                  <button className="btn-secondary btn-sm" onClick={loadBookings} title="Обновить">
+                    Обновить
+                  </button>
+                </div>
+              </div>
+
+              {list.length === 0 ? (
+                <div className="empty">Нет бронирований для выбранных дат</div>
+              ) : (
+                <div className="cal-list">
+                  {list.map((b) => {
+                    const color = colorFromId(b.object_id);
+                    const nights = nightsBetween(b.start_date, b.end_date);
+                    return (
+                      <div key={b.id} className="cal-item" style={{ borderLeftColor: color }}>
+                        <div className="cal-item__row">
+                          <div className="cal-item__object" title={`Object ID: ${b.object_id}`}>
+                            🏠 {b.object_title || "Объект"}
+                          </div>
+                          <span className={`badge badge--${b.status}`}>
+                            {b.status === "pending" && "Ожидает"}
+                            {b.status === "confirmed" && "Подтверждено"}
+                            {b.status === "rejected" && "Отклонено"}
+                            {b.status === "cancelled" && "Отменена"}
+                          </span>
+                        </div>
+                        <div className="cal-item__row">
+                          <div className="cal-item__user">
+                            👤 {b.user_name || "Пользователь"}
+                            {b.user_phone ? ` (${b.user_phone})` : ""}
+                          </div>
+                          <div className="cal-item__dates">
+                            📅 {formatDate(b.start_date)} → {formatDate(b.end_date)}{" "}
+                            <span className="muted">({nights} ноч.)</span>
+                          </div>
+                        </div>
+                        <div className="cal-item__actions">
+                          <button className="btn-link" onClick={() => setPage("bookings")}>
+                            Открыть в «Бронирования»
+                          </button>
+                          {b.status === "pending" && (
+                            <span className="muted">
+                              Нажмите «Бронирования», чтобы подтвердить или отклонить
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       );
     }
+
     if (page === "bookings") {
       return (
         <BookingsTab
@@ -937,9 +988,6 @@ export default function Admin() {
           updateStatus={updateStatus}
         />
       );
-    }
-    if (page === "exchanges") {
-      return <ExchangesTab />;
     }
     return null;
   };
