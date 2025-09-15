@@ -447,7 +447,7 @@ export default function User({ user }) {
     return (
       <div
         className="card-profile"
-        style={{ width: "80%", marginInline: "auto" }}
+        style={{ maxWidth: 560, marginInline: "auto" }}
       >
         <div className="profile-header">
           <button
