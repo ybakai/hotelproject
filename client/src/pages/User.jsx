@@ -333,7 +333,7 @@ export default function User({ user }) {
   const [email, setEmail] = React.useState(user?.email || "");
   const [phone, setPhone] = React.useState(user?.phone || "");
   const [lang] = React.useState("ru");
-  const [notify, setNotify] = React.useState(true);
+  
   const [openCheck, setOpenCheck] = React.useState(false);
 
   // редактирование профиля — одна кнопка + отдельная "Сохранить"
