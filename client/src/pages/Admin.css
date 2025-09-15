@@ -592,4 +592,10 @@
 
 .switch-profile input:checked + .slider-profile:before {
   transform: translateX(18px);
+}
+
+.prof-abc {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }/*# sourceMappingURL=Admin.css.map */

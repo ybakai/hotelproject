@@ -188,7 +188,7 @@ function ObjectDetails({ obj, user, onBack }) {
   if (obj.share) infoParts.push(`Доля: ${obj.share}`);
 
   return (
-    <div style={{ padding: 16 }}>
+    <div className="prof-abc" style={{ padding: 16 }}>
       <button
         className="btn-secondary"
         type="button"
