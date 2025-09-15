@@ -946,7 +946,7 @@ export default function Admin() {
     }
     if (page === "calendar") {
       return (
-        <div style={{ padding: 20 }}>
+        <div style={{ }}>
           <AdminCalendar
             months={1}
             bookedRanges={confirmedRanges}
