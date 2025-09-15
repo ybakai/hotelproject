@@ -14,7 +14,7 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-// ===== bootstrap schema (создаём exchanges, если нет)
+// ===== bootstrap schema
 async function ensureSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS exchanges (
@@ -26,7 +26,7 @@ async function ensureSchema() {
       end_date DATE NOT NULL,
       nights INTEGER NOT NULL,
       message TEXT,
-      status TEXT NOT NULL DEFAULT 'pending', -- pending | approved | rejected | cancelled
+      status TEXT NOT NULL DEFAULT 'pending',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       decided_at TIMESTAMPTZ
     );
@@ -250,7 +250,7 @@ app.post("/auth/login", async (req, res) => {
 });
 
 // ===================== BOOKINGS =====================
-// создать бронь — ЯВНЫЕ КАСТЫ и без «висящих» параметров
+// создать бронь (с проверкой пересечений)
 app.post("/api/bookings", async (req, res) => {
   try {
     const { objectId, startDate, endDate, guests = 1, note = null, userId } = req.body || {};
@@ -259,7 +259,6 @@ app.post("/api/bookings", async (req, res) => {
       return res.status(400).json({ error: "objectId, userId, startDate, endDate обязательны" });
     }
 
-    // проверка пересечений: $1, $2, $3 — без лишнего $2
     const conflict = await pool.query(
       `SELECT 1
          FROM bookings
@@ -287,12 +286,12 @@ app.post("/api/bookings", async (req, res) => {
   }
 });
 
-// получить все бронирования
+// получить все бронирования (ДОБАВИЛ created_at)
 app.get("/api/bookings", async (_req, res) => {
   try {
     const q = await pool.query(
       `SELECT b.id, b.start_date, b.end_date, b.status,
-              b.object_id, b.user_id,
+              b.object_id, b.user_id, b.created_at,
               u.full_name AS user_name, u.phone AS user_phone,
               o.title AS object_title
        FROM bookings b
@@ -340,7 +339,7 @@ app.patch("/api/bookings/:id", async (req, res) => {
 
 // ===================== EXCHANGES (обмен неделями) =====================
 
-// список обменов (можно ?user_id=)
+// список обменов (?user_id= опционально)
 app.get("/api/exchanges", async (req, res) => {
   try {
     const { user_id } = req.query;
