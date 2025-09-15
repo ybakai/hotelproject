@@ -12,6 +12,40 @@ import AdminCalendar from "/src/components/calendarAdmin/CalendarAdmin.jsx";
 
 const API = "https://hotelproject-8cip.onrender.com";
 
+/* -------------------- utils -------------------- */
+function formatDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+function toDateOnly(isoOrYmd) {
+  const s = String(isoOrYmd);
+  const ymd = s.length > 10 ? s.slice(0, 10) : s;
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+function overlapsRange(booking, range) {
+  if (!range?.start || !range?.end) return false;
+  const bStart = toDateOnly(booking.start_date);
+  const bEnd = toDateOnly(booking.end_date);
+  const rStart = toDateOnly(range.start);
+  const rEnd = toDateOnly(range.end);
+  return bStart <= rEnd && rStart <= bEnd;
+}
+function nightsBetween(startIso, endIso) {
+  const ms = toDateOnly(endIso) - toDateOnly(startIso);
+  return Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24)));
+}
+function colorFromId(id) {
+  const n = Number(id) || 0;
+  const hue = (n * 47) % 360;
+  return `hsl(${hue} 70% 45%)`;
+}
+
 /* -------------------- Segmented Toggle -------------------- */
 function SegmentedToggle({ value, onChange }) {
   const options = useMemo(
@@ -130,7 +164,7 @@ function UsersTab() {
   );
 }
 
-/* -------------------- Objects Tab (создание + редактирование) -------------------- */
+/* -------------------- Objects Tab -------------------- */
 function ObjectsTab() {
   const [objects, setObjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -143,10 +177,10 @@ function ObjectsTab() {
   const [cOwnerName, setCOwnerName] = useState("");
   const [cOwnerContact, setCOwnerContact] = useState("");
   const [cAddress, setCAddress] = useState("");
-  const [cArea, setCArea] = useState("");   // оставляем строкой
-  const [cRooms, setCRooms] = useState(""); // строкой
+  const [cArea, setCArea] = useState("");
+  const [cRooms, setCRooms] = useState("");
   const [cShare, setCShare] = useState("");
-  const [cFiles, setCFiles] = useState([]); // File[]
+  const [cFiles, setCFiles] = useState([]);
 
   // редактирование
   const [showEdit, setShowEdit] = useState(false);
@@ -160,8 +194,8 @@ function ObjectsTab() {
   const [eArea, setEArea] = useState("");
   const [eRooms, setERooms] = useState("");
   const [eShare, setEShare] = useState("");
-  const [eFiles, setEFiles] = useState([]); // новые картинки (опционально)
-  const [eImages, setEImages] = useState([]); // существующие ссылки (read-only превью)
+  const [eFiles, setEFiles] = useState([]);
+  const [eImages, setEImages] = useState([]);
 
   const loadObjects = () => {
     setLoading(true);
@@ -238,7 +272,7 @@ function ObjectsTab() {
     setEOwnerName(obj.owner_name || "");
     setEOwnerContact(obj.owner_contact || "");
     setEAddress(obj.address || "");
-    setEArea(obj.area ?? "");     // число/null -> строка
+    setEArea(obj.area ?? "");
     setERooms(obj.rooms ?? "");
     setEShare(obj.share || "");
     setEFiles([]);
@@ -264,7 +298,6 @@ function ObjectsTab() {
     if (String(eArea).trim() !== "") fd.append("area", eArea);
     if (String(eRooms).trim() !== "") fd.append("rooms", eRooms);
     if (eShare?.trim()) fd.append("share", eShare.trim());
-    // добавляем НОВЫЕ картинки (если выбраны)
     for (const f of eFiles) fd.append("images", f);
 
     try {
@@ -292,7 +325,6 @@ function ObjectsTab() {
 
   return (
     <div>
-      {/* панель сверху */}
       <div className="objects-toolbar">
         <div className="objects-title">Объекты</div>
         <button
@@ -304,7 +336,6 @@ function ObjectsTab() {
         </button>
       </div>
 
-      {/* список / пусто */}
       {objects.length === 0 ? (
         <div className="empty">Объектов пока нет</div>
       ) : (
@@ -610,7 +641,6 @@ function ObjectsTab() {
                 />
               </label>
 
-              {/* Превью текущих изображений (если есть) */}
               {eImages?.length > 0 && (
                 <div className="form__group">
                   <span className="form__label">Текущие изображения</span>
@@ -666,16 +696,6 @@ function ObjectsTab() {
 }
 
 /* -------------------- Bookings Tab -------------------- */
-function formatDate(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return d.toLocaleDateString("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-}
-
 function BookingsTab({ bookings, reload, updateStatus }) {
   async function changeStatus(id, status) {
     try {
@@ -782,7 +802,7 @@ function BottomNav({ current, onChange }) {
 export default function Admin() {
   const [page, setPage] = useState("manage");
   const [section, setSection] = useState("users");
-  const [range, setRange] = useState();
+  const [range, setRange] = useState(); // {start:'YYYY-MM-DD', end:'YYYY-MM-DD'}
   const [bookings, setBookings] = useState([]);
 
   async function loadBookings() {
@@ -848,7 +868,25 @@ export default function Admin() {
         </>
       );
     }
+
     if (page === "calendar") {
+      const now = new Date();
+      const actual = bookings.filter(
+        (b) => toDateOnly(b.end_date) >= toDateOnly(now.toISOString())
+      );
+
+      const list = range
+        ? // при выделении показываем все статусы, что пересекаются (кроме отменённых)
+          actual
+            .filter((b) => b.status !== "cancelled")
+            .filter((b) => overlapsRange(b, range))
+            .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+        : // без выделения — ближайшие подтверждённые
+          actual
+            .filter((b) => b.status === "confirmed")
+            .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+            .slice(0, 30);
+
       return (
         <div style={{ padding: 20 }}>
           <AdminCalendar
@@ -856,11 +894,92 @@ export default function Admin() {
             bookedRanges={confirmedRanges}
             selected={range}
             onSelectRange={setRange}
-            readOnly={true}
+            readOnly={false} // можно выделять диапазон для детального списка ниже
           />
+
+          {/* панель ниже календаря */}
+          <AnimatePresence initial={false} mode="wait">
+            <motion.div
+              key={range?.start ? "panel-selected" : "panel-upcoming"}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="calendar-panel"
+            >
+              <div className="panel-header">
+                <div className="panel-title">
+                  {range?.start && range?.end ? (
+                    <>
+                      Брони за период: <b>{formatDate(range.start)}</b> —{" "}
+                      <b>{formatDate(range.end)}</b>
+                    </>
+                  ) : (
+                    <>Ближайшие бронирования</>
+                  )}
+                </div>
+                <div className="panel-actions">
+                  {range?.start && (
+                    <button className="btn-secondary btn-sm" onClick={() => setRange(undefined)}>
+                      Сбросить выбор
+                    </button>
+                  )}
+                  <button className="btn-secondary btn-sm" onClick={loadBookings} title="Обновить">
+                    Обновить
+                  </button>
+                </div>
+              </div>
+
+              {list.length === 0 ? (
+                <div className="empty">Нет бронирований для выбранных дат</div>
+              ) : (
+                <div className="cal-list">
+                  {list.map((b) => {
+                    const color = colorFromId(b.object_id);
+                    const nights = nightsBetween(b.start_date, b.end_date);
+                    return (
+                      <div key={b.id} className="cal-item" style={{ borderLeftColor: color }}>
+                        <div className="cal-item__row">
+                          <div className="cal-item__object" title={`Object ID: ${b.object_id}`}>
+                            🏠 {b.object_title || "Объект"}
+                          </div>
+                          <span className={`badge badge--${b.status}`}>
+                            {b.status === "pending" && "Ожидает"}
+                            {b.status === "confirmed" && "Подтверждено"}
+                            {b.status === "rejected" && "Отклонено"}
+                            {b.status === "cancelled" && "Отменена"}
+                          </span>
+                        </div>
+                        <div className="cal-item__row">
+                          <div className="cal-item__user">
+                            👤 {b.user_name || "Пользователь"}
+                            {b.user_phone ? ` (${b.user_phone})` : ""}
+                          </div>
+                          <div className="cal-item__dates">
+                            📅 {formatDate(b.start_date)} → {formatDate(b.end_date)}{" "}
+                            <span className="muted">({nights} ноч.)</span>
+                          </div>
+                        </div>
+                        <div className="cal-item__actions">
+                          <button className="btn-link" onClick={() => setPage("bookings")}>
+                            Открыть в «Бронирования»
+                          </button>
+                          {b.status === "pending" && (
+                            <span className="muted">
+                              Нажмите «Бронирования», чтобы подтвердить или отклонить
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       );
     }
+
     if (page === "bookings") {
       return (
         <BookingsTab

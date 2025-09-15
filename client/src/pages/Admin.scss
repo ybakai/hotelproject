@@ -499,3 +499,99 @@ border: none !important;
 hr{
   color: rgb(174, 174, 174);
 }
+
+
+
+/* ===== Панель под календарём ===== */
+.calendar-panel {
+  margin-top: 16px;
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.panel-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* мелкая кнопка на панели */
+.btn-sm {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+/* список карточек броней в панели */
+.cal-list {
+  display: grid;
+  gap: 10px;
+}
+
+.cal-item {
+  border-left: 6px solid var(--color, #ddd);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px #eee inset;
+  padding: 10px 12px;
+}
+
+.cal-item__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.cal-item__row:last-child { margin-bottom: 0; }
+
+.cal-item__object { font-weight: 600; }
+.cal-item__user { font-size: 13px; opacity: 0.9; }
+.cal-item__dates { font-size: 13px; opacity: 0.9; }
+.cal-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.muted { opacity: 0.65; }
+
+.btn-link {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  padding: 0;
+}
+.btn-link:hover { text-decoration: underline; }
+
+/* бейджи статусов */
+.badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.badge--pending   { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }   /* оранжевый */
+.badge--confirmed { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }   /* зелёный */
+.badge--rejected  { background: #fef2f2; color: #991b1b; border-color: #fecaca; }   /* красный */
+.badge--cancelled { background: #f3f4f6; color: #374151; border-color: #e5e7eb; }   /* серый */
