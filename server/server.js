@@ -250,7 +250,7 @@ app.post("/auth/login", async (req, res) => {
 });
 
 // ===================== BOOKINGS =====================
-// создать бронь (фикс: явные date-касты и понятные ответы)
+// создать бронь — ЯВНЫЕ КАСТЫ и без «висящих» параметров
 app.post("/api/bookings", async (req, res) => {
   try {
     const { objectId, startDate, endDate, guests = 1, note = null, userId } = req.body || {};
@@ -259,15 +259,15 @@ app.post("/api/bookings", async (req, res) => {
       return res.status(400).json({ error: "objectId, userId, startDate, endDate обязательны" });
     }
 
-    // проверяем пересечения: даты считаем как DATE
+    // проверка пересечений: $1, $2, $3 — без лишнего $2
     const conflict = await pool.query(
       `SELECT 1
          FROM bookings
-        WHERE object_id = $1
+        WHERE object_id = $1::int
           AND status IN ('pending','confirmed')
-          AND NOT ($3::date > end_date OR $4::date < start_date)
+          AND NOT ($2::date > end_date OR $3::date < start_date)
         LIMIT 1`,
-      [Number(objectId), Number(userId), startDate, endDate]
+      [objectId, startDate, endDate]
     );
     if (conflict.rowCount > 0) {
       return res.status(409).json({ error: "Эти даты уже заняты" });
@@ -275,9 +275,9 @@ app.post("/api/bookings", async (req, res) => {
 
     const ins = await pool.query(
       `INSERT INTO bookings (object_id, user_id, status, start_date, end_date, guests, note)
-       VALUES ($1, $2, 'pending', $3::date, $4::date, $5, $6)
+       VALUES ($1::int, $2::int, 'pending', $3::date, $4::date, $5::int, $6)
        RETURNING *;`,
-      [Number(objectId), Number(userId), startDate, endDate, Number(guests), note]
+      [objectId, userId, startDate, endDate, guests, note]
     );
 
     res.status(201).json(ins.rows[0]);
@@ -401,20 +401,20 @@ app.post("/api/exchanges", async (req, res) => {
 
     const conflict = await pool.query(
       `SELECT 1 FROM bookings 
-        WHERE object_id = $1
+        WHERE object_id = $1::int
           AND status IN ('pending','confirmed')
-          AND NOT ($3::date > end_date OR $4::date < start_date)
+          AND NOT ($2::date > end_date OR $3::date < start_date)
         LIMIT 1`,
-      [Number(targetObjectId), Number(userId), startDate, endDate]
+      [targetObjectId, startDate, endDate]
     );
     if (conflict.rowCount > 0) return res.status(409).json({ error: "на выбранные даты дом занят" });
 
     const ins = await pool.query(
       `INSERT INTO exchanges
          (user_id, base_booking_id, target_object_id, start_date, end_date, nights, message, status)
-       VALUES ($1,$2,$3,$4::date,$5::date,$6,$7,'pending')
+       VALUES ($1::int,$2::int,$3::int,$4::date,$5::date,$6::int,$7,'pending')
        RETURNING *`,
-      [Number(userId), Number(baseBookingId), Number(targetObjectId), startDate, endDate, baseNights, message]
+      [userId, baseBookingId, targetObjectId, startDate, endDate, baseNights, message]
     );
 
     res.status(201).json(ins.rows[0]);
@@ -466,10 +466,10 @@ app.patch("/api/exchanges/:id", async (req, res) => {
 
     const conflict = await client.query(
       `SELECT 1 FROM bookings 
-        WHERE object_id = $1 
-          AND id <> $2
+        WHERE object_id = $1::int 
+          AND id <> $2::int
           AND status IN ('pending','confirmed')
-          AND NOT ($4::date > end_date OR $3::date < start_date)
+          AND NOT ($3::date > end_date OR $4::date < start_date)
         LIMIT 1`,
       [ex.target_object_id, base.id, ex.start_date, ex.end_date]
     );
@@ -480,11 +480,11 @@ app.patch("/api/exchanges/:id", async (req, res) => {
 
     const updBooking = await client.query(
       `UPDATE bookings
-          SET object_id = $1,
+          SET object_id = $1::int,
               start_date = $2::date,
               end_date   = $3::date,
               status     = 'confirmed'
-        WHERE id = $4
+        WHERE id = $4::int
         RETURNING *`,
       [ex.target_object_id, ex.start_date, ex.end_date, base.id]
     );
