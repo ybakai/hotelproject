@@ -888,7 +888,7 @@ export default function Admin() {
             .slice(0, 30);
 
       return (
-        <div style={{ padding: 20 }}>
+        <div style={{ }}>
           <AdminCalendar
             months={1}
             bookedRanges={confirmedRanges}
