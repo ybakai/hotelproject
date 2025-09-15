@@ -598,4 +598,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+hr {
+  color: rgb(174, 174, 174);
 }/*# sourceMappingURL=Admin.css.map */
