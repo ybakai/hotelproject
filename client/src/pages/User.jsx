@@ -4,14 +4,34 @@ import { Home, RefreshCw, UserCircle2 } from "lucide-react";
 import "./Admin.css";
 import AdminCalendar from "/src/components/calendarAdmin/CalendarAdmin.jsx";
 import "/src/components/calendarAdmin/CalendarAdmin.css";
-
-/* === ДОБАВИЛ: иконки для профиля/модалки === */
-import { ChevronRight, Globe, Bell, Shield, X } from "lucide-react";
-/* === /добавил === */
+import { ChevronRight, Globe, X } from "lucide-react";
 
 const API = "https://hotelproject-8cip.onrender.com";
 
-/* -------- Заглушка -------- */
+/* ---------- helpers ---------- */
+const fmtDate = (iso) =>
+  new Date(iso).toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+const fmtDateShort = (iso) =>
+  new Date(iso).toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
+const dateOnly = (s) => String(s).slice(0, 10);
+const nightsBetween = (start, end) => {
+  const a = new Date(dateOnly(start));
+  const b = new Date(dateOnly(end));
+  const ms = b - a;
+  return Math.max(1, Math.round(ms / 86400000));
+};
+
+/* ---------- UI primitives ---------- */
 function EmptyScreen({ title, note }) {
   return (
     <div className="empty">
@@ -23,17 +43,23 @@ function EmptyScreen({ title, note }) {
   );
 }
 
-// helper: красиво форматируем площадь
-const fmtArea = (v) => {
-  const n = Number(v);
-  if (!Number.isFinite(n)) return null;
-  const s = Number.isInteger(n)
-    ? String(n)
-    : n.toFixed(2).replace(/\.?0+$/, "");
-  return `${s} м²`;
-};
+function Modal({ open, onClose, title, children }) {
+  if (!open) return null;
+  return (
+    <div className="modal__backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal__header">
+          <div className="modal__title">{title}</div>
+          <button className="modal__close" type="button" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+        <div className="modal__body">{children}</div>
+      </div>
+    </div>
+  );
+}
 
-/* -------- Нижнее меню -------- */
 function BottomNav({ current, onChange }) {
   const items = [
     { key: "objects", label: "Объекты", icon: <Home size={20} /> },
@@ -61,7 +87,7 @@ function BottomNav({ current, onChange }) {
   );
 }
 
-/* -------- Список объектов -------- */
+/* ---------- Список всех объектов (клиентский каталог) ---------- */
 function ObjectsList({ onOpen }) {
   const [objects, setObjects] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -108,9 +134,9 @@ function ObjectsList({ onOpen }) {
   );
 }
 
-/* -------- Детали объекта -------- */
+/* ---------- Детали объекта + обычная бронь ---------- */
 function ObjectDetails({ obj, user, onBack }) {
-  const [range, setRange] = React.useState(); // { from, to }
+  const [range, setRange] = React.useState();
   const [loading, setLoading] = React.useState(false);
   const [bookedRanges, setBookedRanges] = React.useState([]);
 
@@ -119,11 +145,9 @@ function ObjectDetails({ obj, user, onBack }) {
       try {
         const res = await fetch(`${API}/api/bookings`);
         const data = await res.json();
-
         const confirmed = (Array.isArray(data) ? data : []).filter(
           (b) => b.status === "confirmed" && b.object_id === obj.id
         );
-
         setBookedRanges(
           confirmed.map((b) => ({
             start: b.start_date.slice(0, 10),
@@ -159,12 +183,8 @@ function ObjectDetails({ obj, user, onBack }) {
           endDate: iso(range.to),
         }),
       });
-
       if (res.ok) {
-        
-        alert(
-          `✅ Заявка создана!`
-        );
+        alert(`✅ Заявка создана!`);
       } else if (res.status === 409) {
         alert("❌ Эти даты уже заняты!");
       } else {
@@ -179,56 +199,22 @@ function ObjectDetails({ obj, user, onBack }) {
     }
   }
 
-  // Собираем строку характеристик
-  const infoParts = [];
-  const areaStr = fmtArea(obj.area);
-  if (areaStr) infoParts.push(`Площадь: ${areaStr}`);
-  if (obj.rooms !== null && obj.rooms !== undefined && String(obj.rooms) !== "")
-    infoParts.push(`Комнат: ${obj.rooms}`);
-  if (obj.share) infoParts.push(`Доля: ${obj.share}`);
-
   return (
-    <div className="prof-abc" style={{ padding: 16 }}>
-      <button
-        className="btn-secondary"
-        type="button"
-        onClick={onBack}
-        style={{ marginBottom: 12 }}
-      >
+    <div style={{ padding: 16 }}>
+      <button className="btn-secondary" type="button" onClick={onBack} style={{ marginBottom: 12 }}>
         ← Назад
       </button>
 
-      <h2 className="title" style={{ marginTop: 0 }}>
-        {obj.title}
-      </h2>
+      <h2 className="title" style={{ marginTop: 0 }}>{obj.title}</h2>
 
       {Array.isArray(obj.images) && obj.images[0] ? (
-        <img
-          src={obj.images[0]}
-          alt={obj.title}
-          style={{ width: "100%", borderRadius: 12, marginBottom: 12 }}
-        />
+        <img src={obj.images[0]} alt={obj.title} style={{ width: "100%", borderRadius: 12, marginBottom: 12 }} />
       ) : (
-        <div
-          className="tile__imgwrap tile__imgwrap--empty"
-          style={{ marginBottom: 12 }}
-        >
-          Нет фото
-        </div>
+        <div className="tile__imgwrap tile__imgwrap--empty" style={{ marginBottom: 12 }}>Нет фото</div>
       )}
 
-      {obj.description ? (
-        <p style={{ marginTop: 6 }}>{obj.description}</p>
-      ) : null}
-<hr></hr>
-      {/* Новая строка: площадь • комнаты • доля */}
-      {infoParts.length > 0 && (
-        <div className="text-sub" style={{ marginTop: 8 }}>
-          {infoParts.join(" · ")}
-        </div>
-      )}
-<hr></hr>
-      {/* Календарь */}
+      {obj.description ? <p style={{ marginTop: 6 }}>{obj.description}</p> : null}
+
       <div style={{ marginTop: 12 }}>
         <AdminCalendar
           months={1}
@@ -237,73 +223,322 @@ function ObjectDetails({ obj, user, onBack }) {
           onSelectRange={setRange}
           readOnly={false}
         />
-        <div
-          style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}
-        >
-          <button
-            className="btn-primary"
-            type="button"
-            onClick={handleBook}
-            disabled={loading}
-          >
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+          <button className="btn-primary" type="button" onClick={handleBook} disabled={loading}>
             {loading ? "Бронируем..." : "Забронировать"}
           </button>
         </div>
       </div>
 
-      {/* Контакты ниже календаря */}
       <div style={{ marginTop: 16 }}>
-        {obj.owner_name ? (
-          <div className="text-sub">Имя: {obj.owner_name}</div>
-        ) : null}
-        {obj.owner_contact ? (
-          <div className="text-sub">Телефон/контакт: {obj.owner_contact}</div>
-        ) : null}
+        {obj.owner_name ? <div className="text-sub">Имя: {obj.owner_name}</div> : null}
+        {obj.owner_contact ? <div className="text-sub">Телефон/контакт: {obj.owner_contact}</div> : null}
       </div>
     </div>
   );
 }
 
-/* === Модалка === */
-function Modal({ open, onClose, title, children }) {
-  if (!open) return null;
+/* ---------- История exchange-заявок пользователя ---------- */
+function ExchangeHistory({ userId }) {
+  const [items, setItems] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/exchanges?user_id=${userId}`);
+      const data = await res.json();
+      setItems(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  React.useEffect(() => { load(); }, [load]);
+
+  if (loading) return <div className="empty">Загрузка…</div>;
+  if (!items.length) return <div className="empty">Запросов пока нет</div>;
+
   return (
-    <div className="modal__backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal__header">
-          <div className="modal__title">{title}</div>
-          <button className="modal__close" type="button" onClick={onClose}>
-            <X size={18} />
+    <div className="vstack-12">
+      <div className="hstack-8" style={{ justifyContent: "flex-end" }}>
+        <button className="btn-secondary" onClick={load}>
+          <RefreshCw size={16} style={{ marginRight: 6 }} />
+          Обновить
+        </button>
+      </div>
+      {items.map((x) => (
+        <div key={x.id} className="booking-card">
+          <div className="booking-header">Обмен #{x.id}</div>
+          <div className="booking-sub">Дом: {x.base_object_title} → {x.target_object_title}</div>
+          <div className="booking-sub">
+            Даты: {fmtDateShort(x.start_date)} → {fmtDateShort(x.end_date)} ({x.nights} ноч.)
+          </div>
+          <div className={`booking-status ${x.status}`} style={{ marginTop: 6 }}>
+            {x.status === "pending" ? "⏳ Ожидает" :
+             x.status === "approved" ? "✅ Разрешено" :
+             x.status === "rejected" ? "❌ Отклонено" : x.status}
+          </div>
+          {x.message ? <div className="booking-sub" style={{ marginTop: 6 }}>Сообщение: {x.message}</div> : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ---------- Экран «Обмен домами» ---------- */
+function ExchangePage({ user }) {
+  const [tab, setTab] = React.useState("objects"); // objects | history
+
+  // шаги мастера
+  const [step, setStep] = React.useState(1); // 1: choose booking, 2: choose target object, 3: choose dates + send
+  const [myBookings, setMyBookings] = React.useState([]);
+  const [allObjects, setAllObjects] = React.useState([]);
+
+  const [baseBooking, setBaseBooking] = React.useState(null);
+  const [targetObject, setTargetObject] = React.useState(null);
+  const [targetBookedRanges, setTargetBookedRanges] = React.useState([]);
+  const [targetRange, setTargetRange] = React.useState();
+  const [message, setMessage] = React.useState("");
+  const [sending, setSending] = React.useState(false);
+
+  const baseNights = baseBooking ? nightsBetween(baseBooking.start_date, baseBooking.end_date) : 0;
+
+  // загрузка моих подтверждённых броней
+  React.useEffect(() => {
+    async function loadMyBookings() {
+      try {
+        const r = await fetch(`${API}/api/bookings`);
+        const data = await r.json();
+        const mine = (Array.isArray(data) ? data : []).filter(
+          (b) => Number(b.user_id) === Number(user.id) && b.status === "confirmed"
+        );
+        setMyBookings(mine);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    loadMyBookings();
+  }, [user.id]);
+
+  // список всех объектов (для шага 2)
+  React.useEffect(() => {
+    fetch(`${API}/api/objects`)
+      .then((r) => r.json())
+      .then((d) => setAllObjects(Array.isArray(d) ? d : []))
+      .catch((e) => console.error(e));
+  }, []);
+
+  // при выборе целевого объекта — грузим его занятые даты
+  React.useEffect(() => {
+    async function loadBookedRanges() {
+      if (!targetObject) return;
+      try {
+        const r = await fetch(`${API}/api/bookings`);
+        const data = await r.json();
+        const busy = (Array.isArray(data) ? data : [])
+          .filter((b) => b.object_id === targetObject.id && ["pending", "confirmed"].includes(b.status))
+          .map((b) => ({ start: dateOnly(b.start_date), end: dateOnly(b.end_date) }));
+        setTargetBookedRanges(busy);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    loadBookedRanges();
+  }, [targetObject]);
+
+  function resetToStep1() {
+    setStep(1);
+    setBaseBooking(null);
+    setTargetObject(null);
+    setTargetBookedRanges([]);
+    setTargetRange(undefined);
+    setMessage("");
+  }
+
+  async function sendExchange() {
+    if (!baseBooking || !targetObject) return;
+    if (!targetRange?.from || !targetRange?.to) {
+      alert("Выберите даты обмена");
+      return;
+    }
+    const selNights = nightsBetween(targetRange.from, targetRange.to);
+    if (selNights !== baseNights) {
+      alert(`Нужно выбрать ровно ${baseNights} ноч.: выбранно ${selNights}`);
+      return;
+    }
+
+    try {
+      setSending(true);
+      const res = await fetch(`${API}/api/exchanges`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          baseBookingId: baseBooking.id,
+          targetObjectId: targetObject.id,
+          startDate: dateOnly(targetRange.from),
+          endDate: dateOnly(targetRange.to),
+          message: message?.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "server error");
+      alert("✅ Запрос на обмен отправлен!");
+      // сброс мастера
+      resetToStep1();
+      setTab("history");
+    } catch (e) {
+      alert("Ошибка: " + e.message);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  if (tab === "history") {
+    return (
+      <div style={{ padding: 16 }}>
+        <div className="objects-toolbar" style={{ marginBottom: 12 }}>
+          <div className="objects-title">Обмен неделями</div>
+          <div className="hstack-8">
+            <button className={`btn-secondary`} onClick={() => setTab("objects")}>
+              Обмен
+            </button>
+            <button className={`btn-primary`} onClick={() => setTab("history")}>
+              История
+            </button>
+          </div>
+        </div>
+        <ExchangeHistory userId={user.id} />
+      </div>
+    );
+  }
+
+  // TAB: objects (мастер обмена)
+  return (
+    <div style={{ padding: 16 }}>
+      <div className="objects-toolbar" style={{ marginBottom: 12 }}>
+        <div className="objects-title">Обмен неделями</div>
+        <div className="hstack-8">
+          <button className={`btn-primary`} onClick={() => setTab("objects")}>
+            Обмен
+          </button>
+          <button className={`btn-secondary`} onClick={() => setTab("history")}>
+            История
           </button>
         </div>
-        <div className="modal__body">{children}</div>
       </div>
+
+      {step === 1 && (
+        <>
+          <div className="tile__title" style={{ marginBottom: 8 }}>1. Выберите вашу бронь</div>
+          {myBookings.length === 0 ? (
+            <div className="empty">У вас нет подтверждённых броней</div>
+          ) : (
+            <div className="vstack-12">
+              {myBookings.map((b) => (
+                <button
+                  key={b.id}
+                  className="booking-card"
+                  style={{ textAlign: "left", cursor: "pointer" }}
+                  onClick={() => { setBaseBooking(b); setStep(2); }}
+                >
+                  <div className="booking-header">{b.object_title || "Объект"}</div>
+                  <div className="booking-sub">📅 {fmtDate(b.start_date)} → {fmtDate(b.end_date)}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {step === 2 && baseBooking && (
+        <>
+          <button className="btn-secondary" onClick={() => setStep(1)} style={{ marginBottom: 12 }}>
+            ← Назад
+          </button>
+          <div className="tile__title" style={{ marginBottom: 8 }}>
+            2. Выберите другой дом (длина проживания: {baseNights} ноч.)
+          </div>
+          <div className="grid-2-12">
+            {allObjects
+              .filter((o) => o.id !== baseBooking.object_id) // исключаем исходный дом
+              .map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  className="tile"
+                  style={{ textAlign: "left", cursor: "pointer" }}
+                  onClick={() => { setTargetObject(o); setStep(3); }}
+                >
+                  {Array.isArray(o.images) && o.images[0] ? (
+                    <div className="tile__imgwrap">
+                      <img className="tile__img" src={o.images[0]} alt={o.title} />
+                    </div>
+                  ) : (
+                    <div className="tile__imgwrap tile__imgwrap--empty">Нет фото</div>
+                  )}
+                  <div className="tile__body">
+                    <div className="tile__title">{o.title}</div>
+                    {o.description ? <div className="tile__sub">{o.description}</div> : null}
+                  </div>
+                </button>
+              ))}
+          </div>
+        </>
+      )}
+
+      {step === 3 && baseBooking && targetObject && (
+        <>
+          <button className="btn-secondary" onClick={() => setStep(2)} style={{ marginBottom: 12 }}>
+            ← Назад
+          </button>
+          <div className="tile__title" style={{ marginBottom: 8 }}>
+            3. Выберите даты для обмена в «{targetObject.title}»
+          </div>
+          <AdminCalendar
+            months={1}
+            bookedRanges={targetBookedRanges}
+            selected={targetRange}
+            onSelectRange={setTargetRange}
+            readOnly={false}
+          />
+          <div className="text-sub" style={{ marginTop: 8 }}>
+            Нужно выбрать ровно {baseNights} ноч. (ваша исходная бронь: {fmtDateShort(baseBooking.start_date)} → {fmtDateShort(baseBooking.end_date)})
+          </div>
+
+          <label className="form__group" style={{ marginTop: 12 }}>
+            <span className="form__label">Сообщение владельцу (опционально)</span>
+            <textarea
+              className="textarea"
+              rows={3}
+              placeholder="Пару слов, почему хотите обмен…"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+            />
+          </label>
+
+          <div className="form__actions">
+            <button className="btn-secondary" onClick={resetToStep1}>
+              Отмена
+            </button>
+            <button className="btn-primary" onClick={sendExchange} disabled={sending}>
+              {sending ? "Отправляем…" : "Отправить запрос"}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-/* === Поле формы === */
-function Field({ label, children }) {
-  return (
-    <label className="form__group" style={{ marginBottom: 12 }}>
-      {label ? <span className="form__label">{label}</span> : null}
-      {children}
-    </label>
-  );
-}
-
-/* === Список заявок пользователя === */
+/* ---------- Профиль / заявки (как у тебя) ---------- */
 function BookingsList({ userId }) {
   const [loading, setLoading] = React.useState(true);
   const [items, setItems] = React.useState([]);
   const [error, setError] = React.useState("");
-
-  const fmt = (iso) =>
-    new Date(iso).toLocaleDateString("ru-RU", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
 
   const load = React.useCallback(async () => {
     try {
@@ -322,9 +557,7 @@ function BookingsList({ userId }) {
     }
   }, [userId]);
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  React.useEffect(() => { load(); }, [load]);
 
   if (loading) return <div className="empty">Загрузка…</div>;
   if (error) return <div className="empty">Ошибка: {error}</div>;
@@ -342,18 +575,11 @@ function BookingsList({ userId }) {
       {items.map((b) => (
         <div key={b.id} className="booking-card">
           <div className="booking-header">{b.object_title || "Объект"}</div>
-          <div className="booking-sub">
-            📅 {fmt(b.start_date)} → {fmt(b.end_date)}
-          </div>
-          <div
-            className={`booking-status ${b.status}`}
-            style={{ marginTop: 6 }}
-          >
-            {b.status === "pending"
-              ? "⏳ Ожидает подтверждения"
-              : b.status === "confirmed"
-              ? "✅ Подтверждено"
-              : "❌ Отклонено"}
+          <div className="booking-sub">📅 {fmtDateShort(b.start_date)} → {fmtDateShort(b.end_date)}</div>
+          <div className={`booking-status ${b.status}`} style={{ marginTop: 6 }}>
+            {b.status === "pending" ? "⏳ Ожидает подтверждения" :
+             b.status === "confirmed" ? "✅ Подтверждено" :
+             b.status === "rejected" ? "❌ Отклонено" : "Статус: " + b.status}
           </div>
         </div>
       ))}
@@ -361,20 +587,16 @@ function BookingsList({ userId }) {
   );
 }
 
-/* -------- Страница пользователя -------- */
+/* ---------- Корневая страница пользователя ---------- */
 export default function User({ user }) {
   const [page, setPage] = React.useState("objects");
   const [openedObject, setOpenedObject] = React.useState(null);
 
-  // состояния профиля + модалка заявок
+  // профиль
   const [fullName, setFullName] = React.useState(user?.full_name || "");
   const [email, setEmail] = React.useState(user?.email || "");
   const [phone, setPhone] = React.useState(user?.phone || "");
-  const [lang] = React.useState("ru");
-
   const [openCheck, setOpenCheck] = React.useState(false);
-
-  // редактирование профиля — одна кнопка + отдельная "Сохранить"
   const [editing, setEditing] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
@@ -384,20 +606,14 @@ export default function User({ user }) {
       const res = await fetch(`${API}/api/users/${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // если используешь куки/сессии
         body: JSON.stringify({
           full_name: fullName?.trim() || null,
           email: email?.trim() || null,
           phone: phone?.trim() || null,
         }),
       });
-      if (!res.ok) {
-        const t = await res.text();
-        throw new Error(t || `HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(await res.text());
       setEditing(false);
-      // опционально: можно показать тост/alert
-      // alert("Изменения сохранены");
     } catch (e) {
       console.error("save profile error:", e);
       alert("Не удалось сохранить профиль");
@@ -406,127 +622,52 @@ export default function User({ user }) {
     }
   }
 
-  const onEditClick = () => {
-    // одна кнопка «Изменить» в шапке: включает режим редактирования
-    // (сохранение теперь можно сделать и отдельной кнопкой ниже)
-    setEditing((v) => !v);
-  };
-
   const renderContent = () => {
     if (!user?.id) {
-      return (
-        <EmptyScreen
-          title="Не авторизованы"
-          note="Войдите, чтобы оформить бронь."
-        />
-      );
+      return <EmptyScreen title="Не авторизованы" note="Войдите, чтобы оформить бронь." />;
     }
 
     if (page === "objects") {
       if (openedObject) {
-        return (
-          <ObjectDetails
-            obj={openedObject}
-            user={user}
-            onBack={() => setOpenedObject(null)}
-          />
-        );
+        return <ObjectDetails obj={openedObject} user={user} onBack={() => setOpenedObject(null)} />;
       }
       return <ObjectsList onOpen={setOpenedObject} />;
     }
+
     if (page === "exchange") {
-      return (
-        <EmptyScreen
-          title="Обмен домами"
-          note="Позже подключим логику обмена."
-        />
-      );
+      return <ExchangePage user={user} />;
     }
 
-    // ПРОФИЛЬ
+    // профиль
     return (
-      <div
-        className="card-profile"
-        style={{ maxWidth: 560, marginInline: "auto" }}
-      >
+      <div className="card-profile" style={{ maxWidth: 560, marginInline: "auto" }}>
         <div className="profile-header">
-          <button
-            className="btn-primary"
-            type="button"
-            onClick={onEditClick}
-            disabled={saving}
-          >
+          <button className="btn-primary" type="button" onClick={() => setEditing((v) => !v)} disabled={saving}>
             {editing ? "Готово" : "Изменить"}
           </button>
         </div>
 
-        <Field>
-          <input
-            className="input"
-            placeholder="Иван Иванов"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            disabled={!editing || saving}
-          />
-        </Field>
+        <label className="form__group">
+          <input className="input" placeholder="Иван Иванов" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={!editing || saving} />
+        </label>
 
-        <Field>
-          <input
-            className="input"
-            placeholder="mail@demo.ru"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={!editing || saving}
-          />
-        </Field>
+        <label className="form__group">
+          <input className="input" placeholder="mail@demo.ru" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!editing || saving} />
+        </label>
 
-        <Field>
-          <input
-            className="input"
-            placeholder="+7 930 245 15 20"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            disabled={!editing || saving}
-          />
-        </Field>
+        <label className="form__group">
+          <input className="input" placeholder="+7 930 245 15 20" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!editing || saving} />
+        </label>
 
-        {/* Язык — просто информер сейчас */}
-        <button className="row-profile" type="button" disabled>
-          <div className="row-profile__left">
-            <Globe size={18} className="row-profile__icon" />
-            Язык
-          </div>
-          <div className="row-profile__right">
-            {lang === "ru" ? "Русский" : "English"}
-            <ChevronRight size={18} className="row-profile__chev" />
-          </div>
-        </button>
-
-        {/* Уведомления — локально переключаем, не сохраняем на сервер сейчас */}
-
-        {/* КНОПКА СОХРАНИТЬ — СВЕРХУ НАД ЗАЯВКАМИ */}
-        <div
-          style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}
-        >
-          <button
-            className="btn-primary"
-            type="button"
-            onClick={saveProfile}
-            disabled={saving || !editing}
-          >
+        <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+          <button className="btn-primary" type="button" onClick={saveProfile} disabled={saving || !editing}>
             {saving ? "Сохраняем..." : "Сохранить"}
           </button>
         </div>
 
-        {/* Проверка заявки */}
         <div style={{ marginTop: 20 }}>
-          <button
-            className="btn-secondary"
-            type="button"
-            onClick={() => setOpenCheck(true)}
-            style={{ width: "100%" }}
-          >
-            Проверка заявки
+          <button className="btn-secondary" type="button" onClick={() => setOpenCheck(true)} style={{ width: "100%" }}>
+            Мои заявки (бронирования)
           </button>
         </div>
       </div>
@@ -538,17 +679,8 @@ export default function User({ user }) {
       <main className="container">{renderContent()}</main>
       <BottomNav current={page} onChange={setPage} />
 
-      {/* Модалка «Проверка заявки» */}
-      <Modal
-        open={openCheck}
-        onClose={() => setOpenCheck(false)}
-        title="Мои заявки"
-      >
-        {user?.id ? (
-          <BookingsList userId={user.id} />
-        ) : (
-          <div className="empty">Войдите в аккаунт, чтобы видеть заявки</div>
-        )}
+      <Modal open={openCheck} onClose={() => setOpenCheck(false)} title="Мои заявки">
+        {user?.id ? <BookingsList userId={user.id} /> : <div className="empty">Войдите в аккаунт, чтобы видеть заявки</div>}
       </Modal>
     </div>
   );
