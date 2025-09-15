@@ -23,10 +23,28 @@ const fmtDateShort = (iso) =>
     year: "numeric",
   });
 
-const dateOnly = (s) => String(s).slice(0, 10);
+/** Надёжно превращает Date/строку в 'YYYY-MM-DD' */
+const toISODate = (v) => {
+  if (!v) return "";
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  // если уже YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(v))) return String(v).slice(0, 10);
+  // пробуем как обычную дату
+  const d = new Date(v);
+  if (!isNaN(d)) return d.toISOString().slice(0, 10);
+  // fallback: DD.MM.YYYY или DD/MM/YYYY
+  const m = String(v).match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/);
+  if (m) {
+    const [, dd, mm, yyyy] = m;
+    const d2 = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+    return d2.toISOString().slice(0, 10);
+  }
+  return "";
+};
+
 const nightsBetween = (start, end) => {
-  const a = new Date(dateOnly(start));
-  const b = new Date(dateOnly(end));
+  const a = new Date(toISODate(start));
+  const b = new Date(toISODate(end));
   const ms = b - a;
   return Math.max(1, Math.round(ms / 86400000));
 };
@@ -150,8 +168,8 @@ function ObjectDetails({ obj, user, onBack }) {
         );
         setBookedRanges(
           confirmed.map((b) => ({
-            start: b.start_date.slice(0, 10),
-            end: b.end_date.slice(0, 10),
+            start: toISODate(b.start_date),
+            end: toISODate(b.end_date),
           }))
         );
       } catch (err) {
@@ -170,7 +188,6 @@ function ObjectDetails({ obj, user, onBack }) {
       alert("❌ Нет user.id — повторите вход");
       return;
     }
-    const iso = (d) => d.toISOString().slice(0, 10);
     try {
       setLoading(true);
       const res = await fetch(`${API}/api/bookings`, {
@@ -179,8 +196,8 @@ function ObjectDetails({ obj, user, onBack }) {
         body: JSON.stringify({
           objectId: obj.id,
           userId: user.id,
-          startDate: iso(range.from),
-          endDate: iso(range.to),
+          startDate: toISODate(range.from),
+          endDate: toISODate(range.to),
         }),
       });
       if (res.ok) {
@@ -340,7 +357,7 @@ function ExchangePage({ user }) {
         const data = await r.json();
         const busy = (Array.isArray(data) ? data : [])
           .filter((b) => b.object_id === targetObject.id && ["pending", "confirmed"].includes(b.status))
-          .map((b) => ({ start: dateOnly(b.start_date), end: dateOnly(b.end_date) }));
+          .map((b) => ({ start: toISODate(b.start_date), end: toISODate(b.end_date) }));
         setTargetBookedRanges(busy);
       } catch (e) {
         console.error(e);
@@ -379,8 +396,8 @@ function ExchangePage({ user }) {
           userId: user.id,
           baseBookingId: baseBooking.id,
           targetObjectId: targetObject.id,
-          startDate: dateOnly(targetRange.from),
-          endDate: dateOnly(targetRange.to),
+          startDate: toISODate(targetRange.from),
+          endDate: toISODate(targetRange.to),
           message: message?.trim() || null,
         }),
       });
