@@ -21,6 +21,19 @@ const fmtDate = (iso) =>
     year: "numeric",
   });
 
+const toYMD = (dLike) => {
+  const d = dLike instanceof Date ? dLike : new Date(dLike);
+  const y = d.getFullYear();
+  const m = `${d.getMonth() + 1}`.padStart(2, "0");
+  const dd = `${d.getDate()}`.padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+};
+
+const overlaps = (aStart, aEnd, bStart, bEnd) => {
+  // пересечение интервалов (включительно)
+  return !(new Date(aEnd) < new Date(bStart) || new Date(bEnd) < new Date(aStart));
+};
+
 /* -------------------- Segmented Toggle -------------------- */
 function SegmentedToggle({ value, onChange }) {
   const options = useMemo(
@@ -666,7 +679,7 @@ function ObjectsTab() {
   );
 }
 
-/* -------------------- Bookings Tab (теперь и обмены здесь же) -------------------- */
+/* -------------------- Bookings Tab (объединено с обменами) -------------------- */
 function BookingsTab({
   bookings,
   exchanges,
@@ -699,7 +712,6 @@ function BookingsTab({
     }
   }
 
-  // Нормализуем и объединяем в одну ленту, сортируем по created_at
   const mix = [
     ...exchanges.map((x) => ({ kind: "exchange", ...x })),
     ...bookings.map((b) => ({ kind: "booking", ...b })),
@@ -814,6 +826,104 @@ function BookingsTab({
   );
 }
 
+/* -------------------- Панель под календарём -------------------- */
+function CalendarBookingsPanel({ bookings, selectedRange }) {
+  const [filter, setFilter] = useState("all"); // all | confirmed | pending
+
+  // отберём брони по фильтру статуса
+  let arr = bookings.filter((b) =>
+    filter === "all" ? true : b.status === filter
+  );
+
+  // если выбрана область в календаре — оставляем только пересекающиеся
+  if (selectedRange?.from && selectedRange?.to) {
+    const from = toYMD(selectedRange.from);
+    const to = toYMD(selectedRange.to);
+    arr = arr.filter((b) =>
+      overlaps(from, to, toYMD(b.start_date), toYMD(b.end_date))
+    );
+  }
+
+  // упорядочим по дате заезда
+  arr.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+
+  return (
+    <div className="calendar-panel">
+      <div className="calendar-panel__hdr">
+        <div className="objects-title" style={{ margin: 0 }}>
+          Занятость
+        </div>
+        <div className="calendar-filter">
+          <button
+            type="button"
+            className={`chip ${filter === "all" ? "is-active" : ""}`}
+            onClick={() => setFilter("all")}
+            title="Показать все статусы"
+          >
+            Все
+          </button>
+          <button
+            type="button"
+            className={`chip ${filter === "confirmed" ? "is-active" : ""}`}
+            onClick={() => setFilter("confirmed")}
+            title="Только подтверждённые"
+          >
+            Подтверждённые
+          </button>
+          <button
+            type="button"
+            className={`chip ${filter === "pending" ? "is-active" : ""}`}
+            onClick={() => setFilter("pending")}
+            title="Только в ожидании"
+          >
+            В ожидании
+          </button>
+        </div>
+      </div>
+
+      {selectedRange?.from && selectedRange?.to ? (
+        <div className="text-sub" style={{ marginTop: 6 }}>
+          Диапазон: {fmtDate(selectedRange.from)} → {fmtDate(selectedRange.to)}
+        </div>
+      ) : (
+        <div className="text-sub" style={{ marginTop: 6 }}>
+          Совет: выделите даты в календаре, чтобы отфильтровать брони по периоду.
+        </div>
+      )}
+
+      {arr.length === 0 ? (
+        <div className="empty" style={{ marginTop: 8 }}>
+          Ничего не найдено для выбранных условий
+        </div>
+      ) : (
+        <div className="vstack-12" style={{ marginTop: 12 }}>
+          {arr.map((b) => (
+            <div key={b.id} className="booking-card">
+              <div className="booking-header">
+                {b.user_name || "Пользователь"}{" "}
+                {b.user_phone ? `(${b.user_phone})` : ""}
+              </div>
+              <div className="booking-sub">🏠 {b.object_title || "Объект"}</div>
+              <div className="booking-sub">
+                📅 {fmtDate(b.start_date)} → {fmtDate(b.end_date)}
+              </div>
+              <div className={`booking-status ${b.status}`} style={{ marginTop: 6 }}>
+                {b.status === "pending"
+                  ? "⏳ Ожидает"
+                  : b.status === "confirmed"
+                  ? "✅ Подтверждено"
+                  : b.status === "cancelled"
+                  ? "🚫 Отменена"
+                  : "❌ Отклонено"}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* -------------------- Bottom Nav -------------------- */
 function BottomNav({ current, onChange }) {
   const items = [
@@ -893,7 +1003,7 @@ export default function Admin() {
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d?.error || "server error");
-      await reloadAll(); // после approve меняется и бронь
+      await reloadAll(); // бронь могла измениться
       alert(action === "approve" ? "Обмен подтверждён" : "Обмен отклонён");
     } catch (e) {
       alert("Ошибка: " + e.message);
@@ -904,11 +1014,12 @@ export default function Admin() {
     reloadAll();
   }, []);
 
-  const confirmedRanges = bookings
-    .filter((b) => b.status === "confirmed")
+  // закрашиваем в календаре pending + confirmed
+  const busyRanges = bookings
+    .filter((b) => ["pending", "confirmed"].includes(b.status))
     .map((b) => ({
-      start: String(b.start_date).slice(0, 10),
-      end: String(b.end_date).slice(0, 10),
+      start: toYMD(b.start_date),
+      end: toYMD(b.end_date),
     }));
 
   const renderContent = () => {
@@ -944,19 +1055,24 @@ export default function Admin() {
         </>
       );
     }
+
     if (page === "calendar") {
       return (
-        <div style={{ }}>
+        <div style={{ padding: 20 }}>
           <AdminCalendar
             months={1}
-            bookedRanges={confirmedRanges}
+            bookedRanges={busyRanges}
             selected={range}
             onSelectRange={setRange}
             readOnly={true}
           />
+
+          {/* ПАНЕЛЬ НИЖЕ КАЛЕНДАРЯ */}
+          <CalendarBookingsPanel bookings={bookings} selectedRange={range} />
         </div>
       );
     }
+
     if (page === "bookings") {
       return (
         <BookingsTab
