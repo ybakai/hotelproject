@@ -27,10 +27,11 @@ function EmptyScreen({ title, note }) {
 const fmtArea = (v) => {
   const n = Number(v);
   if (!Number.isFinite(n)) return null;
-  const s = Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/,'');
+  const s = Number.isInteger(n)
+    ? String(n)
+    : n.toFixed(2).replace(/\.?0+$/, "");
   return `${s} м²`;
 };
-
 
 /* -------- Нижнее меню -------- */
 function BottomNav({ current, onChange }) {
@@ -75,7 +76,8 @@ function ObjectsList({ onOpen }) {
   }, []);
 
   if (loading) return <div className="empty">Загрузка…</div>;
-  if (objects.length === 0) return <div className="empty">Объектов пока нет</div>;
+  if (objects.length === 0)
+    return <div className="empty">Объектов пока нет</div>;
 
   return (
     <div className="grid-2-12">
@@ -96,7 +98,9 @@ function ObjectsList({ onOpen }) {
           )}
           <div className="tile__body">
             <div className="tile__title">{o.title}</div>
-            {o.description ? <div className="tile__sub">{o.description}</div> : null}
+            {o.description ? (
+              <div className="tile__sub">{o.description}</div>
+            ) : null}
           </div>
         </button>
       ))}
@@ -158,7 +162,9 @@ function ObjectDetails({ obj, user, onBack }) {
 
       if (res.ok) {
         const booking = await res.json();
-        alert(`✅ Заявка создана!\nID: ${booking.id}\nСтатус: ${booking.status}`);
+        alert(
+          `✅ Заявка создана!\nID: ${booking.id}\nСтатус: ${booking.status}`
+        );
       } else if (res.status === 409) {
         alert("❌ Эти даты уже заняты!");
       } else {
@@ -183,18 +189,37 @@ function ObjectDetails({ obj, user, onBack }) {
 
   return (
     <div style={{ padding: 16 }}>
-      <button className="btn-secondary" type="button" onClick={onBack} style={{ marginBottom: 12 }}>
+      <button
+        className="btn-secondary"
+        type="button"
+        onClick={onBack}
+        style={{ marginBottom: 12 }}
+      >
         ← Назад
       </button>
 
+      <h2 className="title" style={{ marginTop: 0 }}>
+        {obj.title}
+      </h2>
+
       {Array.isArray(obj.images) && obj.images[0] ? (
-        <img src={obj.images[0]} alt={obj.title} style={{ width: "100%", borderRadius: 12, marginBottom: 12 }} />
+        <img
+          src={obj.images[0]}
+          alt={obj.title}
+          style={{ width: "100%", borderRadius: 12, marginBottom: 12 }}
+        />
       ) : (
-        <div className="tile__imgwrap tile__imgwrap--empty" style={{ marginBottom: 12 }}>Нет фото</div>
+        <div
+          className="tile__imgwrap tile__imgwrap--empty"
+          style={{ marginBottom: 12 }}
+        >
+          Нет фото
+        </div>
       )}
 
-      <h2 className="title" style={{ marginTop: 0 }}>{obj.title}</h2>
-      {obj.description ? <p style={{ marginTop: 6 }}>{obj.description}</p> : null}
+      {obj.description ? (
+        <p style={{ marginTop: 6 }}>{obj.description}</p>
+      ) : null}
 
       {/* Новая строка: площадь • комнаты • доля */}
       {infoParts.length > 0 && (
@@ -212,8 +237,15 @@ function ObjectDetails({ obj, user, onBack }) {
           onSelectRange={setRange}
           readOnly={false}
         />
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
-          <button className="btn-primary" type="button" onClick={handleBook} disabled={loading}>
+        <div
+          style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}
+        >
+          <button
+            className="btn-primary"
+            type="button"
+            onClick={handleBook}
+            disabled={loading}
+          >
             {loading ? "Бронируем..." : "Забронировать"}
           </button>
         </div>
@@ -221,13 +253,16 @@ function ObjectDetails({ obj, user, onBack }) {
 
       {/* Контакты ниже календаря */}
       <div style={{ marginTop: 16 }}>
-        {obj.owner_name ? <div className="text-sub">Имя: {obj.owner_name}</div> : null}
-        {obj.owner_contact ? <div className="text-sub">Телефон/контакт: {obj.owner_contact}</div> : null}
+        {obj.owner_name ? (
+          <div className="text-sub">Имя: {obj.owner_name}</div>
+        ) : null}
+        {obj.owner_contact ? (
+          <div className="text-sub">Телефон/контакт: {obj.owner_contact}</div>
+        ) : null}
       </div>
     </div>
   );
 }
-
 
 /* === Модалка === */
 function Modal({ open, onClose, title, children }) {
@@ -310,7 +345,10 @@ function BookingsList({ userId }) {
           <div className="booking-sub">
             📅 {fmt(b.start_date)} → {fmt(b.end_date)}
           </div>
-          <div className={`booking-status ${b.status}`} style={{ marginTop: 6 }}>
+          <div
+            className={`booking-status ${b.status}`}
+            style={{ marginTop: 6 }}
+          >
             {b.status === "pending"
               ? "⏳ Ожидает подтверждения"
               : b.status === "confirmed"
@@ -333,7 +371,7 @@ export default function User({ user }) {
   const [email, setEmail] = React.useState(user?.email || "");
   const [phone, setPhone] = React.useState(user?.phone || "");
   const [lang] = React.useState("ru");
-  
+
   const [openCheck, setOpenCheck] = React.useState(false);
 
   // редактирование профиля — одна кнопка + отдельная "Сохранить"
@@ -376,22 +414,41 @@ export default function User({ user }) {
 
   const renderContent = () => {
     if (!user?.id) {
-      return <EmptyScreen title="Не авторизованы" note="Войдите, чтобы оформить бронь." />;
+      return (
+        <EmptyScreen
+          title="Не авторизованы"
+          note="Войдите, чтобы оформить бронь."
+        />
+      );
     }
 
     if (page === "objects") {
       if (openedObject) {
-        return <ObjectDetails obj={openedObject} user={user} onBack={() => setOpenedObject(null)} />;
+        return (
+          <ObjectDetails
+            obj={openedObject}
+            user={user}
+            onBack={() => setOpenedObject(null)}
+          />
+        );
       }
       return <ObjectsList onOpen={setOpenedObject} />;
     }
     if (page === "exchange") {
-      return <EmptyScreen title="Обмен домами" note="Позже подключим логику обмена." />;
+      return (
+        <EmptyScreen
+          title="Обмен домами"
+          note="Позже подключим логику обмена."
+        />
+      );
     }
 
     // ПРОФИЛЬ
     return (
-      <div className="card-profile" style={{ width: '80%', marginInline: "auto" }}>
+      <div
+        className="card-profile"
+        style={{ width: "80%", marginInline: "auto" }}
+      >
         <div className="profile-header">
           <button
             className="btn-primary"
@@ -446,10 +503,11 @@ export default function User({ user }) {
         </button>
 
         {/* Уведомления — локально переключаем, не сохраняем на сервер сейчас */}
-        
 
         {/* КНОПКА СОХРАНИТЬ — СВЕРХУ НАД ЗАЯВКАМИ */}
-        <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+        <div
+          style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}
+        >
           <button
             className="btn-primary"
             type="button"
@@ -481,7 +539,11 @@ export default function User({ user }) {
       <BottomNav current={page} onChange={setPage} />
 
       {/* Модалка «Проверка заявки» */}
-      <Modal open={openCheck} onClose={() => setOpenCheck(false)} title="Мои заявки">
+      <Modal
+        open={openCheck}
+        onClose={() => setOpenCheck(false)}
+        title="Мои заявки"
+      >
         {user?.id ? (
           <BookingsList userId={user.id} />
         ) : (
