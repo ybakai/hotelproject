@@ -161,9 +161,9 @@ function ObjectDetails({ obj, user, onBack }) {
       });
 
       if (res.ok) {
-        const booking = await res.json();
+        
         alert(
-          `✅ Заявка создана!\nID: ${booking.id}\nСтатус: ${booking.status}`
+          `✅ Заявка создана!`
         );
       } else if (res.status === 409) {
         alert("❌ Эти даты уже заняты!");
