@@ -446,23 +446,7 @@ export default function User({ user }) {
         </button>
 
         {/* Уведомления — локально переключаем, не сохраняем на сервер сейчас */}
-        <div className="row-profile">
-          <div className="row-profile__left">
-            <Bell size={18} className="row-profile__icon" />
-            Уведомления
-          </div>
-          <div className="row-profile__right">
-            <label className="switch-profile">
-              <input
-                type="checkbox"
-                checked={notify}
-                onChange={(e) => setNotify(e.target.checked)}
-                disabled={!editing || saving}
-              />
-              <span className="slider-profile" />
-            </label>
-          </div>
-        </div>
+        
 
         {/* КНОПКА СОХРАНИТЬ — СВЕРХУ НАД ЗАЯВКАМИ */}
         <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
