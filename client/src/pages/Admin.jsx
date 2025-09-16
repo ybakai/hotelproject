@@ -289,6 +289,27 @@ function ObjectsTab() {
     setEFiles(Array.from(e.target.files || []).slice(0, 6));
   };
 
+
+  const onDelete = async () => {
+    if (!editingId) return;
+    if (!confirm("Точно удалить объект? Это действие необратимо.")) return;
+    try {
+      const res = await fetch(`${API}/api/objects/${editingId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || `HTTP ${res.status}`);
+      }
+      // локально убираем объект из списка и закрываем модалку
+      setObjects((prev) => prev.filter((o) => o.id !== editingId));
+      setShowEdit(false);
+      setEditingId(null);
+    } catch (err) {
+      console.error("Delete object failed:", err);
+      alert("Не удалось удалить объект");
+    }
+  };
+
+
   const onUpdate = async (e) => {
     e.preventDefault();
     if (!editingId) return;
@@ -690,6 +711,16 @@ function ObjectsTab() {
                 </button>
                 <button className="btn-primary" type="submit">
                   Сохранить
+                </button>
+              </div>
+              <div className="form__actions" style={{ justifyContent: "flex-start" }}>
+                <button
+                  className="btn-secondary"
+                  type="button"
+                  onClick={onDelete}
+                  style={{ background: "#fee2e2", color: "#991b1b", borderColor: "#fecaca" }}
+                >
+                  Удалить объект
                 </button>
               </div>
             </form>

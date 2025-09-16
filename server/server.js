@@ -371,6 +371,28 @@ app.get("/api/exchanges", async (req, res) => {
   }
 });
 
+// УДАЛИТЬ объект
+app.delete("/api/objects/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: "invalid id" });
+
+    const q = await pool.query(`DELETE FROM objects WHERE id = $1 RETURNING id`, [id]);
+    if (q.rowCount === 0) return res.status(404).json({ error: "not_found" });
+
+    res.json({ ok: true, id: q.rows[0].id });
+  } catch (e) {
+    console.error("DELETE /api/objects/:id:", e);
+    // Если в БД есть внешние ключи без CASCADE — будет 23503 (FK violation).
+    if (e.code === "23503") {
+      return res.status(409).json({ error: "object_has_dependencies" });
+    }
+    res.status(500).json({ error: "server error" });
+  }
+});
+
+
+
 // создать запрос на обмен
 app.post("/api/exchanges", async (req, res) => {
   try {
