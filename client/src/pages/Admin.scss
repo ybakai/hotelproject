@@ -10,6 +10,15 @@
   font-weight: 800;
 }
 
+.hedd{
+  display: flex;
+  gap: 15px;
+  margin-top: 50px;
+  svg{
+    width: 60px;
+    height: 60px;
+  }
+}
 
 /* Вспомогательные стеки/отступы */
 .vstack-12 { display: grid; gap: 12px; }
