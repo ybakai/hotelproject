@@ -7,7 +7,6 @@ import "/src/components/calendarAdmin/CalendarAdmin.css";
 import { ChevronRight, Globe, X } from "lucide-react";
 
 const API = "https://hotelproject-8cip.onrender.com";
-const ACCENT = "#276D73";
 
 /* ---------- helpers ---------- */
 const fmtDate = (iso) =>
@@ -75,36 +74,6 @@ function Modal({ open, onClose, title, children }) {
         </div>
         <div className="modal__body">{children}</div>
       </div>
-    </div>
-  );
-}
-
-function TopMark() {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "10px 16px",
-      }}
-    >
-      <svg
-        width="22"
-        height="22"
-        viewBox="0 0 22 22"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden
-      >
-        <path
-          d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796Х11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z"
-          fill={ACCENT}
-          stroke={ACCENT}
-          strokeLinejoin="round"
-        />
-      </svg>
-      <span style={{ color: ACCENT, fontWeight: 700 }}>TEST</span>
     </div>
   );
 }
@@ -263,8 +232,7 @@ function ObjectDetails({ obj, user, onBack }) {
 
       {obj.description ? <p style={{ marginTop: 6 }}>{obj.description}</p> : null}
 
-      {/* параметры — Комнаты, Метраж, Доли */}
-      {(obj?.rooms != null || obj?.area != null || (obj?.share !== undefined && obj?.share !== null && String(obj.share) !== "")) && (
+       {(obj?.rooms != null || obj?.area != null || (obj?.share !== undefined && obj?.share !== null && String(obj.share) !== "")) && (
         <div style={{ marginTop: 10 }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8 }}>
             {obj?.rooms != null && (
@@ -671,7 +639,7 @@ export default function User({ user }) {
   const [openedObject, setOpenedObject] = React.useState(null);
 
   // профиль
-  the [fullName, setFullName] = React.useState(user?.full_name || "");
+  const [fullName, setFullName] = React.useState(user?.full_name || "");
   const [email, setEmail] = React.useState(user?.email || "");
   const [phone, setPhone] = React.useState(user?.phone || "");
   const [openCheck, setOpenCheck] = React.useState(false);
@@ -754,9 +722,6 @@ export default function User({ user }) {
 
   return (
     <div className="app" style={{ paddingBottom: 80 }}>
-      {/* верхний блок с SVG и текстом TEST на всех вкладках */}
-      <TopMark />
-
       <main className="container">{renderContent()}</main>
       <BottomNav current={page} onChange={setPage} />
 
