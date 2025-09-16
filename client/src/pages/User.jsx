@@ -232,6 +232,35 @@ function ObjectDetails({ obj, user, onBack }) {
 
       {obj.description ? <p style={{ marginTop: 6 }}>{obj.description}</p> : null}
 
+       {(obj?.rooms != null || obj?.area != null || (obj?.share !== undefined && obj?.share !== null && String(obj.share) !== "")) && (
+        <div style={{ marginTop: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8 }}>
+            {obj?.rooms != null && (
+              <div>
+                <div className="text-sub">Комнаты</div>
+                <div style={{ fontWeight: 600 }}>{obj.rooms}</div>
+              </div>
+            )}
+            {obj?.area != null && (
+              <div>
+                <div className="text-sub">Метраж</div>
+                <div style={{ fontWeight: 600 }}>
+                  {Number(obj.area).toLocaleString("ru-RU")} м²
+                </div>
+              </div>
+            )}
+            {(obj?.share !== undefined && obj?.share !== null && String(obj.share) !== "") && (
+              <div>
+                <div className="text-sub">Доли</div>
+                <div style={{ fontWeight: 600 }}>
+                  {/^\d+(\.\d+)?$/.test(String(obj.share)) ? `${obj.share}%` : String(obj.share)}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div style={{ marginTop: 12 }}>
         <AdminCalendar
           months={1}
