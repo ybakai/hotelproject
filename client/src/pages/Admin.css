@@ -25,6 +25,23 @@
   height: 60px;
 }
 
+/* Прижать к левому краю экрана, по центру по вертикали */
+.abs-logo {
+  position: fixed;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%); /* центр по вертикали */
+  z-index: 9999; /* чтобы было поверх */
+}
+
+/* Повернуть сам SVG и сделать полупрозрачным */
+.abs-logo svg {
+  display: block;
+  transform: rotate(-90deg); /* 90° влево */
+  transform-origin: center;
+  opacity: 0.5; /* прозрачность — меняй по вкусу */
+}
+
 /* Вспомогательные стеки/отступы */
 .vstack-12 {
   display: grid;
