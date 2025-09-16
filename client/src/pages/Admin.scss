@@ -28,6 +28,7 @@
 /* Прижать к левому краю экрана, по центру по вертикали */
 .abs-logo {
   position: fixed;
+  pointer-events: none !important;
   top: 50%;
   right: 0;
   transform: translateY(-50%); /* центр по вертикали */
