@@ -195,7 +195,6 @@ overflow-y: auto;   }
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  
   word-break: break-word;        /* чтобы длинные слова/ссылки не вылазили */
   overflow-wrap: anywhere;       /* дополнительная подстраховка */
 }

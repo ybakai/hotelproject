@@ -371,6 +371,105 @@ app.get("/api/exchanges", async (req, res) => {
   }
 });
 
+// ОБНОВИТЬ объект (добавляет новые картинки к существующим)
+app.patch("/api/objects/:id", upload.array("images", 6), async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: "invalid id" });
+
+    // 1) Берём текущую запись (и текущие images)
+    const curQ = await pool.query(
+      `SELECT id, owner_id, title, description, images,
+              owner_name, owner_contact, address, area, rooms, share, created_at
+         FROM objects
+        WHERE id = $1`,
+      [id]
+    );
+    if (curQ.rowCount === 0) return res.status(404).json({ error: "not_found" });
+    const current = curQ.rows[0];
+
+    // 2) Разбираем поля из FormData
+    const {
+      title,
+      description,
+      owner_id,
+      owner_name,
+      owner_contact,
+      address,
+      area,
+      rooms,
+      share,
+    } = req.body || {};
+
+    const areaNum =
+      area !== undefined && String(area).trim() !== "" ? Number(area) : null;
+    const roomsInt =
+      rooms !== undefined && String(rooms).trim() !== "" ? parseInt(rooms, 10) : null;
+
+    // 3) Заливаем новые картинки (если пришли) в Cloudinary
+    const newUrls = [];
+    if (Array.isArray(req.files) && req.files.length) {
+      if (!cloudOK) {
+        console.warn("Images were sent but Cloudinary isn't configured — skipping upload.");
+      } else {
+        for (const file of req.files) {
+          const uploaded = await new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              { folder: "hotel_objects" },
+              (err, result) => (err ? reject(err) : resolve(result))
+            );
+            stream.end(file.buffer);
+          });
+          newUrls.push(uploaded.secure_url);
+        }
+      }
+    }
+
+    // 4) Если картинок нет — оставляем старые; если есть — добавляем к старым
+    // В БД колонка images типа text[] (как и при вставке).
+    const imagesFinal =
+      newUrls.length > 0 ? [...(current.images || []), ...newUrls] : current.images || [];
+
+    // 5) Обновляем запись (поля, которые не пришли — оставляем как есть)
+    const updQ = await pool.query(
+      `UPDATE objects SET
+         owner_id      = COALESCE($1, owner_id),
+         title         = COALESCE($2, title),
+         description   = COALESCE($3, description),
+         images        = $4,
+         owner_name    = COALESCE($5, owner_name),
+         owner_contact = COALESCE($6, owner_contact),
+         address       = COALESCE($7, address),
+         area          = COALESCE($8, area),
+         rooms         = COALESCE($9, rooms),
+         share         = COALESCE($10, share)
+       WHERE id = $11
+       RETURNING id, owner_id, title, description, images,
+                 owner_name, owner_contact,
+                 address, area, rooms, share, created_at`,
+      [
+        owner_id ? Number(owner_id) : null,
+        title?.trim() || null,
+        description?.trim() || null,
+        imagesFinal,
+        owner_name?.trim() || null,
+        owner_contact?.trim() || null,
+        address?.trim() || null,
+        Number.isFinite(areaNum) ? areaNum : null,
+        Number.isInteger(roomsInt) ? roomsInt : null,
+        share?.trim() || null,
+        id,
+      ]
+    );
+
+    res.json(updQ.rows[0]);
+  } catch (e) {
+    console.error("PATCH /api/objects/:id:", e);
+    res.status(500).json({ error: e.message || "server error" });
+  }
+});
+
+
 // УДАЛИТЬ объект
 app.delete("/api/objects/:id", async (req, res) => {
   try {
