@@ -156,6 +156,7 @@
   gap: 12px;
 }
 
+/* Карточка */
 .tile {
   border: 1px solid #eef2f7;
   background: #fff;
@@ -166,13 +167,20 @@
   flex-direction: column;
   align-items: stretch;
   padding: 0;
+  box-sizing: border-box;
 }
 
-/* Блок для картинки с фиксированным соотношением сторон */
+.tile * {
+  box-sizing: inherit;
+}
+
+/* Картинка фиксированной высоты */
 .tile__imgwrap {
-  aspect-ratio: 16/9; /* можно поменять на 4/3 или другое */
+  width: 100%;
+  aspect-ratio: 16/9;
   background: #f3f3f3;
   overflow: hidden;
+  display: block;
 }
 
 .tile__imgwrap--empty {
@@ -184,39 +192,45 @@
 }
 
 .tile__img {
+  display: block;
   width: 100%;
   height: 100%;
   -o-object-fit: cover;
      object-fit: cover;
 }
 
-/* Тело карточки */
+/* Тело карточки с уверенными отступами */
 .tile__body {
-  padding: 12px;
   width: 100%;
+  padding: 12px; /* общий паддинг */
+  padding-right: 14px; /* легкий запас справа */
   display: flex;
   flex-direction: column;
   gap: 8px;
   flex-grow: 1;
 }
 
+/* Заголовок — одна строка с троеточием и правильным переносом */
 .tile__title {
   font-size: 14px;
-  font-weight: 600;
-  color: black;
+  font-weight: 700;
+  color: #000;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* Описание — максимум 3 строки + перенос длинных слов */
 .tile__sub {
   font-size: 12px;
   color: #64748b;
   display: -webkit-box;
-  -webkit-line-clamp: 3; /* кол-во строк */
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+  word-break: break-word; /* чтобы длинные слова/ссылки не вылазили */
+  overflow-wrap: anywhere; /* дополнительная подстраховка */
 }
 
 /* Пустые экраны */
