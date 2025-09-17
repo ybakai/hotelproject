@@ -24,18 +24,20 @@ function setRefreshCookie(res, token) {
     httpOnly: true,
     secure: COOKIE_SECURE,
     sameSite: "None",
-    path: "/auth/refresh",
+    path: "/auth",           // <= было "/auth/refresh"
     maxAge: REFRESH_MAX_AGE_MS,
   });
 }
+
 function clearRefreshCookie(res) {
   res.clearCookie("rt", {
-    path: "/auth/refresh",
+    path: "/auth",           // <= было "/auth/refresh"
     secure: COOKIE_SECURE,
     sameSite: "None",
     httpOnly: true,
   });
 }
+
 
 
 // ===== DB
