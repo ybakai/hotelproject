@@ -12,7 +12,7 @@ function App() {
   const [stage, setStage] = useState("auth");
   const [me, setMe] = useState(null); // объект пользователя из бэка
 
-  const API = "https://hotelproject-8cip.onrender.com";
+  const API = "";
 
   // Автовход по куке
   useEffect(() => {

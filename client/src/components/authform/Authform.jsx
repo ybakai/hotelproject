@@ -41,7 +41,7 @@ export default function Authform({ onLoginSuccess }) {
     setPhone(formatPhoneMask(e.target.value));
   }
 
-  const API = "https://hotelproject-8cip.onrender.com";
+  const API = "";
 
   async function handleSubmit(e) {
     e.preventDefault();
