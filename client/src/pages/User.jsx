@@ -1,5 +1,5 @@
 // User.jsx
-import React,{useMemo} from "react";
+import React, { useMemo } from "react";
 import { Home, RefreshCw, UserCircle2 } from "lucide-react";
 import "./Admin.css";
 import AdminCalendar from "/src/components/calendarAdmin/CalendarAdmin.jsx";
@@ -248,23 +248,51 @@ function ObjectDetails({ obj, user, onBack }) {
 
   return (
     <div style={{ padding: 16 }}>
-      <button className="btn-secondary" type="button" onClick={onBack} style={{ marginBottom: 12 }}>
+      <button
+        className="btn-secondary"
+        type="button"
+        onClick={onBack}
+        style={{ marginBottom: 12 }}
+      >
         ← Назад
       </button>
 
-      <h2 className="title" style={{ marginTop: 0 }}>{obj.title}</h2>
+      <h2 className="title" style={{ marginTop: 0 }}>
+        {obj.title}
+      </h2>
 
       {Array.isArray(obj.images) && obj.images[0] ? (
-        <img src={obj.images[0]} alt={obj.title} style={{ width: "100%", borderRadius: 12, marginBottom: 12 }} />
+        <img
+          src={obj.images[0]}
+          alt={obj.title}
+          style={{ width: "100%", borderRadius: 12, marginBottom: 12 }}
+        />
       ) : (
-        <div className="tile__imgwrap tile__imgwrap--empty" style={{ marginBottom: 12 }}>Нет фото</div>
+        <div
+          className="tile__imgwrap tile__imgwrap--empty"
+          style={{ marginBottom: 12 }}
+        >
+          Нет фото
+        </div>
       )}
 
-      {obj.description ? <p style={{ marginTop: 6 }}>{obj.description}</p> : null}
+      {obj.description ? (
+        <p style={{ marginTop: 6 }}>{obj.description}</p>
+      ) : null}
 
-       {(obj?.rooms != null || obj?.area != null || (obj?.share !== undefined && obj?.share !== null && String(obj.share) !== "")) && (
+      {(obj?.rooms != null ||
+        obj?.area != null ||
+        (obj?.share !== undefined &&
+          obj?.share !== null &&
+          String(obj.share) !== "")) && (
         <div style={{ marginTop: 10 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(0,1fr))",
+              gap: 8,
+            }}
+          >
             {obj?.rooms != null && (
               <div>
                 <div className="text-sub">Комнаты</div>
@@ -279,14 +307,18 @@ function ObjectDetails({ obj, user, onBack }) {
                 </div>
               </div>
             )}
-            {(obj?.share !== undefined && obj?.share !== null && String(obj.share) !== "") && (
-              <div>
-                <div className="text-sub">Доли</div>
-                <div style={{ fontWeight: 600 }}>
-                  {/^\d+(\.\d+)?$/.test(String(obj.share)) ? `${obj.share}%` : String(obj.share)}
+            {obj?.share !== undefined &&
+              obj?.share !== null &&
+              String(obj.share) !== "" && (
+                <div>
+                  <div className="text-sub">Доли</div>
+                  <div style={{ fontWeight: 600 }}>
+                    {/^\d+(\.\d+)?$/.test(String(obj.share))
+                      ? `${obj.share}%`
+                      : String(obj.share)}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
         </div>
       )}
@@ -310,16 +342,27 @@ function ObjectDetails({ obj, user, onBack }) {
           }}
           readOnly={false}
         />
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
-          <button className="btn-primary" type="button" onClick={handleBook} disabled={loading}>
+        <div
+          style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}
+        >
+          <button
+            className="btn-primary"
+            type="button"
+            onClick={handleBook}
+            disabled={loading}
+          >
             {loading ? "Бронируем..." : "Забронировать"}
           </button>
         </div>
       </div>
 
       <div style={{ marginTop: 16 }}>
-        {obj.owner_name ? <div className="text-sub">Имя: {obj.owner_name}</div> : null}
-        {obj.owner_contact ? <div className="text-sub">Телефон/контакт: {obj.owner_contact}</div> : null}
+        {obj.owner_name ? (
+          <div className="text-sub">Имя: {obj.owner_name}</div>
+        ) : null}
+        {obj.owner_contact ? (
+          <div className="text-sub">Телефон/контакт: {obj.owner_contact}</div>
+        ) : null}
       </div>
     </div>
   );
@@ -343,7 +386,9 @@ function ExchangeHistory({ userId }) {
     }
   }, [userId]);
 
-  React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => {
+    load();
+  }, [load]);
 
   if (loading) return <div className="empty">Загрузка…</div>;
   if (!items.length) return <div className="empty">Запросов пока нет</div>;
@@ -359,16 +404,30 @@ function ExchangeHistory({ userId }) {
       {items.map((x) => (
         <div key={x.id} className="booking-card">
           <div className="booking-header">Обмен #{x.id}</div>
-          <div className="booking-sub">Дом: {x.base_object_title} → {x.target_object_title}</div>
           <div className="booking-sub">
-            Даты: {fmtDateShort(x.start_date)} → {fmtDateShort(x.end_date)} ({x.nights} ноч.)
+            Дом: {x.base_object_title} → {x.target_object_title}
           </div>
-          <div className={`booking-status ${x.status}`} style={{ marginTop: 6 }}>
-            {x.status === "pending" ? "⏳ Ожидает" :
-             x.status === "approved" ? "✅ Разрешено" :
-             x.status === "rejected" ? "❌ Отклонено" : x.status}
+          <div className="booking-sub">
+            Даты: {fmtDateShort(x.start_date)} → {fmtDateShort(x.end_date)} (
+            {x.nights} ноч.)
           </div>
-          {x.message ? <div className="booking-sub" style={{ marginTop: 6 }}>Сообщение: {x.message}</div> : null}
+          <div
+            className={`booking-status ${x.status}`}
+            style={{ marginTop: 6 }}
+          >
+            {x.status === "pending"
+              ? "⏳ Ожидает"
+              : x.status === "approved"
+              ? "✅ Разрешено"
+              : x.status === "rejected"
+              ? "❌ Отклонено"
+              : x.status}
+          </div>
+          {x.message ? (
+            <div className="booking-sub" style={{ marginTop: 6 }}>
+              Сообщение: {x.message}
+            </div>
+          ) : null}
         </div>
       ))}
     </div>
@@ -391,7 +450,9 @@ function ExchangePage({ user }) {
   const [message, setMessage] = React.useState("");
   const [sending, setSending] = React.useState(false);
 
-  const baseNights = baseBooking ? nightsBetween(baseBooking.start_date, baseBooking.end_date) : 0;
+  const baseNights = baseBooking
+    ? nightsBetween(baseBooking.start_date, baseBooking.end_date)
+    : 0;
 
   // загрузка моих подтверждённых броней
   React.useEffect(() => {
@@ -400,7 +461,8 @@ function ExchangePage({ user }) {
         const r = await fetch(`${API}/api/bookings`);
         const data = await r.json();
         const mine = (Array.isArray(data) ? data : []).filter(
-          (b) => Number(b.user_id) === Number(user.id) && b.status === "confirmed"
+          (b) =>
+            Number(b.user_id) === Number(user.id) && b.status === "confirmed"
         );
         setMyBookings(mine);
       } catch (e) {
@@ -426,8 +488,15 @@ function ExchangePage({ user }) {
         const r = await fetch(`${API}/api/bookings`);
         const data = await r.json();
         const busy = (Array.isArray(data) ? data : [])
-          .filter((b) => b.object_id === targetObject.id && ["pending", "confirmed"].includes(b.status))
-          .map((b) => ({ start: toISODate(b.start_date), end: toISODate(b.end_date) }));
+          .filter(
+            (b) =>
+              b.object_id === targetObject.id &&
+              ["pending", "confirmed"].includes(b.status)
+          )
+          .map((b) => ({
+            start: toISODate(b.start_date),
+            end: toISODate(b.end_date),
+          }));
         setTargetBookedRanges(busy);
       } catch (e) {
         console.error(e);
@@ -503,7 +572,10 @@ function ExchangePage({ user }) {
         <div className="objects-toolbar" style={{ marginBottom: 12 }}>
           <div className="objects-title">Обмен неделями</div>
           <div className="hstack-8">
-            <button className={`btn-secondary`} onClick={() => setTab("objects")}>
+            <button
+              className={`btn-secondary`}
+              onClick={() => setTab("objects")}
+            >
               Обмен
             </button>
             <button className={`btn-primary`} onClick={() => setTab("history")}>
@@ -533,7 +605,9 @@ function ExchangePage({ user }) {
 
       {step === 1 && (
         <>
-          <div className="tile__title" style={{ marginBottom: 8 }}>1. Выберите вашу бронь</div>
+          <div className="tile__title" style={{ marginBottom: 8 }}>
+            1. Выберите вашу бронь
+          </div>
           {myBookings.length === 0 ? (
             <div className="empty">У вас нет подтверждённых броней</div>
           ) : (
@@ -543,10 +617,17 @@ function ExchangePage({ user }) {
                   key={b.id}
                   className="booking-card"
                   style={{ textAlign: "left", cursor: "pointer" }}
-                  onClick={() => { setBaseBooking(b); setStep(2); }}
+                  onClick={() => {
+                    setBaseBooking(b);
+                    setStep(2);
+                  }}
                 >
-                  <div className="booking-header">{b.object_title || "Объект"}</div>
-                  <div className="booking-sub">📅 {fmtDate(b.start_date)} → {fmtDate(b.end_date)}</div>
+                  <div className="booking-header">
+                    {b.object_title || "Объект"}
+                  </div>
+                  <div className="booking-sub">
+                    📅 {fmtDate(b.start_date)} → {fmtDate(b.end_date)}
+                  </div>
                 </button>
               ))}
             </div>
@@ -556,7 +637,11 @@ function ExchangePage({ user }) {
 
       {step === 2 && baseBooking && (
         <>
-          <button className="btn-secondary" onClick={() => setStep(1)} style={{ marginBottom: 12 }}>
+          <button
+            className="btn-secondary"
+            onClick={() => setStep(1)}
+            style={{ marginBottom: 12 }}
+          >
             ← Назад
           </button>
           <div className="tile__title" style={{ marginBottom: 8 }}>
@@ -571,18 +656,29 @@ function ExchangePage({ user }) {
                   type="button"
                   className="tile"
                   style={{ textAlign: "left", cursor: "pointer" }}
-                  onClick={() => { setTargetObject(o); setStep(3); }}
+                  onClick={() => {
+                    setTargetObject(o);
+                    setStep(3);
+                  }}
                 >
                   {Array.isArray(o.images) && o.images[0] ? (
                     <div className="tile__imgwrap">
-                      <img className="tile__img" src={o.images[0]} alt={o.title} />
+                      <img
+                        className="tile__img"
+                        src={o.images[0]}
+                        alt={o.title}
+                      />
                     </div>
                   ) : (
-                    <div className="tile__imgwrap tile__imgwrap--empty">Нет фото</div>
+                    <div className="tile__imgwrap tile__imgwrap--empty">
+                      Нет фото
+                    </div>
                   )}
                   <div className="tile__body">
                     <div className="tile__title">{o.title}</div>
-                    {o.description ? <div className="tile__sub">{o.description}</div> : null}
+                    {o.description ? (
+                      <div className="tile__sub">{o.description}</div>
+                    ) : null}
                   </div>
                 </button>
               ))}
@@ -592,7 +688,11 @@ function ExchangePage({ user }) {
 
       {step === 3 && baseBooking && targetObject && (
         <>
-          <button className="btn-secondary" onClick={() => setStep(2)} style={{ marginBottom: 12 }}>
+          <button
+            className="btn-secondary"
+            onClick={() => setStep(2)}
+            style={{ marginBottom: 12 }}
+          >
             ← Назад
           </button>
           <div className="tile__title" style={{ marginBottom: 8 }}>
@@ -615,11 +715,15 @@ function ExchangePage({ user }) {
             readOnly={false}
           />
           <div className="text-sub" style={{ marginTop: 8 }}>
-            Нужно выбрать ровно {baseNights} ноч. (ваша исходная бронь: {fmtDateShort(baseBooking.start_date)} → {fmtDateShort(baseBooking.end_date)})
+            Нужно выбрать ровно {baseNights} ноч. (ваша исходная бронь:{" "}
+            {fmtDateShort(baseBooking.start_date)} →{" "}
+            {fmtDateShort(baseBooking.end_date)})
           </div>
 
           <label className="form__group" style={{ marginTop: 12 }}>
-            <span className="form__label">Сообщение владельцу (опционально)</span>
+            <span className="form__label">
+              Сообщение владельцу (опционально)
+            </span>
             <textarea
               className="textarea"
               rows={3}
@@ -633,7 +737,11 @@ function ExchangePage({ user }) {
             <button className="btn-secondary" onClick={resetToStep1}>
               Отмена
             </button>
-            <button className="btn-primary" onClick={sendExchange} disabled={sending}>
+            <button
+              className="btn-primary"
+              onClick={sendExchange}
+              disabled={sending}
+            >
               {sending ? "Отправляем…" : "Отправить запрос"}
             </button>
           </div>
@@ -666,7 +774,9 @@ function BookingsList({ userId }) {
     }
   }, [userId]);
 
-  React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => {
+    load();
+  }, [load]);
 
   if (loading) return <div className="empty">Загрузка…</div>;
   if (error) return <div className="empty">Ошибка: {error}</div>;
@@ -684,11 +794,20 @@ function BookingsList({ userId }) {
       {items.map((b) => (
         <div key={b.id} className="booking-card">
           <div className="booking-header">{b.object_title || "Объект"}</div>
-          <div className="booking-sub">📅 {fmtDateShort(b.start_date)} → {fmtDateShort(b.end_date)}</div>
-          <div className={`booking-status ${b.status}`} style={{ marginTop: 6 }}>
-            {b.status === "pending" ? "⏳ Ожидает подтверждения" :
-             b.status === "confirmed" ? "✅ Подтверждено" :
-             b.status === "rejected" ? "❌ Отклонено" : "Статус: " + b.status}
+          <div className="booking-sub">
+            📅 {fmtDateShort(b.start_date)} → {fmtDateShort(b.end_date)}
+          </div>
+          <div
+            className={`booking-status ${b.status}`}
+            style={{ marginTop: 6 }}
+          >
+            {b.status === "pending"
+              ? "⏳ Ожидает подтверждения"
+              : b.status === "confirmed"
+              ? "✅ Подтверждено"
+              : b.status === "rejected"
+              ? "❌ Отклонено"
+              : "Статус: " + b.status}
           </div>
         </div>
       ))}
@@ -697,7 +816,7 @@ function BookingsList({ userId }) {
 }
 
 /* ---------- Корневая страница пользователя ---------- */
-export default function User({ user }) {
+export default function User({ user,onLogout }) {
   const [page, setPage] = React.useState("objects");
   const [openedObject, setOpenedObject] = React.useState(null);
 
@@ -710,37 +829,39 @@ export default function User({ user }) {
   const [saving, setSaving] = React.useState(false);
 
   // маска как в Authform
-function formatPhoneMask(value) {
-  const d = value.replace(/\D/g, "").slice(0, 15);
-  if (!d) return "";
-  let res = "+" + d[0];
-  if (d.length > 1) res += " " + d.slice(1, 4);
-  if (d.length > 4) res += " " + d.slice(4, 7);
-  if (d.length > 7) res += "-" + d.slice(7, 9);
-  if (d.length > 9) res += "-" + d.slice(9, 11);
-  if (d.length > 11) res += " " + d.slice(11);
-  return res;
-}
-
-const phoneDigits = useMemo(() => (phone || "").replace(/\D/g, ""), [phone]);
-const phoneValid  = useMemo(() => !phone || phoneDigits.length >= 10, [phone, phoneDigits]);
-
-const handlePhoneChange = (e) => {
-  // применяем маску только если ввод похож на телефон
-  const v = e.target.value;
-  if (/^[+\d\s\-()]*$/.test(v)) setPhone(formatPhoneMask(v));
-  else setPhone(v); // вдруг пользователь вводит e-mail (если ты это допускаешь)
-};
-
-// обёртка, чтобы не править твой saveProfile
-const onSave = () => {
-  if (phone && !phoneValid) {
-    alert("Укажите корректный телефон (минимум 10 цифр)");
-    return;
+  function formatPhoneMask(value) {
+    const d = value.replace(/\D/g, "").slice(0, 15);
+    if (!d) return "";
+    let res = "+" + d[0];
+    if (d.length > 1) res += " " + d.slice(1, 4);
+    if (d.length > 4) res += " " + d.slice(4, 7);
+    if (d.length > 7) res += "-" + d.slice(7, 9);
+    if (d.length > 9) res += "-" + d.slice(9, 11);
+    if (d.length > 11) res += " " + d.slice(11);
+    return res;
   }
-  saveProfile();
-};
 
+  const phoneDigits = useMemo(() => (phone || "").replace(/\D/g, ""), [phone]);
+  const phoneValid = useMemo(
+    () => !phone || phoneDigits.length >= 10,
+    [phone, phoneDigits]
+  );
+
+  const handlePhoneChange = (e) => {
+    // применяем маску только если ввод похож на телефон
+    const v = e.target.value;
+    if (/^[+\d\s\-()]*$/.test(v)) setPhone(formatPhoneMask(v));
+    else setPhone(v); // вдруг пользователь вводит e-mail (если ты это допускаешь)
+  };
+
+  // обёртка, чтобы не править твой saveProfile
+  const onSave = () => {
+    if (phone && !phoneValid) {
+      alert("Укажите корректный телефон (минимум 10 цифр)");
+      return;
+    }
+    saveProfile();
+  };
 
   async function saveProfile() {
     try {
@@ -766,12 +887,23 @@ const onSave = () => {
 
   const renderContent = () => {
     if (!user?.id) {
-      return <EmptyScreen title="Не авторизованы" note="Войдите, чтобы оформить бронь." />;
+      return (
+        <EmptyScreen
+          title="Не авторизованы"
+          note="Войдите, чтобы оформить бронь."
+        />
+      );
     }
 
     if (page === "objects") {
       if (openedObject) {
-        return <ObjectDetails obj={openedObject} user={user} onBack={() => setOpenedObject(null)} />;
+        return (
+          <ObjectDetails
+            obj={openedObject}
+            user={user}
+            onBack={() => setOpenedObject(null)}
+          />
+        );
       }
       return <ObjectsList onOpen={setOpenedObject} />;
     }
@@ -782,83 +914,145 @@ const onSave = () => {
 
     // профиль
     return (
-       <div className="card-profile" style={{ maxWidth: 560, marginInline: "auto" }}>
-    <div className="profile-header">
-      <button className="btn-primary" type="button" onClick={() => setEditing((v) => !v)} disabled={saving}>
-        {editing ? "Готово" : "Изменить"}
-      </button>
-    </div>
-
-    <label className="form__group">
-      <input
-        className="input"
-        placeholder="Иван Иванов"
-        value={fullName}
-        onChange={(e) => setFullName(e.target.value)}
-        disabled={!editing || saving}
-      />
-    </label>
-
-    <label className="form__group">
-      <input
-        className="input"
-        placeholder="mail@demo.ru"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        disabled={!editing || saving}
-      />
-    </label>
-
-    <label className="form__group">
-      <input
-        className={`input ${phone && !phoneValid ? "is-error" : ""}`}
-        placeholder="+7 930 245 15 20"
-        value={phone}
-        onChange={handlePhoneChange}
-        disabled={!editing || saving}
-      />
-      <small className="form__hint" style={{ marginTop: 4 }}>
-        Телефон маскируется. Если укажете телефон — нужно минимум 10 цифр.
-      </small>
-    </label>
-
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
-      <button
-        className="btn-primary"
-        type="button"
-        onClick={onSave}
-        disabled={saving || !editing || (phone && !phoneValid)}
+      <div
+        className="card-profile"
+        style={{ maxWidth: 560, marginInline: "auto" }}
       >
-        {saving ? "Сохраняем..." : "Сохранить"}
-      </button>
-    </div>
+        <div className="profile-header">
+          <button
+            className="btn-primary"
+            type="button"
+            onClick={() => setEditing((v) => !v)}
+            disabled={saving}
+          >
+            {editing ? "Готово" : "Изменить"}
+          </button>
+        </div>
 
-    <div style={{ marginTop: 20 }}>
-      <button className="btn-secondary" type="button" onClick={() => setOpenCheck(true)} style={{ width: "100%" }}>
-        Мои заявки (бронирования)
-      </button>
-    </div>
-  </div>
+        <label className="form__group">
+          <input
+            className="input"
+            placeholder="Иван Иванов"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            disabled={!editing || saving}
+          />
+        </label>
+
+        <label className="form__group">
+          <input
+            className="input"
+            placeholder="mail@demo.ru"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={!editing || saving}
+          />
+        </label>
+
+        <label className="form__group">
+          <input
+            className={`input ${phone && !phoneValid ? "is-error" : ""}`}
+            placeholder="+7 930 245 15 20"
+            value={phone}
+            onChange={handlePhoneChange}
+            disabled={!editing || saving}
+          />
+          <small className="form__hint" style={{ marginTop: 4 }}>
+            Телефон маскируется. Если укажете телефон — нужно минимум 10 цифр.
+          </small>
+        </label>
+
+        <div
+          style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}
+        >
+          <button
+            className="btn-primary"
+            type="button"
+            onClick={onSave}
+            disabled={saving || !editing || (phone && !phoneValid)}
+          >
+            {saving ? "Сохраняем..." : "Сохранить"}
+          </button>
+        </div>
+
+        <div style={{ marginTop: 20 }}>
+          <button
+            className="btn-secondary"
+            type="button"
+            onClick={() => setOpenCheck(true)}
+            style={{ width: "100%" }}
+          >
+            Мои заявки (бронирования)
+          </button>
+        </div>
+
+        <div style={{ marginTop: 20 }}>
+          <button
+            className="btn-secondary"
+            type="button"
+            onClick={onLogout}
+            style={{ width: "100%" }}
+          >
+            Выйти
+          </button>
+        </div>
+      </div>
     );
   };
 
   return (
     <div className="app" style={{ paddingBottom: 80 }}>
       <div className="hedd">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 22 22"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {" "}
+          <path
+            d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z"
+            fill="#111827"
+            stroke="#111827"
+            stroke-linejoin="round"
+          />{" "}
+        </svg>
         <h1>TEST</h1>
       </div>
 
       <div className="abs-logo">
-        <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
+        <svg
+          width="162"
+          height="162"
+          viewBox="0 0 22 22"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {" "}
+          <path
+            d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z"
+            fill="#111827"
+            stroke="#111827"
+            stroke-linejoin="round"
+          />{" "}
+        </svg>
       </div>
-      
+
       <main className="container">{renderContent()}</main>
-      
+
       <BottomNav current={page} onChange={setPage} />
 
-      <Modal open={openCheck} onClose={() => setOpenCheck(false)} title="Мои заявки">
-        {user?.id ? <BookingsList userId={user.id} /> : <div className="empty">Войдите в аккаунт, чтобы видеть заявки</div>}
+      <Modal
+        open={openCheck}
+        onClose={() => setOpenCheck(false)}
+        title="Мои заявки"
+      >
+        {user?.id ? (
+          <BookingsList userId={user.id} />
+        ) : (
+          <div className="empty">Войдите в аккаунт, чтобы видеть заявки</div>
+        )}
       </Modal>
     </div>
   );

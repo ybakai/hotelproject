@@ -14,6 +14,22 @@ function App() {
 
   const API = "";
 
+
+  async function handleLogout() {
+  try {
+    await fetch(`${API}/auth/logout`, {
+      method: "POST",
+      credentials: "include", // обязательно, чтобы куку удалило
+    });
+  } catch (err) {
+    console.warn("Logout error:", err);
+  } finally {
+    setMe(null);
+    setStage("auth");
+  }
+}
+
+
   // Автовход по куке
   useEffect(() => {
     let cancelled = false;
@@ -55,9 +71,9 @@ function App() {
       ) : stage === "auth" ? (
         <Authform onLoginSuccess={handleLoginSuccess} />
       ) : stage === "admin" ? (
-        <Admin user={me} />
+        <Admin user={me} onLogout={handleLogout}  />
       ) : (
-        <User user={me} />
+        <User user={me} onLogout={handleLogout}  />
       )}
     </div>
   );
