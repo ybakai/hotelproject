@@ -6,15 +6,17 @@ import { Pool } from "pg";
 import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
 
-
 const app = express();
 const PORT = process.env.PORT || 4000;
-const FRONT_ORIGIN = process.env.APP_URL || true;
+const FRONT_ORIGIN = process.env.APP_URL || true; // true — отражает Origin запроса
 
 // ===== Cookies / JWT =====
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "PLEASE_CHANGE_ME_REFRESH_SECRET";
+const JWT_REFRESH_SECRET =
+  process.env.JWT_REFRESH_SECRET || "PLEASE_CHANGE_ME_REFRESH_SECRET";
 const REFRESH_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30; // 30 дней
-const COOKIE_SECURE = (process.env.COOKIE_SECURE ?? "true").toLowerCase() !== "true"; // в проде true
+// по умолчанию true; для локалки без https можно поставить COOKIE_SECURE=false
+const COOKIE_SECURE =
+  (process.env.COOKIE_SECURE ?? "true").toLowerCase() !== "false";
 
 function signRefreshToken(payload) {
   return jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: "30d" });
@@ -24,21 +26,18 @@ function setRefreshCookie(res, token) {
     httpOnly: true,
     secure: COOKIE_SECURE,
     sameSite: "None",
-    path: "/auth",           // <= было "/auth/refresh"
+    path: "/auth",
     maxAge: REFRESH_MAX_AGE_MS,
   });
 }
-
 function clearRefreshCookie(res) {
   res.clearCookie("rt", {
-    path: "/auth",           // <= было "/auth/refresh"
+    path: "/auth",
     secure: COOKIE_SECURE,
     sameSite: "None",
     httpOnly: true,
   });
 }
-
-
 
 // ===== DB
 const pool = new Pool({
@@ -63,8 +62,12 @@ async function ensureSchema() {
       decided_at TIMESTAMPTZ
     );
   `);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_exchanges_user ON exchanges(user_id);`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_exchanges_status ON exchanges(status);`);
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_exchanges_user ON exchanges(user_id);`
+  );
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_exchanges_status ON exchanges(status);`
+  );
 }
 ensureSchema().catch((e) => console.error("ensureSchema error:", e));
 
@@ -76,8 +79,8 @@ cloudinary.config({
 });
 const cloudOK = Boolean(
   process.env.CLOUDINARY_CLOUD_NAME &&
-  process.env.CLOUDINARY_API_KEY &&
-  process.env.CLOUDINARY_API_SECRET
+    process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET
 );
 console.log("Cloudinary configured:", cloudOK);
 
@@ -88,10 +91,14 @@ const upload = multer({
 });
 
 // ===== middlewares
-app.use(cors({ origin: FRONT_ORIGIN, credentials: true }));
+app.use(
+  cors({
+    origin: FRONT_ORIGIN,
+    credentials: true,
+  })
+);
 app.use(express.json());
-app.use(cookieParser()); // для работы с httpOnly куками
-
+app.use(cookieParser()); // для httpOnly куки
 
 // ===== ping
 app.get("/", (_req, res) => {
@@ -114,81 +121,6 @@ app.get("/api/users", async (_req, res) => {
 });
 
 const ALLOWED = new Set(["lead", "owner", "client"]);
-
-
-// ===== AUTH: LOGIN с установкой куки =====
-app.post("/auth/login", async (req, res) => {
-  try {
-    const { email, password } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: "email and password required" });
-
-    const q = await pool.query(
-      `SELECT id, email, password_hash, full_name, phone, role, created_at
-       FROM users WHERE email = $1`,
-      [String(email).toLowerCase().trim()]
-    );
-
-    if (q.rowCount === 0) return res.status(401).json({ error: "invalid_credentials" });
-    const user = q.rows[0];
-    if (String(user.password_hash) !== String(password)) {
-      return res.status(401).json({ error: "invalid_credentials" });
-    }
-
-    delete user.password_hash;
-
-    // ставим refresh-куку
-    const token = signRefreshToken({ uid: user.id });
-    setRefreshCookie(res, token);
-
-    res.json({ ok: true, user });
-  } catch (err) {
-    console.error("login error:", err);
-    res.status(500).json({ error: "server error" });
-  }
-});
-
-// ===== AUTH: ME (получить текущего пользователя по куке) =====
-app.get("/auth/me", async (req, res) => {
-  try {
-    const token = req.cookies?.rt;
-    if (!token) return res.status(401).json({ error: "no_token" });
-
-    const decoded = jwt.verify(token, JWT_REFRESH_SECRET);
-    const q = await pool.query(
-      `SELECT id, email, full_name, phone, role, created_at
-       FROM users WHERE id = $1`,
-      [decoded.uid]
-    );
-    if (q.rowCount === 0) return res.status(401).json({ error: "user_not_found" });
-
-    res.json({ ok: true, user: q.rows[0] });
-  } catch (err) {
-    return res.status(401).json({ error: "invalid_token" });
-  }
-});
-
-// ===== AUTH: REFRESH (обновить токен) =====
-app.post("/auth/refresh", async (req, res) => {
-  try {
-    const token = req.cookies?.rt;
-    if (!token) return res.status(401).json({ error: "no_token" });
-
-    const decoded = jwt.verify(token, JWT_REFRESH_SECRET);
-    const newToken = signRefreshToken({ uid: decoded.uid });
-    setRefreshCookie(res, newToken);
-
-    res.json({ ok: true });
-  } catch (err) {
-    return res.status(401).json({ error: "invalid_token" });
-  }
-});
-
-// ===== AUTH: LOGOUT =====
-app.post("/auth/logout", async (_req, res) => {
-  clearRefreshCookie(res);
-  res.json({ ok: true });
-});
-
 
 app.put("/api/users/:id/status", async (req, res) => {
   const { id } = req.params;
@@ -217,7 +149,10 @@ app.get("/api/objects", async (req, res) => {
   try {
     const { owner_id } = req.query;
     const q = owner_id
-      ? { text: `SELECT * FROM objects WHERE owner_id = $1 ORDER BY created_at DESC`, values: [Number(owner_id)] }
+      ? {
+          text: `SELECT * FROM objects WHERE owner_id = $1 ORDER BY created_at DESC`,
+          values: [Number(owner_id)],
+        }
       : { text: `SELECT * FROM objects ORDER BY created_at DESC`, values: [] };
     const { rows } = await pool.query(q);
     res.json(rows);
@@ -245,8 +180,15 @@ app.get("/api/users/:id/objects", async (req, res) => {
 app.post("/api/objects", upload.array("images", 6), async (req, res) => {
   try {
     const {
-      title, description, owner_id, owner_name, owner_contact,
-      address, area, rooms, share
+      title,
+      description,
+      owner_id,
+      owner_name,
+      owner_contact,
+      address,
+      area,
+      rooms,
+      share,
     } = req.body;
 
     if (!title) return res.status(400).json({ error: "Title is required" });
@@ -264,11 +206,19 @@ app.post("/api/objects", upload.array("images", 6), async (req, res) => {
         urls.push(uploaded.secure_url);
       }
     } else if (Array.isArray(req.files) && req.files.length && !cloudOK) {
-      console.warn("Images were sent but Cloudinary isn't configured — skipping upload.");
+      console.warn(
+        "Images were sent but Cloudinary isn't configured — skipping upload."
+      );
     }
 
-    const areaNum  = area !== undefined && area !== null && String(area).trim() !== "" ? Number(area) : null;
-    const roomsInt = rooms !== undefined && rooms !== null && String(rooms).trim() !== "" ? parseInt(rooms, 10) : null;
+    const areaNum =
+      area !== undefined && area !== null && String(area).trim() !== ""
+        ? Number(area)
+        : null;
+    const roomsInt =
+      rooms !== undefined && rooms !== null && String(rooms).trim() !== ""
+        ? parseInt(rooms, 10)
+        : null;
 
     const { rows } = await pool.query(
       `INSERT INTO objects (
@@ -312,30 +262,40 @@ app.get("/healthz", async (_req, res) => {
   }
 });
 
+// РЕГИСТРАЦИЯ (оставляем как у тебя)
 app.post("/auth/register", async (req, res) => {
   try {
     const { email, password, fullName, phone } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: "email and password required" });
+    if (!email || !password)
+      return res.status(400).json({ error: "email and password required" });
 
     const q = await pool.query(
       `INSERT INTO users (email, password_hash, full_name, phone, role)
        VALUES ($1,$2,$3,$4,'user')
        RETURNING id, email, role, full_name, phone, created_at`,
-      [String(email).toLowerCase().trim(), String(password), fullName || null, phone || null]
+      [
+        String(email).toLowerCase().trim(),
+        String(password),
+        fullName || null,
+        phone || null,
+      ]
     );
 
     res.json({ ok: true, user: q.rows[0] });
   } catch (err) {
     console.error("register error:", err);
-    if (err.code === "23505") return res.status(409).json({ error: "email already exists" });
+    if (err.code === "23505")
+      return res.status(409).json({ error: "email already exists" });
     res.status(500).json({ error: "server error" });
   }
 });
 
+// ЛОГИН (с установкой httpOnly куки)
 app.post("/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: "email and password required" });
+    if (!email || !password)
+      return res.status(400).json({ error: "email and password required" });
 
     const q = await pool.query(
       `SELECT id, email, password_hash, full_name, phone, role, created_at
@@ -343,7 +303,8 @@ app.post("/auth/login", async (req, res) => {
       [String(email).toLowerCase().trim()]
     );
 
-    if (q.rowCount === 0) return res.status(401).json({ error: "invalid_credentials" });
+    if (q.rowCount === 0)
+      return res.status(401).json({ error: "invalid_credentials" });
 
     const user = q.rows[0];
     if (String(user.password_hash) !== String(password)) {
@@ -351,6 +312,11 @@ app.post("/auth/login", async (req, res) => {
     }
 
     delete user.password_hash;
+
+    // ставим refresh-куку
+    const token = signRefreshToken({ uid: user.id });
+    setRefreshCookie(res, token);
+
     res.json({ ok: true, user });
   } catch (err) {
     console.error("login error:", err);
@@ -358,14 +324,66 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
+// Текущий пользователь по куке
+app.get("/auth/me", async (req, res) => {
+  try {
+    const token = req.cookies?.rt;
+    if (!token) return res.status(401).json({ error: "no_token" });
+
+    const decoded = jwt.verify(token, JWT_REFRESH_SECRET);
+    const q = await pool.query(
+      `SELECT id, email, full_name, phone, role, created_at
+       FROM users WHERE id = $1`,
+      [decoded.uid]
+    );
+    if (q.rowCount === 0)
+      return res.status(401).json({ error: "user_not_found" });
+
+    res.json({ ok: true, user: q.rows[0] });
+  } catch (err) {
+    return res.status(401).json({ error: "invalid_token" });
+  }
+});
+
+// Обновить куку (ротация)
+app.post("/auth/refresh", async (req, res) => {
+  try {
+    const token = req.cookies?.rt;
+    if (!token) return res.status(401).json({ error: "no_token" });
+
+    const decoded = jwt.verify(token, JWT_REFRESH_SECRET);
+    const newToken = signRefreshToken({ uid: decoded.uid });
+    setRefreshCookie(res, newToken);
+
+    res.json({ ok: true });
+  } catch (err) {
+    return res.status(401).json({ error: "invalid_token" });
+  }
+});
+
+// Выход
+app.post("/auth/logout", async (_req, res) => {
+  clearRefreshCookie(res);
+  res.json({ ok: true });
+});
+
 // ===================== BOOKINGS =====================
 // создать бронь (с проверкой пересечений)
 app.post("/api/bookings", async (req, res) => {
   try {
-    const { objectId, startDate, endDate, guests = 1, note = null, userId } = req.body || {};
+    const {
+      objectId,
+      startDate,
+      endDate,
+      guests = 1,
+      note = null,
+      userId,
+    } = req.body || {};
 
     if (!objectId || !startDate || !endDate || !userId) {
-      return res.status(400).json({ error: "objectId, userId, startDate, endDate обязательны" });
+      return res
+        .status(400)
+        .json({ error: "objectId, userId, startDate, endDate обязательны" });
     }
 
     const conflict = await pool.query(
@@ -395,7 +413,7 @@ app.post("/api/bookings", async (req, res) => {
   }
 });
 
-// получить все бронирования (ДОБАВИЛ created_at)
+// получить все бронирования
 app.get("/api/bookings", async (_req, res) => {
   try {
     const q = await pool.query(
@@ -418,7 +436,9 @@ app.get("/api/bookings", async (_req, res) => {
 // удалить бронь
 app.delete("/api/bookings/:id", async (req, res) => {
   try {
-    const q = await pool.query(`DELETE FROM bookings WHERE id = $1 RETURNING id`, [req.params.id]);
+    const q = await pool.query(`DELETE FROM bookings WHERE id = $1 RETURNING id`, [
+      req.params.id,
+    ]);
     if (q.rowCount === 0) return res.status(404).json({ error: "not_found" });
     res.json({ ok: true, id: q.rows[0].id });
   } catch (err) {
@@ -486,7 +506,7 @@ app.patch("/api/objects/:id", upload.array("images", 6), async (req, res) => {
     const id = Number(req.params.id);
     if (!id) return res.status(400).json({ error: "invalid id" });
 
-    // 1) Берём текущую запись (и текущие images)
+    // 1) Текущая запись
     const curQ = await pool.query(
       `SELECT id, owner_id, title, description, images,
               owner_name, owner_contact, address, area, rooms, share, created_at
@@ -497,7 +517,7 @@ app.patch("/api/objects/:id", upload.array("images", 6), async (req, res) => {
     if (curQ.rowCount === 0) return res.status(404).json({ error: "not_found" });
     const current = curQ.rows[0];
 
-    // 2) Разбираем поля из FormData
+    // 2) Поля из FormData
     const {
       title,
       description,
@@ -513,13 +533,17 @@ app.patch("/api/objects/:id", upload.array("images", 6), async (req, res) => {
     const areaNum =
       area !== undefined && String(area).trim() !== "" ? Number(area) : null;
     const roomsInt =
-      rooms !== undefined && String(rooms).trim() !== "" ? parseInt(rooms, 10) : null;
+      rooms !== undefined && String(rooms).trim() !== ""
+        ? parseInt(rooms, 10)
+        : null;
 
-    // 3) Заливаем новые картинки (если пришли) в Cloudinary
+    // 3) Заливаем новые картинки
     const newUrls = [];
     if (Array.isArray(req.files) && req.files.length) {
       if (!cloudOK) {
-        console.warn("Images were sent but Cloudinary isn't configured — skipping upload.");
+        console.warn(
+          "Images were sent but Cloudinary isn't configured — skipping upload."
+        );
       } else {
         for (const file of req.files) {
           const uploaded = await new Promise((resolve, reject) => {
@@ -534,12 +558,13 @@ app.patch("/api/objects/:id", upload.array("images", 6), async (req, res) => {
       }
     }
 
-    // 4) Если картинок нет — оставляем старые; если есть — добавляем к старым
-    // В БД колонка images типа text[] (как и при вставке).
+    // 4) Добавляем к старым
     const imagesFinal =
-      newUrls.length > 0 ? [...(current.images || []), ...newUrls] : current.images || [];
+      newUrls.length > 0
+        ? [...(current.images || []), ...newUrls]
+        : current.images || [];
 
-    // 5) Обновляем запись (поля, которые не пришли — оставляем как есть)
+    // 5) Обновление
     const updQ = await pool.query(
       `UPDATE objects SET
          owner_id      = COALESCE($1, owner_id),
@@ -578,20 +603,20 @@ app.patch("/api/objects/:id", upload.array("images", 6), async (req, res) => {
   }
 });
 
-
 // УДАЛИТЬ объект
 app.delete("/api/objects/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (!id) return res.status(400).json({ error: "invalid id" });
 
-    const q = await pool.query(`DELETE FROM objects WHERE id = $1 RETURNING id`, [id]);
+    const q = await pool.query(`DELETE FROM objects WHERE id = $1 RETURNING id`, [
+      id,
+    ]);
     if (q.rowCount === 0) return res.status(404).json({ error: "not_found" });
 
     res.json({ ok: true, id: q.rows[0].id });
   } catch (e) {
     console.error("DELETE /api/objects/:id:", e);
-    // Если в БД есть внешние ключи без CASCADE — будет 23503 (FK violation).
     if (e.code === "23503") {
       return res.status(409).json({ error: "object_has_dependencies" });
     }
@@ -599,14 +624,22 @@ app.delete("/api/objects/:id", async (req, res) => {
   }
 });
 
-
-
 // создать запрос на обмен
 app.post("/api/exchanges", async (req, res) => {
   try {
-    const { userId, baseBookingId, targetObjectId, startDate, endDate, message = null } = req.body || {};
+    const {
+      userId,
+      baseBookingId,
+      targetObjectId,
+      startDate,
+      endDate,
+      message = null,
+    } = req.body || {};
     if (!userId || !baseBookingId || !targetObjectId || !startDate || !endDate) {
-      return res.status(400).json({ error: "userId, baseBookingId, targetObjectId, startDate, endDate обязательны" });
+      return res.status(400).json({
+        error:
+          "userId, baseBookingId, targetObjectId, startDate, endDate обязательны",
+      });
     }
 
     const baseQ = await pool.query(
@@ -616,14 +649,26 @@ app.post("/api/exchanges", async (req, res) => {
         WHERE b.id = $1`,
       [Number(baseBookingId)]
     );
-    if (baseQ.rowCount === 0) return res.status(404).json({ error: "base booking not found" });
+    if (baseQ.rowCount === 0)
+      return res.status(404).json({ error: "base booking not found" });
     const base = baseQ.rows[0];
-    if (Number(base.user_id) !== Number(userId)) return res.status(403).json({ error: "not owner of booking" });
-    if (base.status !== "confirmed") return res.status(400).json({ error: "исходная бронь должна быть подтверждена" });
+    if (Number(base.user_id) !== Number(userId))
+      return res.status(403).json({ error: "not owner of booking" });
+    if (base.status !== "confirmed")
+      return res.status(400).json({ error: "исходная бронь должна быть подтверждена" });
 
-    const baseNights = Math.max(1, Math.round((new Date(base.end_date) - new Date(base.start_date)) / 86400000));
-    const selNights  = Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000));
-    if (baseNights !== selNights) return res.status(400).json({ error: `нужно выбрать ровно ${baseNights} ночей` });
+    const baseNights = Math.max(
+      1,
+      Math.round(
+        (new Date(base.end_date) - new Date(base.start_date)) / 86400000
+      )
+    );
+    const selNights = Math.max(
+      1,
+      Math.round((new Date(endDate) - new Date(startDate)) / 86400000)
+    );
+    if (baseNights !== selNights)
+      return res.status(400).json({ error: `нужно выбрать ровно ${baseNights} ночей` });
 
     if (Number(base.object_id) === Number(targetObjectId))
       return res.status(400).json({ error: "нужно выбрать другой дом" });
@@ -636,7 +681,8 @@ app.post("/api/exchanges", async (req, res) => {
         LIMIT 1`,
       [targetObjectId, startDate, endDate]
     );
-    if (conflict.rowCount > 0) return res.status(409).json({ error: "на выбранные даты дом занят" });
+    if (conflict.rowCount > 0)
+      return res.status(409).json({ error: "на выбранные даты дом занят" });
 
     const ins = await pool.query(
       `INSERT INTO exchanges
@@ -665,7 +711,10 @@ app.patch("/api/exchanges/:id", async (req, res) => {
 
     await client.query("BEGIN");
 
-    const q = await client.query(`SELECT * FROM exchanges WHERE id = $1 FOR UPDATE`, [id]);
+    const q = await client.query(
+      `SELECT * FROM exchanges WHERE id = $1 FOR UPDATE`,
+      [id]
+    );
     if (q.rowCount === 0) {
       await client.query("ROLLBACK");
       return res.status(404).json({ error: "not_found" });
@@ -686,7 +735,10 @@ app.patch("/api/exchanges/:id", async (req, res) => {
     }
 
     // approve
-    const baseQ = await client.query(`SELECT * FROM bookings WHERE id = $1 FOR UPDATE`, [ex.base_booking_id]);
+    const baseQ = await client.query(
+      `SELECT * FROM bookings WHERE id = $1 FOR UPDATE`,
+      [ex.base_booking_id]
+    );
     if (baseQ.rowCount === 0) {
       await client.query("ROLLBACK");
       return res.status(404).json({ error: "base booking not found" });
@@ -704,7 +756,9 @@ app.patch("/api/exchanges/:id", async (req, res) => {
     );
     if (conflict.rowCount > 0) {
       await client.query("ROLLBACK");
-      return res.status(409).json({ error: "даты уже заняты, подтвердить невозможно" });
+      return res
+        .status(409)
+        .json({ error: "даты уже заняты, подтвердить невозможно" });
     }
 
     const updBooking = await client.query(
@@ -758,7 +812,8 @@ app.patch("/api/users/:id", async (req, res) => {
     if (q.rowCount === 0) return res.status(404).json({ error: "not_found" });
     res.json(q.rows[0]);
   } catch (e) {
-    if (e.code === "23505") return res.status(409).json({ error: "email already exists" });
+    if (e.code === "23505")
+      return res.status(409).json({ error: "email already exists" });
     console.error("PATCH /api/users/:id:", e);
     res.status(500).json({ error: "server error" });
   }
@@ -767,8 +822,12 @@ app.patch("/api/users/:id", async (req, res) => {
 // ===== 404 & error handlers
 app.use((_req, res) => res.status(404).json({ error: "not_found" }));
 
-process.on("unhandledRejection", (reason) => console.error("UNHANDLED_REJECTION:", reason));
-process.on("uncaughtException", (err) => console.error("UNCAUGHT_EXCEPTION:", err));
+process.on("unhandledRejection", (reason) =>
+  console.error("UNHANDLED_REJECTION:", reason)
+);
+process.on("uncaughtException", (err) =>
+  console.error("UNCAUGHT_EXCEPTION:", err)
+);
 
 // ===== start
 app.listen(PORT, "0.0.0.0", () => {
