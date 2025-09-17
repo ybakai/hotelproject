@@ -8,11 +8,11 @@ import { useState, useEffect } from "react";
 
 function App() {
   const [loading, setLoading] = useState(true);
-  // "auth" | "user" | "adminn"
+  // "auth" | "user" | "admin"
   const [stage, setStage] = useState("auth");
   const [me, setMe] = useState(null); // объект пользователя из бэка
 
-  const API = "";
+  const API = "https://hotelproject-8cip.onrender.com";
 
   // Автовход по куке
   useEffect(() => {
