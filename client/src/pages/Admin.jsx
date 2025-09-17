@@ -663,9 +663,6 @@ function ObjectsTab() {
                   value={eOwnerContact}
                   onChange={handleEditContactChange}
                 />
-                <small className="form__hint" style={{ marginTop: 4 }}>
-                  Телефон маскируется. Если укажете телефон — нужно минимум 10 цифр.
-                </small>
               </label>
 
               <label className="form__group">
