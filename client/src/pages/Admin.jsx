@@ -53,20 +53,6 @@ const colorFromId = (id) => {
   return `hsl(${hue} 70% 45%)`;
 };
 
-/* -------- телефон: маска и утилиты (как в Authform) -------- */
-function formatPhoneMask(value) {
-  const d = value.replace(/\D/g, "").slice(0, 15);
-  if (!d) return "";
-  let res = "+" + d[0];
-  if (d.length > 1) res += " " + d.slice(1, 4);
-  if (d.length > 4) res += " " + d.slice(4, 7);
-  if (d.length > 7) res += "-" + d.slice(7, 9);
-  if (d.length > 9) res += "-" + d.slice(9, 11);
-  if (d.length > 11) res += " " + d.slice(11);
-  return res;
-}
-const phoneDigitsOnly = (v) => v.replace(/\D/g, "");
-
 /* -------------------- Segmented Toggle -------------------- */
 function SegmentedToggle({ value, onChange }) {
   const options = useMemo(
@@ -203,23 +189,6 @@ function ObjectsTab() {
   const [cShare, setCShare] = useState("");
   const [cFiles, setCFiles] = useState([]);
 
-  // валидация телефона (create)
-  const cOwnerContactDigits = useMemo(() => phoneDigitsOnly(cOwnerContact), [cOwnerContact]);
-  const cOwnerContactValid = useMemo(
-    () => !cOwnerContact || cOwnerContactDigits.length >= 10,
-    [cOwnerContact, cOwnerContactDigits]
-  );
-  const handleCreateContactChange = (e) => {
-    const v = e.target.value;
-    // если пользователь вводит цифры/плюс — применяем маску
-    if (/^[+\d\s\-()]*$/.test(v)) {
-      setCOwnerContact(formatPhoneMask(v));
-    } else {
-      // оставим как есть, чтобы можно было вписать email при желании
-      setCOwnerContact(v);
-    }
-  };
-
   // редактирование
   const [showEdit, setShowEdit] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -234,21 +203,6 @@ function ObjectsTab() {
   const [eShare, setEShare] = useState("");
   const [eFiles, setEFiles] = useState([]);
   const [eImages, setEImages] = useState([]);
-
-  // валидация телефона (edit)
-  const eOwnerContactDigits = useMemo(() => phoneDigitsOnly(eOwnerContact), [eOwnerContact]);
-  const eOwnerContactValid = useMemo(
-    () => !eOwnerContact || eOwnerContactDigits.length >= 10,
-    [eOwnerContact, eOwnerContactDigits]
-  );
-  const handleEditContactChange = (e) => {
-    const v = e.target.value;
-    if (/^[+\d\s\-()]*$/.test(v)) {
-      setEOwnerContact(formatPhoneMask(v));
-    } else {
-      setEOwnerContact(v);
-    }
-  };
 
   const loadObjects = () => {
     setLoading(true);
@@ -283,11 +237,6 @@ function ObjectsTab() {
   const onCreate = async (e) => {
     e.preventDefault();
     if (!cTitle.trim()) return alert("Введите название объекта");
-
-    // если поле контакта выглядит как телефон (содержит цифры/плюс), проверяем ≥10 цифр
-    if (/[+\d]/.test(cOwnerContact) && !cOwnerContactValid) {
-      return alert("Укажите корректный телефон владельца (минимум 10 цифр)");
-    }
 
     const fd = new FormData();
     fd.append("title", cTitle.trim());
@@ -340,6 +289,7 @@ function ObjectsTab() {
     setEFiles(Array.from(e.target.files || []).slice(0, 6));
   };
 
+
   const onDelete = async () => {
     if (!editingId) return;
     if (!confirm("Точно удалить объект? Это действие необратимо.")) return;
@@ -359,14 +309,10 @@ function ObjectsTab() {
     }
   };
 
+
   const onUpdate = async (e) => {
     e.preventDefault();
     if (!editingId) return;
-
-    // аналогичная проверка телефона в редактировании
-    if (/[+\d]/.test(eOwnerContact) && !eOwnerContactValid) {
-      return alert("Укажите корректный телефон владельца (минимум 10 цифр)");
-    }
 
     const fd = new FormData();
     fd.append("title", eTitle.trim());
@@ -507,14 +453,11 @@ function ObjectsTab() {
               <label className="form__group">
                 <span className="form__label">Контакт (телефон/email)</span>
                 <input
-                  className={`input ${cOwnerContact && !cOwnerContactValid ? "is-error" : ""}`}
+                  className="input"
                   value={cOwnerContact}
-                  onChange={handleCreateContactChange}
-                  placeholder="+48 600 000-000 или email"
+                  onChange={(e) => setCOwnerContact(e.target.value)}
+                  placeholder="+380 67 123 4567 или email"
                 />
-                <small className="form__hint" style={{ marginTop: 4 }}>
-                  Телефон маскируется. Если укажете телефон — нужно минимум 10 цифр.
-                </small>
               </label>
 
               <label className="form__group">
@@ -662,13 +605,10 @@ function ObjectsTab() {
               <label className="form__group">
                 <span className="form__label">Контакт (телефон/email)</span>
                 <input
-                  className={`input ${eOwnerContact && !eOwnerContactValid ? "is-error" : ""}`}
+                  className="input"
                   value={eOwnerContact}
-                  onChange={handleEditContactChange}
+                  onChange={(e) => setEOwnerContact(e.target.value)}
                 />
-                <small className="form__hint" style={{ marginTop: 4 }}>
-                  Телефон маскируется. Если укажете телефон — нужно минимум 10 цифр.
-                </small>
               </label>
 
               <label className="form__group">
@@ -1207,12 +1147,12 @@ export default function Admin() {
   return (
     <div className="app">
       <div className="hedd">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704В10.099L6.37495 13.4779В20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199В13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611В14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086В14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" strokeLinecap="round" strokeLinejoin="round" /> </svg>
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
         <h1>TEST</h1>
       </div>
 
       <div className="abs-logo">
-        <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21В9.57232ZM6.37495 20.4796H1.50704В10.099L6.37495 13.4779В20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199В13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611В14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086В14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" strokeLinecap="round" strokeLinejoin="round" /> </svg>
+        <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
       </div>
       <main className="container">{renderContent()}</main>
       <BottomNav current={page} onChange={setPage} />
