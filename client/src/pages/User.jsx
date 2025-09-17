@@ -188,6 +188,20 @@ function ObjectDetails({ obj, user, onBack }) {
       alert("❌ Нет user.id — повторите вход");
       return;
     }
+
+    // 🔒 валидация дат: запрет прошедших дат и некорректного диапазона
+    const todayISO = toISODate(new Date());
+    const startISO = toISODate(range.from);
+    const endISO = toISODate(range.to);
+    if (startISO < todayISO) {
+      alert("❌ Дата заезда уже в прошлом. Выберите будущие даты.");
+      return;
+    }
+    if (endISO <= startISO) {
+      alert("❌ Дата выезда должна быть позже даты заезда.");
+      return;
+    }
+
     try {
       setLoading(true);
       const res = await fetch(`${API}/api/bookings`, {
@@ -196,8 +210,8 @@ function ObjectDetails({ obj, user, onBack }) {
         body: JSON.stringify({
           objectId: obj.id,
           userId: user.id,
-          startDate: toISODate(range.from),
-          endDate: toISODate(range.to),
+          startDate: startISO,
+          endDate: endISO,
         }),
       });
       if (res.ok) {
@@ -266,7 +280,22 @@ function ObjectDetails({ obj, user, onBack }) {
           months={1}
           bookedRanges={bookedRanges}
           selected={range}
-          onSelectRange={setRange}
+          // 🔒 блокируем выбор прошедших дат на уровне UI
+          onSelectRange={(r) => {
+            if (!r?.from || !r?.to) return setRange(r);
+            const todayISO = toISODate(new Date());
+            const startISO = toISODate(r.from);
+            const endISO = toISODate(r.to);
+            if (startISO < todayISO) {
+              alert("Нельзя выбирать прошедшие даты");
+              return;
+            }
+            if (endISO <= startISO) {
+              alert("Диапазон должен быть хотя бы 1 ночь");
+              return;
+            }
+            setRange(r);
+          }}
           readOnly={false}
         />
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
@@ -410,6 +439,20 @@ function ExchangePage({ user }) {
       alert("Выберите даты обмена");
       return;
     }
+
+    // 🔒 валидация дат для обмена
+    const todayISO = toISODate(new Date());
+    const startISO = toISODate(targetRange.from);
+    const endISO = toISODate(targetRange.to);
+    if (startISO < todayISO) {
+      alert("❌ Нельзя отправлять обмен с датами из прошлого");
+      return;
+    }
+    if (endISO <= startISO) {
+      alert("❌ Дата выезда должна быть позже заезда");
+      return;
+    }
+
     const selNights = nightsBetween(targetRange.from, targetRange.to);
     if (selNights !== baseNights) {
       alert(`Нужно выбрать ровно ${baseNights} ноч.: выбранно ${selNights}`);
@@ -425,8 +468,8 @@ function ExchangePage({ user }) {
           userId: user.id,
           baseBookingId: baseBooking.id,
           targetObjectId: targetObject.id,
-          startDate: toISODate(targetRange.from),
-          endDate: toISODate(targetRange.to),
+          startDate: startISO,
+          endDate: endISO,
           message: message?.trim() || null,
         }),
       });
@@ -548,7 +591,22 @@ function ExchangePage({ user }) {
             months={1}
             bookedRanges={targetBookedRanges}
             selected={targetRange}
-            onSelectRange={setTargetRange}
+            // 🔒 блокируем выбор прошедших дат на уровне UI
+            onSelectRange={(r) => {
+              if (!r?.from || !r?.to) return setTargetRange(r);
+              const todayISO = toISODate(new Date());
+              const startISO = toISODate(r.from);
+              const endISO = toISODate(r.to);
+              if (startISO < todayISO) {
+                alert("Нельзя выбирать прошедшие даты");
+                return;
+              }
+              if (endISO <= startISO) {
+                alert("Диапазон должен быть хотя бы 1 ночь");
+                return;
+              }
+              setTargetRange(r);
+            }}
             readOnly={false}
           />
           <div className="text-sub" style={{ marginTop: 8 }}>
@@ -723,12 +781,12 @@ export default function User({ user }) {
   return (
     <div className="app" style={{ paddingBottom: 80 }}>
       <div className="hedd">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232В21H21В9.57232ZM6.37495 20.4796H1.50704В10.099Л6.37495 13.4779В20.4796ZM1.73087 9.62546Л6.16178 5.82613Л10.6308 9.58795Л6.57594 12.9903Л1.73087 9.62546ZM10.7632 14.5407Л10.745 20.4796H6.88199В13.4076Л10.7754 10.1396Л10.7617 14.5407H10.7632ZM6.55919 5.48543Л10.9992 1.67828Л15.4743 5.51512Л11.0327 9.25037Л6.55919 5.48543ZM11.2703 14.9955H13В17.6789H11.2611В14.9955H11.2703ZM15.2748 13.4936В20.4796H11.2535Л11.2611 18.1353H13.5086В14.5407H11.2718Л11.2855 10.1365Л11.2825 10.1334Л15.2764 13.4857В13.4936H15.2748ZM20.4914 20.4796H15.7819В13.9202Л20.4914 17.8836В20.4796ZM20.4914 17.21Л16.059 13.4811Л14.5135 12.1807Л11.4317 9.58795Л15.8702 5.85583Л20.4899 9.81613В17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
         <h1>TEST</h1>
       </div>
 
       <div className="abs-logo">
-        <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
+        <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232В21H21В9.57232ZM6.37495 20.4796H1.50704В10.099Л6.37495 13.4779В20.4796ZM1.73087 9.62546Л6.16178 5.82613Л10.6308 9.58795Л6.57594 12.9903Л1.73087 9.62546ZM10.7632 14.5407Л10.745 20.4796H6.88199В13.4076Л10.7754 10.1396Л10.7617 14.5407H10.7632ZM6.55919 5.48543Л10.9992 1.67828Л15.4743 5.51512Л11.0327 9.25037Л6.55919 5.48543ZM11.2703 14.9955H13В17.6789H11.2611В14.9955H11.2703ZM15.2748 13.4936В20.4796H11.2535Л11.2611 18.1353H13.5086В14.5407H11.2718Л11.2855 10.1365Л11.2825 10.1334Л15.2764 13.4857В13.4936H15.2748ZM20.4914 20.4796H15.7819В13.9202Л20.4914 17.8836В20.4796ZM20.4914 17.21Л16.059 13.4811Л14.5135 12.1807Л11.4317 9.58795Л15.8702 5.85583Л20.4899 9.81613В17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
       </div>
       
       <main className="container">{renderContent()}</main>
