@@ -162,30 +162,61 @@
   border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
-  min-height: 92px;
   display: flex;
-  align-items: center;
   flex-direction: column;
-  padding: 10px;
+  align-items: stretch;
+  padding: 0;
 }
 
+/* Блок для картинки с фиксированным соотношением сторон */
+.tile__imgwrap {
+  aspect-ratio: 16/9; /* можно поменять на 4/3 или другое */
+  background: #f3f3f3;
+  overflow: hidden;
+}
+
+.tile__imgwrap--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 12px;
+}
+
+.tile__img {
+  width: 100%;
+  height: 100%;
+  -o-object-fit: cover;
+     object-fit: cover;
+}
+
+/* Тело карточки */
 .tile__body {
   padding: 12px;
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  flex-grow: 1;
 }
 
 .tile__title {
   font-size: 14px;
   font-weight: 700;
   color: black;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tile__sub {
   font-size: 12px;
   color: #64748b;
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* кол-во строк */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Пустые экраны */
