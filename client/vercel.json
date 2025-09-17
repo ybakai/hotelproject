@@ -1,8 +1,8 @@
 {
   "version": 2,
   "rewrites": [
-    { "src": "/auth/(.*)", "dest": "https://hotelproject-8cip.onrender.com/auth/$1" },
-    { "src": "/api/(.*)",  "dest": "https://hotelproject-8cip.onrender.com/api/$1" },
-    { "src": "/healthz",   "dest": "https://hotelproject-8cip.onrender.com/healthz" }
+    { "source": "/auth/:path*", "destination": "https://hotelproject-8cip.onrender.com/auth/:path*" },
+    { "source": "/api/:path*",  "destination": "https://hotelproject-8cip.onrender.com/api/:path*" },
+    { "source": "/healthz",     "destination": "https://hotelproject-8cip.onrender.com/healthz" }
   ]
 }
