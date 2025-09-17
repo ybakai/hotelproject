@@ -12,9 +12,35 @@ function App() {
   const [stage, setStage] = useState("auth");
   const [me, setMe] = useState(null); // объект пользователя из бэка
 
+  const API = "https://hotelproject-8cip.onrender.com";
+
+  // Автовход по куке
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 2000);
-    return () => clearTimeout(timer);
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(`${API}/auth/me`, {
+          method: "GET",
+          credentials: "include", // важно для куки
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled && data?.user) {
+            setMe(data.user);
+            setStage(data.user?.role === "admin" ? "admin" : "user");
+          }
+        }
+      } catch (err) {
+        console.warn("Auto-login error:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   function handleLoginSuccess(user) {

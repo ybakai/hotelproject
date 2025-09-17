@@ -61,6 +61,7 @@ export default function Authform({ onLoginSuccess }) {
         const res = await fetch(`${API}/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include", // важно для кук
           body: JSON.stringify({ email, password }),
         });
 
@@ -79,13 +80,13 @@ export default function Authform({ onLoginSuccess }) {
           throw new Error(msg);
         }
 
-        // Передаём наверх пользователя с ролью (data.user.role)
         onLoginSuccess?.(data.user);
         return;
       } else {
         const res = await fetch(`${API}/auth/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             email,
             password,
@@ -109,7 +110,7 @@ export default function Authform({ onLoginSuccess }) {
           throw new Error(msg);
         }
 
-        setSuccess(" Регистрация успешна! Войдите под своими данными.");
+        setSuccess("Регистрация успешна! Войдите под своими данными.");
         setPassword("");
         setFullName("");
         setPhone("");

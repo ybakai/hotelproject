@@ -3,10 +3,40 @@ import cors from "cors";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import { Pool } from "pg";
+import cookieParser from "cookie-parser";
+import jwt from "jsonwebtoken";
+
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 const FRONT_ORIGIN = process.env.APP_URL || true;
+
+// ===== Cookies / JWT =====
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "PLEASE_CHANGE_ME_REFRESH_SECRET";
+const REFRESH_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30; // 30 дней
+const COOKIE_SECURE = (process.env.COOKIE_SECURE ?? "true").toLowerCase() !== "true"; // в проде true
+
+function signRefreshToken(payload) {
+  return jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: "30d" });
+}
+function setRefreshCookie(res, token) {
+  res.cookie("rt", token, {
+    httpOnly: true,
+    secure: COOKIE_SECURE,
+    sameSite: "None",
+    path: "/auth/refresh",
+    maxAge: REFRESH_MAX_AGE_MS,
+  });
+}
+function clearRefreshCookie(res) {
+  res.clearCookie("rt", {
+    path: "/auth/refresh",
+    secure: COOKIE_SECURE,
+    sameSite: "None",
+    httpOnly: true,
+  });
+}
+
 
 // ===== DB
 const pool = new Pool({
@@ -58,6 +88,8 @@ const upload = multer({
 // ===== middlewares
 app.use(cors({ origin: FRONT_ORIGIN, credentials: true }));
 app.use(express.json());
+app.use(cookieParser()); // для работы с httpOnly куками
+
 
 // ===== ping
 app.get("/", (_req, res) => {
@@ -80,6 +112,81 @@ app.get("/api/users", async (_req, res) => {
 });
 
 const ALLOWED = new Set(["lead", "owner", "client"]);
+
+
+// ===== AUTH: LOGIN с установкой куки =====
+app.post("/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) return res.status(400).json({ error: "email and password required" });
+
+    const q = await pool.query(
+      `SELECT id, email, password_hash, full_name, phone, role, created_at
+       FROM users WHERE email = $1`,
+      [String(email).toLowerCase().trim()]
+    );
+
+    if (q.rowCount === 0) return res.status(401).json({ error: "invalid_credentials" });
+    const user = q.rows[0];
+    if (String(user.password_hash) !== String(password)) {
+      return res.status(401).json({ error: "invalid_credentials" });
+    }
+
+    delete user.password_hash;
+
+    // ставим refresh-куку
+    const token = signRefreshToken({ uid: user.id });
+    setRefreshCookie(res, token);
+
+    res.json({ ok: true, user });
+  } catch (err) {
+    console.error("login error:", err);
+    res.status(500).json({ error: "server error" });
+  }
+});
+
+// ===== AUTH: ME (получить текущего пользователя по куке) =====
+app.get("/auth/me", async (req, res) => {
+  try {
+    const token = req.cookies?.rt;
+    if (!token) return res.status(401).json({ error: "no_token" });
+
+    const decoded = jwt.verify(token, JWT_REFRESH_SECRET);
+    const q = await pool.query(
+      `SELECT id, email, full_name, phone, role, created_at
+       FROM users WHERE id = $1`,
+      [decoded.uid]
+    );
+    if (q.rowCount === 0) return res.status(401).json({ error: "user_not_found" });
+
+    res.json({ ok: true, user: q.rows[0] });
+  } catch (err) {
+    return res.status(401).json({ error: "invalid_token" });
+  }
+});
+
+// ===== AUTH: REFRESH (обновить токен) =====
+app.post("/auth/refresh", async (req, res) => {
+  try {
+    const token = req.cookies?.rt;
+    if (!token) return res.status(401).json({ error: "no_token" });
+
+    const decoded = jwt.verify(token, JWT_REFRESH_SECRET);
+    const newToken = signRefreshToken({ uid: decoded.uid });
+    setRefreshCookie(res, newToken);
+
+    res.json({ ok: true });
+  } catch (err) {
+    return res.status(401).json({ error: "invalid_token" });
+  }
+});
+
+// ===== AUTH: LOGOUT =====
+app.post("/auth/logout", async (_req, res) => {
+  clearRefreshCookie(res);
+  res.json({ ok: true });
+});
+
 
 app.put("/api/users/:id/status", async (req, res) => {
   const { id } = req.params;
