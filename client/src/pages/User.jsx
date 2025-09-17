@@ -709,6 +709,39 @@ export default function User({ user }) {
   const [editing, setEditing] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
+  // маска как в Authform
+function formatPhoneMask(value) {
+  const d = value.replace(/\D/g, "").slice(0, 15);
+  if (!d) return "";
+  let res = "+" + d[0];
+  if (d.length > 1) res += " " + d.slice(1, 4);
+  if (d.length > 4) res += " " + d.slice(4, 7);
+  if (d.length > 7) res += "-" + d.slice(7, 9);
+  if (d.length > 9) res += "-" + d.slice(9, 11);
+  if (d.length > 11) res += " " + d.slice(11);
+  return res;
+}
+
+const phoneDigits = useMemo(() => (phone || "").replace(/\D/g, ""), [phone]);
+const phoneValid  = useMemo(() => !phone || phoneDigits.length >= 10, [phone, phoneDigits]);
+
+const handlePhoneChange = (e) => {
+  // применяем маску только если ввод похож на телефон
+  const v = e.target.value;
+  if (/^[+\d\s\-()]*$/.test(v)) setPhone(formatPhoneMask(v));
+  else setPhone(v); // вдруг пользователь вводит e-mail (если ты это допускаешь)
+};
+
+// обёртка, чтобы не править твой saveProfile
+const onSave = () => {
+  if (phone && !phoneValid) {
+    alert("Укажите корректный телефон (минимум 10 цифр)");
+    return;
+  }
+  saveProfile();
+};
+
+
   async function saveProfile() {
     try {
       setSaving(true);
@@ -749,37 +782,63 @@ export default function User({ user }) {
 
     // профиль
     return (
-      <div className="card-profile" style={{ maxWidth: 560, marginInline: "auto" }}>
-        <div className="profile-header">
-          <button className="btn-primary" type="button" onClick={() => setEditing((v) => !v)} disabled={saving}>
-            {editing ? "Готово" : "Изменить"}
-          </button>
-        </div>
+       <div className="card-profile" style={{ maxWidth: 560, marginInline: "auto" }}>
+    <div className="profile-header">
+      <button className="btn-primary" type="button" onClick={() => setEditing((v) => !v)} disabled={saving}>
+        {editing ? "Готово" : "Изменить"}
+      </button>
+    </div>
 
-        <label className="form__group">
-          <input className="input" placeholder="Иван Иванов" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={!editing || saving} />
-        </label>
+    <label className="form__group">
+      <input
+        className="input"
+        placeholder="Иван Иванов"
+        value={fullName}
+        onChange={(e) => setFullName(e.target.value)}
+        disabled={!editing || saving}
+      />
+    </label>
 
-        <label className="form__group">
-          <input className="input" placeholder="mail@demo.ru" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!editing || saving} />
-        </label>
+    <label className="form__group">
+      <input
+        className="input"
+        placeholder="mail@demo.ru"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        disabled={!editing || saving}
+      />
+    </label>
 
-        <label className="form__group">
-          <input className="input" placeholder="+7 930 245 15 20" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!editing || saving} />
-        </label>
+    <label className="form__group">
+      <input
+        className={`input ${phone && !phoneValid ? "is-error" : ""}`}
+        placeholder="+7 930 245 15 20"
+        value={phone}
+        onChange={handlePhoneChange}
+        disabled={!editing || saving}
+      />
+      <small className="form__hint" style={{ marginTop: 4 }}>
+        Телефон маскируется. Если укажете телефон — нужно минимум 10 цифр.
+      </small>
+    </label>
 
-        <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
-          <button className="btn-primary" type="button" onClick={saveProfile} disabled={saving || !editing}>
-            {saving ? "Сохраняем..." : "Сохранить"}
-          </button>
-        </div>
+    <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+      <button
+        className="btn-primary"
+        type="button"
+        onClick={onSave}
+        disabled={saving || !editing || (phone && !phoneValid)}
+      >
+        {saving ? "Сохраняем..." : "Сохранить"}
+      </button>
+    </div>
 
-        <div style={{ marginTop: 20 }}>
-          <button className="btn-secondary" type="button" onClick={() => setOpenCheck(true)} style={{ width: "100%" }}>
-            Мои заявки (бронирования)
-          </button>
-        </div>
-      </div>
+    <div style={{ marginTop: 20 }}>
+      <button className="btn-secondary" type="button" onClick={() => setOpenCheck(true)} style={{ width: "100%" }}>
+        Мои заявки (бронирования)
+      </button>
+    </div>
+  </div>
     );
   };
 
