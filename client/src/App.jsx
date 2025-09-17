@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 
 function App() {
   const [loading, setLoading] = useState(true);
-  // "auth" | "user" | "admin"
+  // "auth" | "user" | "adminn"
   const [stage, setStage] = useState("auth");
   const [me, setMe] = useState(null); // объект пользователя из бэка
 
