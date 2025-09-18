@@ -226,7 +226,7 @@ overflow-y: auto;   }
 .bottom__wrap { max-width: 420px; margin: 0 auto; }
 .bottom__grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   padding: 8px 24px calc(20px + env(safe-area-inset-bottom));
 }
 .bottom__btn {
