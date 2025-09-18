@@ -6,12 +6,14 @@ import {
   Building2,
   ClipboardList,
   Shuffle,
+  LogOut,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./Admin.css";
 import AdminCalendar from "/src/components/calendarAdmin/CalendarAdmin.jsx";
 
-const API = "https://hotelproject-8cip.onrender.com";
+// через Vercel-прокси
+const API = "";
 
 /* -------------------- helpers -------------------- */
 const fmtDate = (iso) =>
@@ -30,30 +32,26 @@ const toYMD = (dLike) => {
 };
 
 const overlaps = (aStart, aEnd, bStart, bEnd) => {
-  // пересечение интервалов (включительно)
   return !(new Date(aEnd) < new Date(bStart) || new Date(bEnd) < new Date(aStart));
 };
 
-// дата только с точностью до дня (без часового пояса)
 const toDateOnly = (dLike) => {
   const d = dLike instanceof Date ? dLike : new Date(dLike);
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 };
 
-// кол-во ночей между датами YYYY-MM-DD или ISO
 const nightsBetween = (startIso, endIso) => {
   const ms = toDateOnly(endIso) - toDateOnly(startIso);
   return Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24)));
 };
 
-// цвет "из id" (для цветной полоски слева)
 const colorFromId = (id) => {
   const n = Number(id) || 0;
   const hue = (n * 47) % 360;
   return `hsl(${hue} 70% 45%)`;
 };
 
-/* -------- телефон: маска и утилиты (как в Authform) -------- */
+/* -------- телефон: маска и утилиты -------- */
 function formatPhoneMask(value) {
   const d = value.replace(/\D/g, "").slice(0, 15);
   if (!d) return "";
@@ -185,7 +183,7 @@ function UsersTab() {
   );
 }
 
-/* -------------------- Objects Tab (создание + редактирование) -------------------- */
+/* -------------------- Objects Tab -------------------- */
 function ObjectsTab() {
   const [objects, setObjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -211,11 +209,9 @@ function ObjectsTab() {
   );
   const handleCreateContactChange = (e) => {
     const v = e.target.value;
-    // если пользователь вводит цифры/плюс — применяем маску
     if (/^[+\d\s\-()]*$/.test(v)) {
       setCOwnerContact(formatPhoneMask(v));
     } else {
-      // оставим как есть, чтобы можно было вписать email при желании
       setCOwnerContact(v);
     }
   };
@@ -284,7 +280,6 @@ function ObjectsTab() {
     e.preventDefault();
     if (!cTitle.trim()) return alert("Введите название объекта");
 
-    // если поле контакта выглядит как телефон (содержит цифры/плюс), проверяем ≥10 цифр
     if (/[+\d]/.test(cOwnerContact) && !cOwnerContactValid) {
       return alert("Укажите корректный телефон владельца (минимум 10 цифр)");
     }
@@ -349,7 +344,6 @@ function ObjectsTab() {
         const t = await res.text();
         throw new Error(t || `HTTP ${res.status}`);
       }
-      // локально убираем объект из списка и закрываем модалку
       setObjects((prev) => prev.filter((o) => o.id !== editingId));
       setShowEdit(false);
       setEditingId(null);
@@ -363,7 +357,6 @@ function ObjectsTab() {
     e.preventDefault();
     if (!editingId) return;
 
-    // аналогичная проверка телефона в редактировании
     if (/[+\d]/.test(eOwnerContact) && !eOwnerContactValid) {
       return alert("Укажите корректный телефон владельца (минимум 10 цифр)");
     }
@@ -785,7 +778,7 @@ function ObjectsTab() {
   );
 }
 
-/* -------------------- Bookings Tab (объединено с обменами) -------------------- */
+/* -------------------- Bookings Tab -------------------- */
 function BookingsTab({
   bookings,
   exchanges,
@@ -932,8 +925,8 @@ function BookingsTab({
   );
 }
 
-/* -------------------- Bottom Nav -------------------- */
-function BottomNav({ current, onChange }) {
+/* -------------------- Bottom Nav (с выходом) -------------------- */
+function BottomNav({ current, onChange, onLogout }) {
   const items = [
     { key: "manage", label: "Управление", icon: <Home size={20} /> },
     { key: "calendar", label: "Календарь", icon: <CalendarDays size={20} /> },
@@ -954,6 +947,18 @@ function BottomNav({ current, onChange }) {
               <span>{it.label}</span>
             </button>
           ))}
+
+          {/* кнопка выхода */}
+          <button
+            key="logout"
+            onClick={onLogout}
+            className="bottom__btn"
+            type="button"
+            title="Выйти"
+          >
+            <LogOut size={20} />
+            <span>Выход</span>
+          </button>
         </div>
       </div>
     </nav>
@@ -961,10 +966,10 @@ function BottomNav({ current, onChange }) {
 }
 
 /* -------------------- Admin Page -------------------- */
-export default function Admin() {
+export default function Admin({ user, onLogout }) {
   const [page, setPage] = useState("manage");
   const [section, setSection] = useState("users");
-  const [range, setRange] = useState(); // {from: Date, to: Date}
+  const [range, setRange] = useState();
 
   const [bookings, setBookings] = useState([]);
   const [exchanges, setExchanges] = useState([]);
@@ -1007,11 +1012,11 @@ export default function Admin() {
       const r = await fetch(`${API}/api/exchanges/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }), // approve | reject
+        body: JSON.stringify({ action }),
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d?.error || "server error");
-      await reloadAll(); // бронь могла измениться
+      await reloadAll();
       alert(action === "approve" ? "Обмен подтверждён" : "Обмен отклонён");
     } catch (e) {
       alert("Ошибка: " + e.message);
@@ -1057,7 +1062,6 @@ export default function Admin() {
     }
 
     if (page === "calendar") {
-      // интервалы для закраски в календаре: pending + confirmed
       const busyRanges = bookings
         .filter((b) => ["pending", "confirmed"].includes(b.status))
         .map((b) => ({
@@ -1065,7 +1069,6 @@ export default function Admin() {
           end: toYMD(b.end_date),
         }));
 
-      // список для панели: либо пересекающиеся с выбранным диапазоном, либо ближайшие подтверждённые
       const now = new Date();
       const actual = bookings.filter(
         (b) => toDateOnly(b.end_date) >= toDateOnly(now)
@@ -1091,10 +1094,9 @@ export default function Admin() {
             bookedRanges={busyRanges}
             selected={range}
             onSelectRange={setRange}
-            readOnly={false} // можно выделять диапазон
+            readOnly={false}
           />
 
-          {/* НОВАЯ ПАНЕЛЬ из второго кода */}
           <AnimatePresence initial={false} mode="wait">
             <motion.div
               key={range?.from ? "panel-selected" : "panel-upcoming"}
@@ -1200,16 +1202,23 @@ export default function Admin() {
 
   return (
     <div className="app">
+      {/* шапка с быстрым выходом */}
       <div className="hedd">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704В10.099L6.37495 13.4779В20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199В13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611В14.9955H11.2703ZM15.2748 13.4936В20.4796H11.2535L11.2611 18.1353H13.5086В14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857В13.4936H15.2748ZM20.4914 20.4796H15.7819В13.9202L20.4914 17.8836В20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613В17.21H20.4914Z" fill="#111827" stroke="#111827" strokeLinejoin="round" /> </svg>
         <h1>TEST</h1>
+        <button className="btn-secondary" type="button" onClick={onLogout} title="Выйти">
+          <LogOut size={18} />
+        </button>
       </div>
 
       <div className="abs-logo">
-        <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
+        <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21В9.57232ZM6.37495 20.4796H1.50704В10.099L6.37495 13.4779В20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199В13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611В14.9955H11.2703ZM15.2748 13.4936В20.4796H11.2535L11.2611 18.1353H13.5086В14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857В13.4936H15.2748ZM20.4914 20.4796H15.7819В13.9202L20.4914 17.8836В20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613В17.21H20.4914Z" fill="#111827" stroke="#111827" strokeLinejoin="round" /> </svg>
       </div>
+
       <main className="container">{renderContent()}</main>
-      <BottomNav current={page} onChange={setPage} />
+
+      {/* нижняя навигация с кнопкой выхода */}
+      <BottomNav current={page} onChange={setPage} onLogout={onLogout} />
     </div>
   );
 }
