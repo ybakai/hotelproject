@@ -3,9 +3,7 @@
   "rewrites": [
     { "source": "/auth/:path*", "destination": "https://hotelproject-8cip.onrender.com/auth/:path*" },
     { "source": "/api/:path*",  "destination": "https://hotelproject-8cip.onrender.com/api/:path*" },
-    { "source": "/healthz",     "destination": "https://hotelproject-8cip.onrender.com/healthz" },
-    { "source": "/api/(.*)",  "destination": "https://www25.your-api-domain.com/api/$1" },
-    { "source": "/auth/(.*)", "destination": "https://www25.your-api-domain.com/auth/$1" }
+    { "source": "/healthz",     "destination": "https://hotelproject-8cip.onrender.com/healthz" }
   ]
 }
 
