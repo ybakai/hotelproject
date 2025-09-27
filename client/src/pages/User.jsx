@@ -288,9 +288,16 @@ function ObjectDetails({ obj, user, onBack }) {
         </div>
       )}
 
-{obj.adress ? (
-        <p style={{ marginTop: 6 }}>{obj.adress}</p>
-      ) : null}
+{/* Адрес объекта */}
+{(obj?.adress || obj?.address) && (
+  <div style={{ gridColumn: "1 / -1" }}>
+    <div className="text-sub">Адрес</div>
+    <div style={{ fontWeight: 600 }}>
+      {obj.adress || obj.address}
+    </div>
+  </div>
+)}
+
 
       {obj.description ? (
         <p style={{ marginTop: 6 }}>{obj.description}</p>
