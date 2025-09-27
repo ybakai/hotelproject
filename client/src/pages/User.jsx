@@ -558,8 +558,9 @@ function ObjectDetails({ obj, user, onBack }) {
           <div className="text-sub">Имя: {obj.owner_name}</div>
         ) : null}
         {obj.owner_contact ? (
-          <div className="text-sub">Телефон/контакт: {obj.owner_contact}</div>
+          <div className="text-sub">Телефон/контактs: {obj.owner_contact}</div>
         ) : null}
+        
       </div>
     </div>
   );
