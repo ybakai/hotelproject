@@ -3,6 +3,8 @@
   "rewrites": [
     { "source": "/auth/:path*", "destination": "https://hotelproject-8cip.onrender.com/auth/:path*" },
     { "source": "/api/:path*",  "destination": "https://hotelproject-8cip.onrender.com/api/:path*" },
-    { "source": "/healthz",     "destination": "https://hotelproject-8cip.onrender.com/healthz" }
+    { "source": "/healthz",     "destination": "https://hotelproject-8cip.onrender.com/healthz" },
+    { "source": "/api/(.*)",  "destination": "https://hotelproject-8cip.onrender.com/api/$1" },
+    { "source": "/auth/(.*)", "destination": "https://hotelproject-8cip.onrender.com/auth/$1" }
   ]
 }
