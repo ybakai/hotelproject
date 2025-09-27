@@ -122,8 +122,6 @@ function BottomNav({ current, onChange, onLogout }) {
               <span>{it.label}</span>
             </button>
           ))}
-
-          {/* кнопка выхода */}
           <button
             key="logout"
             onClick={onLogout}
@@ -140,9 +138,7 @@ function BottomNav({ current, onChange, onLogout }) {
   );
 }
 
-/* ---------- Список всех объектов (с разбивкой: Ваши дома / Доступные) ---------- */
-/* ---------- Список всех объектов (с разбивкой: Ваши дома / Доступные) ---------- */
-/* ---------- Список всех объектов (с разбивкой: Ваши дома / Доступные) ---------- */
+/* ---------- Список всех объектов (Ваши дома / Доступные) ---------- */
 function ObjectsList({ user, onOpen, onGoExchange }) {
   const [objects, setObjects] = React.useState([]);
   const [myObjectIds, setMyObjectIds] = React.useState(new Set());
@@ -588,7 +584,6 @@ function ObjectDetails({ obj, user, onBack }) {
         {obj.owner_contact && (
           <div style={{ marginTop: 10 }}>
             {(() => {
-              // очищаем номер: убираем пробелы, скобки, дефисы и т.д.
               const cleanPhone = String(obj.owner_contact).replace(/\D/g, "");
               const tgLink = `https://t.me/+${cleanPhone}`;
               return (
@@ -600,7 +595,7 @@ function ObjectDetails({ obj, user, onBack }) {
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 8,
-                    backgroundColor: "#0088cc", // фирменный цвет Telegram
+                    backgroundColor: "#0088cc",
                     color: "#fff",
                     padding: "10px 14px",
                     borderRadius: 12,
@@ -608,16 +603,15 @@ function ObjectDetails({ obj, user, onBack }) {
                     fontWeight: 600,
                   }}
                 >
-                  {/* Иконка Telegram */}
                   <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="white"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M21.944 4.667c.356-1.248-.775-2.348-1.98-1.884L2.62 9.312c-1.322.506-1.298 2.38.034 2.845l4.74 1.687 1.838 5.897c.382 1.227 1.99 1.48 2.753.42l2.57-3.554 4.877 3.63c1.102.82 2.675.2 2.99-1.16l3.523-15.41Z" />
-            </svg>
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="white"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path d="M21.944 4.667c.356-1.248-.775-2.348-1.98-1.884L2.62 9.312c-1.322.506-1.298 2.38.034 2.845l4.74 1.687 1.838 5.897c.382 1.227 1.99 1.48 2.753.42l2.57-3.554 4.877 3.63c1.102.82 2.675.2 2.99-1.16l3.523-15.41Z" />
+                  </svg>
                   <span>Связаться в Telegram</span>
                 </a>
               );
@@ -689,15 +683,276 @@ function ExchangeHistory({ userId }) {
               Сообщение: {x.message}
             </div>
           ) : null}
+          {/* Показ контактных данных (если уже обменялись контактами) */}
+          {x.shared_contacts && (
+            <div className="booking-sub" style={{ marginTop: 8 }}>
+              <div className="text-sub">Контакты:</div>
+              <div style={{ marginTop: 4 }}>
+                {x.shared_contacts.their?.name && (
+                  <div>Имя: {x.shared_contacts.their.name}</div>
+                )}
+                {x.shared_contacts.their?.phone && (
+                  <div>
+                    Телефон:{" "}
+                    <a
+                      href={`tel:${String(
+                        x.shared_contacts.their.phone
+                      ).replace(/\D/g, "")}`}
+                      style={{ textDecoration: "underline" }}
+                    >
+                      {x.shared_contacts.their.phone}
+                    </a>
+                  </div>
+                )}
+                {x.shared_contacts.their?.email && (
+                  <div>
+                    Email:{" "}
+                    <a
+                      href={`mailto:${x.shared_contacts.their.email}`}
+                      style={{ textDecoration: "underline" }}
+                    >
+                      {x.shared_contacts.their.email}
+                    </a>
+                  </div>
+                )}
+                {x.shared_contacts.their?.channel === "telegram" &&
+                  x.shared_contacts.their?.phone && (
+                    <div style={{ marginTop: 6 }}>
+                      <a
+                        href={phoneToTgLink(x.shared_contacts.their.phone)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-secondary"
+                      >
+                        Открыть Telegram
+                      </a>
+                    </div>
+                  )}
+              </div>
+            </div>
+          )}
         </div>
       ))}
     </div>
   );
 }
 
-/* ---------- Экран «Обмен домами» ---------- */
+/* ---------- ВХОДЯЩИЕ ЗАПРОСЫ (новая вкладка) ---------- */
+function IncomingRequests({ user }) {
+  const [items, setItems] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [err, setErr] = React.useState("");
+
+  const load = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setErr("");
+      const res = await fetch(`${API}/api/exchanges/incoming?user_id=${user.id}`);
+      if (!res.ok) {
+        // Если бэкенд ещё не готов — дружелюбное сообщение:
+        throw new Error("Эндпоинт /api/exchanges/incoming пока недоступен");
+      }
+      const data = await res.json();
+      setItems(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error(e);
+      setErr(e.message || "Не удалось загрузить входящие");
+    } finally {
+      setLoading(false);
+    }
+  }, [user.id]);
+
+  React.useEffect(() => {
+    load();
+  }, [load]);
+
+  async function act(id, action) {
+    try {
+      const res = await fetch(`${API}/api/exchanges/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "server error");
+      if (action === "approve") alert("✅ Обмен подтверждён. Даты зафиксированы.");
+      if (action === "reject") alert("❌ Заявка отклонена.");
+      if (action === "share_contacts") alert("📇 Контакты обменены.");
+      load();
+    } catch (e) {
+      alert("Ошибка: " + e.message);
+    }
+  }
+
+  if (loading) return <div className="empty">Загрузка…</div>;
+  if (err) return <div className="empty">Ошибка: {err}</div>;
+  if (!items.length) return <div className="empty">Входящих запросов нет</div>;
+
+  return (
+    <div className="vstack-12">
+      <div className="hstack-8" style={{ justifyContent: "center", marginBottom: 8 }}>
+        <button className="btn-secondary" onClick={load}>
+          <RefreshCw size={16} style={{ marginRight: 6 }} />
+          Обновить
+        </button>
+      </div>
+
+      {items.map((x) => {
+        const nights = nightsBetween(x.start_date, x.end_date);
+        const img =
+          Array.isArray(x.target_object_images) &&
+          x.target_object_images[0]
+            ? x.target_object_images[0]
+            : null;
+
+        return (
+          <div key={x.id} className="booking-card">
+            <div className="booking-header">Запрос на обмен #{x.id}</div>
+
+            {/* Картинка виллы (твоего объекта, куда запросили) */}
+            {img ? (
+              <div className="tile__imgwrap" style={{ marginTop: 8 }}>
+                <img className="tile__img" src={img} alt={x.target_object_title || "Вилла"} />
+              </div>
+            ) : (
+              <div className="tile__imgwrap tile__imgwrap--empty" style={{ marginTop: 8 }}>
+                Нет фото
+              </div>
+            )}
+
+            <div className="booking-sub" style={{ marginTop: 8 }}>
+              Дом: {x.base_object_title} → {x.target_object_title}
+            </div>
+            <div className="booking-sub">
+              Даты: {fmtDateShort(x.start_date)} → {fmtDateShort(x.end_date)} ({nights} ноч.)
+            </div>
+
+            {/* Сообщение отправителя */}
+            {x.message && (
+              <div className="booking-sub" style={{ marginTop: 6 }}>
+                Сообщение: {x.message}
+              </div>
+            )}
+
+            {/* Контакты отправителя (введены вручную при создании) */}
+            <div className="booking-sub" style={{ marginTop: 8 }}>
+              <div className="text-sub">Контакты отправителя</div>
+              <div style={{ marginTop: 4 }}>
+                {x.contact?.name && <div>Имя: {x.contact.name}</div>}
+                {x.contact?.phone && (
+                  <div>
+                    Телефон:{" "}
+                    <a
+                      href={`tel:${String(x.contact.phone).replace(/\D/g, "")}`}
+                      style={{ textDecoration: "underline" }}
+                    >
+                      {x.contact.phone}
+                    </a>
+                  </div>
+                )}
+                {x.contact?.email && (
+                  <div>
+                    Email:{" "}
+                    <a
+                      href={`mailto:${x.contact.email}`}
+                      style={{ textDecoration: "underline" }}
+                    >
+                      {x.contact.email}
+                    </a>
+                  </div>
+                )}
+                {x.contact?.channel === "telegram" && x.contact?.phone && (
+                  <div style={{ marginTop: 6 }}>
+                    <a
+                      href={phoneToTgLink(x.contact.phone)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn-secondary"
+                    >
+                      Открыть Telegram
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Кнопки действий */}
+            <div className="hstack-8" style={{ marginTop: 12, justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+              <button className="btn-primary" onClick={() => act(x.id, "approve")} style={{ backgroundColor: "#0a0", color: "#fff" }}>
+                ✅ Подтвердить
+              </button>
+              <button className="btn-secondary" onClick={() => act(x.id, "share_contacts")}>
+                📇 Обменяться контактами
+              </button>
+              <button className="btn-secondary" onClick={() => act(x.id, "reject")} style={{ backgroundColor: "#eee" }}>
+                ❌ Отклонить
+              </button>
+            </div>
+
+            {/* Если уже обменялись контактами — покажем карточку */}
+            {x.shared_contacts && (
+              <div className="booking-sub" style={{ marginTop: 12 }}>
+                <div className="text-sub">Контакты друг друга</div>
+                <div style={{ marginTop: 6, display: "grid", gap: 8 }}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Их:</div>
+                    {x.shared_contacts.their?.name && <div>Имя: {x.shared_contacts.their.name}</div>}
+                    {x.shared_contacts.their?.phone && (
+                      <div>
+                        Телефон:{" "}
+                        <a
+                          href={`tel:${String(x.shared_contacts.their.phone).replace(/\D/g, "")}`}
+                          style={{ textDecoration: "underline" }}
+                        >
+                          {x.shared_contacts.their.phone}
+                        </a>
+                      </div>
+                    )}
+                    {x.shared_contacts.their?.email && (
+                      <div>
+                        Email:{" "}
+                        <a href={`mailto:${x.shared_contacts.their.email}`} style={{ textDecoration: "underline" }}>
+                          {x.shared_contacts.their.email}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Ваши:</div>
+                    {x.shared_contacts.mine?.name && <div>Имя: {x.shared_contacts.mine.name}</div>}
+                    {x.shared_contacts.mine?.phone && (
+                      <div>
+                        Телефон:{" "}
+                        <a
+                          href={`tel:${String(x.shared_contacts.mine.phone).replace(/\D/g, "")}`}
+                          style={{ textDecoration: "underline" }}
+                        >
+                          {x.shared_contacts.mine.phone}
+                        </a>
+                      </div>
+                    )}
+                    {x.shared_contacts.mine?.email && (
+                      <div>
+                        Email:{" "}
+                        <a href={`mailto:${x.shared_contacts.mine.email}`} style={{ textDecoration: "underline" }}>
+                          {x.shared_contacts.mine.email}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ---------- Экран «Обмен домами»: добавлена вкладка «Запросы» ---------- */
 function ExchangePage({ user }) {
-  const [tab, setTab] = React.useState("objects"); // objects | history
+  const [tab, setTab] = React.useState("objects"); // objects | requests | history
 
   // шаги мастера
   const [step, setStep] = React.useState(1); // 1: choose booking, 2: choose target object, 3: choose dates + send
@@ -709,13 +964,19 @@ function ExchangePage({ user }) {
   const [targetBookedRanges, setTargetBookedRanges] = React.useState([]);
   const [targetRange, setTargetRange] = React.useState();
   const [message, setMessage] = React.useState("");
+
+  // Новое: контактные данные отправителя
+  const [contactName, setContactName] = React.useState(user?.full_name || "");
+  const [contactPhone, setContactPhone] = React.useState(user?.phone || "");
+  const [contactEmail, setContactEmail] = React.useState(user?.email || "");
+  const [contactChannel, setContactChannel] = React.useState("telegram"); // telegram | phone | email
+
   const [sending, setSending] = React.useState(false);
 
   const baseNights = baseBooking
     ? nightsBetween(baseBooking.start_date, baseBooking.end_date)
     : 0;
 
-  // загрузка моих подтверждённых броней
   React.useEffect(() => {
     async function loadMyBookings() {
       try {
@@ -733,7 +994,6 @@ function ExchangePage({ user }) {
     loadMyBookings();
   }, [user.id]);
 
-  // список всех объектов (для шага 2)
   React.useEffect(() => {
     fetch(`${API}/api/objects`)
       .then((r) => r.json())
@@ -741,7 +1001,6 @@ function ExchangePage({ user }) {
       .catch((e) => console.error(e));
   }, []);
 
-  // при выборе целевого объекта — грузим его занятые даты
   React.useEffect(() => {
     async function loadBookedRanges() {
       if (!targetObject) return;
@@ -773,6 +1032,7 @@ function ExchangePage({ user }) {
     setTargetBookedRanges([]);
     setTargetRange(undefined);
     setMessage("");
+    // контактные поля оставим заполненными пользователем
   }
 
   async function sendExchange() {
@@ -796,7 +1056,16 @@ function ExchangePage({ user }) {
 
     const selNights = nightsBetween(targetRange.from, targetRange.to);
     if (selNights !== baseNights) {
-      alert(`Нужно выбрать ровно {baseNights} ноч.: выбранно ${selNights}`);
+      alert(`Нужно выбрать ровно ${baseNights} ноч.: выбрано ${selNights}`);
+      return;
+    }
+
+    // простая проверка контактов: нужен хотя бы один способ связи
+    if (
+      !String(contactPhone || "").trim() &&
+      !String(contactEmail || "").trim()
+    ) {
+      alert("Укажите телефон или email для связи");
       return;
     }
 
@@ -812,9 +1081,15 @@ function ExchangePage({ user }) {
           startDate: startISO,
           endDate: endISO,
           message: message?.trim() || null,
+          contact: {
+            name: (contactName || "").trim() || null,
+            phone: (contactPhone || "").trim() || null,
+            email: (contactEmail || "").trim() || null,
+            channel: contactChannel || "telegram",
+          },
         }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "server error");
       alert("✅ Запрос на обмен отправлен!");
       resetToStep1();
@@ -831,19 +1106,29 @@ function ExchangePage({ user }) {
       <div style={{ padding: 16 }}>
         <div className="objects-toolbar" style={{ marginBottom: 12 }}>
           <div className="objects-title">Обмен неделями</div>
-          <div className="hstack-8">
-            <button
-              className={`btn-secondary`}
-              onClick={() => setTab("objects")}
-            >
-              Обмен
-            </button>
-            <button className={`btn-primary`} onClick={() => setTab("history")}>
-              История
-            </button>
+          <div className="hstack-8" style={{ justifyContent: "center", gap: 8 }}>
+            <button className={`btn-secondary`} onClick={() => setTab("objects")}>Обмен</button>
+            <button className={`btn-secondary`} onClick={() => setTab("requests")}>Запросы</button>
+            <button className={`btn-primary`} onClick={() => setTab("history")}>История</button>
           </div>
         </div>
         <ExchangeHistory userId={user.id} />
+      </div>
+    );
+  }
+
+  if (tab === "requests") {
+    return (
+      <div style={{ padding: 16 }}>
+        <div className="objects-toolbar" style={{ marginBottom: 12 }}>
+          <div className="objects-title">Входящие запросы</div>
+          <div className="hstack-8" style={{ justifyContent: "center", gap: 8 }}>
+            <button className={`btn-secondary`} onClick={() => setTab("objects")}>Обмен</button>
+            <button className={`btn-primary`} onClick={() => setTab("requests")}>Запросы</button>
+            <button className={`btn-secondary`} onClick={() => setTab("history")}>История</button>
+          </div>
+        </div>
+        <IncomingRequests user={user} />
       </div>
     );
   }
@@ -853,13 +1138,11 @@ function ExchangePage({ user }) {
     <div style={{ padding: 16 }}>
       <div className="objects-toolbar" style={{ marginBottom: 12 }}>
         <div className="objects-title">Обмен неделями</div>
-        <div className="hstack-8">
-          <button className={`btn-primary`} onClick={() => setTab("objects")}>
-            Обмен
-          </button>
-          <button className={`btn-secondary`} onClick={() => setTab("history")}>
-            История
-          </button>
+        {/* Центрированные три вкладки */}
+        <div className="hstack-8" style={{ justifyContent: "center", gap: 8, width: "100%" }}>
+          <button className={`btn-primary`} onClick={() => setTab("objects")}>Обмен</button>
+          <button className={`btn-secondary`} onClick={() => setTab("requests")}>Запросы</button>
+          <button className={`btn-secondary`} onClick={() => setTab("history")}>История</button>
         </div>
       </div>
 
@@ -980,10 +1263,9 @@ function ExchangePage({ user }) {
             {fmtDateShort(baseBooking.end_date)})
           </div>
 
+          {/* Сообщение */}
           <label className="form__group" style={{ marginTop: 12 }}>
-            <span className="form__label">
-              Сообщение владельцу (опционально)
-            </span>
+            <span className="form__label">Сообщение владельцу (опционально)</span>
             <textarea
               className="textarea"
               rows={3}
@@ -992,6 +1274,68 @@ function ExchangePage({ user }) {
               onChange={(e) => setMessage(e.target.value)}
             />
           </label>
+
+          {/* Контакты отправителя (новое) */}
+          <div className="tile__title" style={{ marginTop: 16, fontSize: 16 }}>
+            Ваши контакты для связи
+          </div>
+          <div className="vstack-8" style={{ marginTop: 8 }}>
+            <label className="form__group">
+              <span className="form__label">Имя</span>
+              <input
+                className="input"
+                placeholder="Иван"
+                value={contactName}
+                onChange={(e) => setContactName(e.target.value)}
+              />
+            </label>
+            <label className="form__group">
+              <span className="form__label">Телефон</span>
+              <input
+                className="input"
+                placeholder="+7 900 000-00-00"
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+              />
+            </label>
+            <label className="form__group">
+              <span className="form__label">Email</span>
+              <input
+                className="input"
+                placeholder="mail@demo.ru"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+              />
+            </label>
+
+            <label className="form__group">
+              <span className="form__label">Предпочитаемый способ связи</span>
+              <div className="hstack-8" style={{ flexWrap: "wrap" }}>
+                {["telegram", "phone", "email"].map((k) => (
+                  <label
+                    key={k}
+                    className={`chip ${contactChannel === k ? "is-active" : ""}`}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: 12,
+                      border: "1px solid #ddd",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="contact_channel"
+                      value={k}
+                      checked={contactChannel === k}
+                      onChange={() => setContactChannel(k)}
+                      style={{ display: "none" }}
+                    />
+                    {k === "telegram" ? "Telegram" : k === "phone" ? "Телефон" : "Email"}
+                  </label>
+                ))}
+              </div>
+            </label>
+          </div>
 
           <div className="form__actions">
             <button className="btn-secondary" onClick={resetToStep1}>
@@ -1147,7 +1491,6 @@ export default function User({ user, onLogout }) {
     }
   }
 
-  // грузим контакты владельца(ев) по подтверждённым броням пользователя
   React.useEffect(() => {
     let cancelled = false;
     async function loadOwnerContacts() {
@@ -1355,7 +1698,7 @@ export default function User({ user, onLogout }) {
                           display: "inline-flex",
                           alignItems: "center",
                           gap: 8,
-                          backgroundColor: "#000", // чёрная как твои primary
+                          backgroundColor: "#000",
                           color: "#fff",
                           padding: "10px 14px",
                           borderRadius: 12,
@@ -1364,14 +1707,14 @@ export default function User({ user, onLogout }) {
                         }}
                       >
                         <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="white"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M21.944 4.667c.356-1.248-.775-2.348-1.98-1.884L2.62 9.312c-1.322.506-1.298 2.38.034 2.845l4.74 1.687 1.838 5.897c.382 1.227 1.99 1.48 2.753.42l2.57-3.554 4.877 3.63c1.102.82 2.675.2 2.99-1.16l3.523-15.41Z" />
-            </svg>
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="white"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path d="M21.944 4.667c.356-1.248-.775-2.348-1.98-1.884L2.62 9.312c-1.322.506-1.298 2.38.034 2.845l4.74 1.687 1.838 5.897c.382 1.227 1.99 1.48 2.753.42l2.57-3.554 4.877 3.63c1.102.82 2.675.2 2.99-1.16l3.523-15.41Z" />
+                        </svg>
                         <span>Написать в Telegram</span>
                       </a>
                     </div>
@@ -1381,8 +1724,6 @@ export default function User({ user, onLogout }) {
             </div>
           )}
         </div>
-
-        {/* кнопки "Выйти" в профиле больше нет — выход в BottomNav */}
       </div>
     );
   };
@@ -1390,15 +1731,22 @@ export default function User({ user, onLogout }) {
   return (
     <div className="app" style={{ paddingBottom: 80 }}>
       <div className="hedd">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" >
+          <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199В13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" strokeLinejoin="round" />
+        </svg>
         <h1>TEST</h1>
       </div>
 
       <div className="abs-logo">
-        <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
+        <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" >
+          <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779В20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199В13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086В14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857В13.4936H15.2748ZM20.4914 20.4796H15.7819В13.9202L20.4914 17.8836В20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613В17.21H20.4914Z" fill="#111827" stroke="#111827" strokeLinejoin="round" />
+        </svg>
       </div>
+
       <main className="container">{renderContent()}</main>
+
       <BottomNav current={page} onChange={setPage} onLogout={onLogout} />
+
       <Modal
         open={openCheck}
         onClose={() => setOpenCheck(false)}
