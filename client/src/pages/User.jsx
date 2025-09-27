@@ -339,14 +339,49 @@ function ObjectDetails({ obj, user, onBack }) {
       )}
 
       {/* Адрес объекта */}
+{/* Адрес объекта */}
 {(obj?.adress || obj?.address) && (
   <div style={{ gridColumn: "1 / -1" }}>
-    <div style={{marginTop: 6}} className="text-sub">Адрес</div>
-    <div style={{marginTop: 6, fontWeight: 600 }}>
+    <div style={{ marginTop: 6 }} className="text-sub">
+      Адрес
+    </div>
+    <div style={{ marginTop: 6, fontWeight: 600 }}>
       {obj.adress || obj.address}
+    </div>
+
+    {/* Карта по адресу */}
+    <div style={{ position: "relative", width: "100%", paddingTop: "56.25%", marginTop: 12 }}>
+      <iframe
+        title="map"
+        src={`https://www.google.com/maps?q=${encodeURIComponent(obj.adress || obj.address)}&output=embed`}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          border: 0,
+          borderRadius: 12,
+        }}
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+        allowFullScreen
+      />
+    </div>
+
+    {/* Ссылка на Google Maps */}
+    <div style={{ marginTop: 8 }}>
+      <a
+        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(obj.adress || obj.address)}`}
+        target="_blank"
+        rel="noreferrer"
+        style={{ color: "#1a73e8", textDecoration: "underline" }}
+      >
+        Открыть в Google Maps
+      </a>
     </div>
   </div>
 )}
+
 
       <div style={{ marginTop: 12 }}>
         <AdminCalendar
@@ -378,6 +413,8 @@ function ObjectDetails({ obj, user, onBack }) {
           </button>
         </div>
       </div>
+
+      
 
       <div style={{ marginTop: 16 }}>
         {obj.owner_name ? (
