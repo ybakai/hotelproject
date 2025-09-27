@@ -162,6 +162,7 @@ app.delete("/api/users/:id", async (req, res) => {
     const id = Number(req.params.id);
     if (!id) return res.status(400).json({ error: "invalid id" });
 
+    // блокируем удаление, если он владелец объектов
     const dep = await pool.query(`SELECT 1 FROM objects WHERE owner_id = $1 LIMIT 1`, [id]);
     if (dep.rowCount > 0) {
       return res.status(409).json({ error: "user_has_objects" });
@@ -192,6 +193,7 @@ app.get("/api/users/:id/credentials", async (req, res) => {
     );
     if (q.rowCount === 0) return res.status(404).json({ error: "not_found" });
 
+    // сейчас password_hash = реальный пароль — возвращаем как есть
     const { email, password_hash } = q.rows[0];
     res.json({ ok: true, email, password: String(password_hash) });
   } catch (e) {
@@ -570,7 +572,7 @@ app.get("/api/exchanges/incoming", async (req, res) => {
       LEFT JOIN bookings bo      ON bo.id    = e.base_booking_id
       LEFT JOIN objects  obase   ON obase.id = bo.object_id
       LEFT JOIN objects  otarget ON otarget.id = e.target_object_id
-      WHERE (otarget.owner_id = $1) OR (e.target_owner_id = $1)
+      WHERE COALESCE(e.target_owner_id, otarget.owner_id) = $1
       ORDER BY e.created_at DESC
       `,
       [userId]
@@ -633,14 +635,18 @@ app.post("/api/exchanges", async (req, res) => {
     if (Number(base.object_id) === Number(targetObjectId))
       return res.status(400).json({ error: "нужно выбрать другой дом" });
 
-    // получатель
+    // получатель = владелец целевого объекта (обязателен и не равен инициатору)
     const targetObjQ = await pool.query(
       `SELECT id, owner_id FROM objects WHERE id = $1`,
       [Number(targetObjectId)]
     );
     if (targetObjQ.rowCount === 0)
       return res.status(404).json({ error: "target object not found" });
-    const targetOwnerId = targetObjQ.rows[0]?.owner_id || null;
+    const targetOwnerId = Number(targetObjQ.rows[0]?.owner_id) || null;
+    if (!targetOwnerId)
+      return res.status(400).json({ error: "у целевого объекта не задан владелец (owner_id)" });
+    if (targetOwnerId === Number(userId))
+      return res.status(400).json({ error: "нельзя отправлять обмен самому себе" });
 
     // на выбранные даты целевой объект свободен?
     const conflict = await pool.query(
@@ -657,7 +663,7 @@ app.post("/api/exchanges", async (req, res) => {
     const ins = await pool.query(
       `INSERT INTO exchanges
          (user_id, base_booking_id, target_object_id, start_date, end_date, nights, message, status, contact, target_owner_id)
-       VALUES ($1::int,$2::int,$3::int,$4::date,$5::date,$6::int,$7,'pending',$8::jsonb,$9)
+       VALUES ($1::int,$2::int,$3::int,$4::date,$5::date,$6::int,$7,'pending',$8::jsonb,$9::int)
        RETURNING *`,
       [
         userId,
@@ -722,9 +728,10 @@ app.patch("/api/exchanges/:id", async (req, res) => {
     const targetObj = targetObjQ.rows[0];
 
     if (action === "share_contacts") {
+      const receiverId = ex.target_owner_id || targetObj.owner_id;
       const ownerQ = await client.query(
         `SELECT id, full_name, phone, email FROM users WHERE id = $1`,
-        [targetObj.owner_id || ex.target_owner_id]
+        [receiverId]
       );
       const owner = ownerQ.rows[0] || null;
 
@@ -795,13 +802,19 @@ app.patch("/api/exchanges/:id", async (req, res) => {
       [ex.target_object_id, ex.start_date, ex.end_date, base.id]
     );
 
+    const receiverId = ex.target_owner_id || targetObj.owner_id;
+    if (!receiverId) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({ error: "не определён получатель обмена" });
+    }
+
     const insPeer = await client.query(
       `INSERT INTO bookings (object_id, user_id, status, start_date, end_date, guests, note)
        VALUES ($1::int, $2::int, 'confirmed', $3::date, $4::date, 1, $5)
        RETURNING *`,
       [
         baseObjectId,
-        targetObj.owner_id || ex.target_owner_id,
+        receiverId,
         origStart,
         origEnd,
         `created by exchange #${id}`,
