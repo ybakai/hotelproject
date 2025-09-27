@@ -7,7 +7,7 @@ import "/src/components/calendarAdmin/CalendarAdmin.css";
 import { ChevronRight, Globe, X } from "lucide-react";
 
 // через Vercel-прокси
-const API = "https://hotelproject-8cip.onrender.com";
+const API = "";
 
 /* ---------- helpers ---------- */
 const fmtDate = (iso) =>
