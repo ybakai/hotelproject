@@ -10,6 +10,7 @@ import jwt from "jsonwebtoken";
 const app = express();
 const PORT = process.env.PORT || 4000;
 const FRONT_ORIGIN = process.env.APP_URL || true; // true — отражает Origin запроса
+const DEBUG_ERRORS = (process.env.DEBUG_ERRORS ?? "true").toLowerCase() !== "false";
 
 // ===== Cookies / JWT =====
 const JWT_REFRESH_SECRET =
@@ -128,7 +129,7 @@ app.get("/api/users", async (_req, res) => {
     res.json(rows);
   } catch (e) {
     console.error("DB error in /api/users:", e);
-    res.status(500).json({ error: "DB error" });
+    res.status(500).json({ error: "DB error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
@@ -152,7 +153,7 @@ app.put("/api/users/:id/status", async (req, res) => {
     res.json(rows[0]);
   } catch (e) {
     console.error("DB error in PUT /api/users/:id/status:", e);
-    res.status(500).json({ error: "DB error" });
+    res.status(500).json({ error: "DB error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
@@ -176,7 +177,7 @@ app.delete("/api/users/:id", async (req, res) => {
     if (e.code === "23503") {
       return res.status(409).json({ error: "user_has_dependencies" });
     }
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
@@ -196,7 +197,7 @@ app.get("/api/users/:id/credentials", async (req, res) => {
     res.json({ ok: true, email, password: String(password_hash) });
   } catch (e) {
     console.error("GET /api/users/:id/credentials", e);
-    res.status(500).json({ error: e?.message || "server error" });
+    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
@@ -214,7 +215,7 @@ app.get("/api/objects", async (req, res) => {
     res.json(rows);
   } catch (e) {
     console.error("GET /api/objects:", e);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Server error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
@@ -228,7 +229,7 @@ app.get("/api/users/:id/objects", async (req, res) => {
     res.json(rows);
   } catch (e) {
     console.error("GET /api/users/:id/objects:", e);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Server error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
@@ -303,7 +304,7 @@ app.post("/api/objects", upload.array("images", 6), async (req, res) => {
     res.status(201).json(rows[0]);
   } catch (e) {
     console.error("POST /api/objects:", e);
-    res.status(500).json({ error: e.message || "Server error" });
+    res.status(500).json({ error: e.message || "Server error", details: DEBUG_ERRORS ? e.stack : undefined });
   }
 });
 
@@ -341,7 +342,7 @@ app.post("/auth/register", async (req, res) => {
     console.error("register error:", err);
     if (err.code === "23505")
       return res.status(409).json({ error: "email already exists" });
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? err.message : undefined });
   }
 });
 
@@ -373,7 +374,7 @@ app.post("/auth/login", async (req, res) => {
     res.json({ ok: true, user });
   } catch (err) {
     console.error("login error:", err);
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? err.message : undefined });
   }
 });
 
@@ -511,9 +512,10 @@ app.patch("/api/bookings/:id", async (req, res) => {
 
     await client.query("BEGIN");
 
-    // читаем бронь + текущего владельца объекта под лок (чтобы избежать гонок)
+    // читаем бронь + текущий owner_id объекта под лок
     const cur = await client.query(
-      `SELECT b.*, o.owner_id AS object_owner_id
+      `SELECT b.id, b.object_id, b.user_id, b.status,
+              o.owner_id AS object_owner_id
          FROM bookings b
     LEFT JOIN objects o ON o.id = b.object_id
         WHERE b.id = $1
@@ -533,22 +535,31 @@ app.patch("/api/bookings/:id", async (req, res) => {
     );
 
     let owner_set = false;
+
     // если подтвердили и у объекта нет владельца — назначаем владельцем пользователя из этой брони
     if (status === "confirmed" && (booking.object_owner_id == null)) {
-      await client.query(
-        `UPDATE objects SET owner_id = $1 WHERE id = $2`,
+      const updObj = await client.query(
+        `UPDATE objects SET owner_id = $1 WHERE id = $2 AND owner_id IS NULL RETURNING id`,
         [booking.user_id, booking.object_id]
       );
-      owner_set = true;
+      owner_set = updObj.rowCount > 0;
+      if (!owner_set) {
+        console.warn(
+          `Owner not set: object ${booking.object_id} already has owner or object missing`
+        );
+      }
     }
 
     await client.query("COMMIT");
-    // можно вернуть флаг, чтобы фронт при желании что-то показал
     res.json({ ...upd.rows[0], owner_set });
   } catch (err) {
     await client.query("ROLLBACK");
     console.error("Error updating booking:", err);
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({
+      error: "server error",
+      details: DEBUG_ERRORS ? (err.detail || err.message) : undefined,
+      code: DEBUG_ERRORS ? err.code : undefined,
+    });
   } finally {
     client.release();
   }
@@ -588,7 +599,7 @@ app.get("/api/exchanges", async (req, res) => {
     res.json(q.rows);
   } catch (e) {
     console.error("GET /api/exchanges", e);
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
@@ -621,7 +632,7 @@ app.get("/api/exchanges/incoming", async (req, res) => {
     res.json(q.rows);
   } catch (e) {
     console.error("GET /api/exchanges/incoming", e);
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
@@ -897,7 +908,7 @@ app.patch("/api/users/:id", async (req, res) => {
     if (e.code === "23505")
       return res.status(409).json({ error: "email already exists" });
     console.error("PATCH /api/users/:id:", e);
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
