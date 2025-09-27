@@ -172,8 +172,7 @@ function ObjectsList({ user, onOpen, onGoExchange }) {
         const allBookings = Array.isArray(bookData) ? bookData : [];
         const mineConfirmed = allBookings.filter(
           (b) =>
-            Number(b.user_id) === Number(user?.id) &&
-            b.status === "confirmed"
+            Number(b.user_id) === Number(user?.id) && b.status === "confirmed"
         );
         setMyObjectIds(new Set(mineConfirmed.map((b) => b.object_id)));
       } catch (e) {
@@ -222,10 +221,16 @@ function ObjectsList({ user, onOpen, onGoExchange }) {
               >
                 {Array.isArray(o.images) && o.images[0] ? (
                   <div className="tile__imgwrap">
-                    <img className="tile__img" src={o.images[0]} alt={o.title} />
+                    <img
+                      className="tile__img"
+                      src={o.images[0]}
+                      alt={o.title}
+                    />
                   </div>
                 ) : (
-                  <div className="tile__imgwrap tile__imgwrap--empty">Нет фото</div>
+                  <div className="tile__imgwrap tile__imgwrap--empty">
+                    Нет фото
+                  </div>
                 )}
                 <div className="tile__body">
                   <div className="tile__title">{o.title}</div>
@@ -260,7 +265,10 @@ function ObjectsList({ user, onOpen, onGoExchange }) {
 
       {/* Доступные */}
       <section>
-        <div className="objects-toolbar" style={{ marginBottom: 8, marginTop: 8 }}>
+        <div
+          className="objects-toolbar"
+          style={{ marginBottom: 8, marginTop: 8 }}
+        >
           <div className="objects-title">Доступные</div>
         </div>
 
@@ -280,10 +288,16 @@ function ObjectsList({ user, onOpen, onGoExchange }) {
               >
                 {Array.isArray(o.images) && o.images[0] ? (
                   <div className="tile__imgwrap">
-                    <img className="tile__img" src={o.images[0]} alt={o.title} />
+                    <img
+                      className="tile__img"
+                      src={o.images[0]}
+                      alt={o.title}
+                    />
                   </div>
                 ) : (
-                  <div className="tile__imgwrap tile__imgwrap--empty">Нет фото</div>
+                  <div className="tile__imgwrap tile__imgwrap--empty">
+                    Нет фото
+                  </div>
                 )}
 
                 <div className="tile__body">
@@ -485,10 +499,19 @@ function ObjectDetails({ obj, user, onBack }) {
           </div>
 
           {/* Карта по адресу */}
-          <div style={{ position: "relative", width: "100%", paddingTop: "56.25%", marginTop: 12 }}>
+          <div
+            style={{
+              position: "relative",
+              width: "100%",
+              paddingTop: "56.25%",
+              marginTop: 12,
+            }}
+          >
             <iframe
               title="map"
-              src={`https://www.google.com/maps?q=${encodeURIComponent(obj.adress || obj.address)}&output=embed`}
+              src={`https://www.google.com/maps?q=${encodeURIComponent(
+                obj.adress || obj.address
+              )}&output=embed`}
               style={{
                 position: "absolute",
                 inset: 0,
@@ -506,7 +529,9 @@ function ObjectDetails({ obj, user, onBack }) {
           {/* Ссылка на Google Maps */}
           <div style={{ marginTop: 8 }}>
             <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(obj.adress || obj.address)}`}
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                obj.adress || obj.address
+              )}`}
               target="_blank"
               rel="noreferrer"
               style={{ color: "#1a73e8", textDecoration: "underline" }}
@@ -585,14 +610,14 @@ function ObjectDetails({ obj, user, onBack }) {
                 >
                   {/* Иконка Telegram */}
                   <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="white"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path d="M21.944 4.667c.356-1.248-.775-2.348-1.98-1.884L2.62 9.312c-1.322.506-1.298 2.38.034 2.845л4.74 1.687 1.838 5.897c.382 1.227 1.99 1.48 2.753.42л2.57-3.554 4.877 3.63c1.102.82 2.675.2 2.99-1.16л3.523-15.41Z" />
-                  </svg>
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="white"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M21.944 4.667c.356-1.248-.775-2.348-1.98-1.884L2.62 9.312c-1.322.506-1.298 2.38.034 2.845l4.74 1.687 1.838 5.897c.382 1.227 1.99 1.48 2.753.42l2.57-3.554 4.877 3.63c1.102.82 2.675.2 2.99-1.16l3.523-15.41Z" />
+            </svg>
                   <span>Связаться в Telegram</span>
                 </a>
               );
@@ -1145,10 +1170,13 @@ export default function User({ user, onLogout }) {
         const objects = Array.isArray(objData) ? objData : [];
 
         const myConfirmed = bookings.filter(
-          (b) => Number(b.user_id) === Number(user?.id) && b.status === "confirmed"
+          (b) =>
+            Number(b.user_id) === Number(user?.id) && b.status === "confirmed"
         );
 
-        const myObjectIds = Array.from(new Set(myConfirmed.map((b) => b.object_id)));
+        const myObjectIds = Array.from(
+          new Set(myConfirmed.map((b) => b.object_id))
+        );
 
         const contacts = myObjectIds
           .map((id) => objects.find((o) => o.id === id))
@@ -1168,13 +1196,16 @@ export default function User({ user, onLogout }) {
         );
       } catch (e) {
         console.error("owner contacts load error:", e);
-        if (!cancelled) setOwnerContactsError("Не удалось загрузить контакты владельца");
+        if (!cancelled)
+          setOwnerContactsError("Не удалось загрузить контакты владельца");
       } finally {
         if (!cancelled) setLoadingOwnerContacts(false);
       }
     }
     if (user?.id) loadOwnerContacts();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id]);
 
   const renderContent = () => {
@@ -1197,7 +1228,13 @@ export default function User({ user, onLogout }) {
           />
         );
       }
-      return <ObjectsList user={user} onOpen={setOpenedObject} onGoExchange={() => setPage("exchange")} />;
+      return (
+        <ObjectsList
+          user={user}
+          onOpen={setOpenedObject}
+          onGoExchange={() => setPage("exchange")}
+        />
+      );
     }
 
     if (page === "exchange") {
@@ -1280,7 +1317,10 @@ export default function User({ user, onLogout }) {
 
         {/* Контакты владельца по вашим домам */}
         <div style={{ marginTop: 16 }}>
-          <div className="objects-title" style={{ fontSize: 16, marginBottom: 8 }}>
+          <div
+            className="objects-title"
+            style={{ fontSize: 16, marginBottom: 8 }}
+          >
             Контакты владельца
           </div>
 
@@ -1324,15 +1364,14 @@ export default function User({ user, onLogout }) {
                         }}
                       >
                         <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          aria-hidden="true"
-                        >
-                          <path d="M21.944 4.667c.356-1.248-.775-2.348-1.98-1.884L2.62 9.312c-1.322.506-1.298 2.38.034 2.845л4.74 1.687 1.838 5.897c.382 1.227 1.99 1.48 2.753.42л2.57-3.554 4.877 3.63c1.102.82 2.675.2 2.99-1.16л3.523-15.41З" />
-                        </svg>
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="white"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M21.944 4.667c.356-1.248-.775-2.348-1.98-1.884L2.62 9.312c-1.322.506-1.298 2.38.034 2.845l4.74 1.687 1.838 5.897c.382 1.227 1.99 1.48 2.753.42l2.57-3.554 4.877 3.63c1.102.82 2.675.2 2.99-1.16l3.523-15.41Z" />
+            </svg>
                         <span>Написать в Telegram</span>
                       </a>
                     </div>
@@ -1350,12 +1389,16 @@ export default function User({ user, onLogout }) {
 
   return (
     <div className="app" style={{ paddingBottom: 80 }}>
-     <div className="hedd"> <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > {" "} <path d="M21 9.57232L10.9992 1L1 9.57232В21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779В20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199В13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611В14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535Л11.2611 18.1353H13.5086В14.5407H11.2718Л11.2855 10.1365Л11.2825 10.1334Л15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819В13.9202Л20.4914 17.8836В20.4796ZM20.4914 17.21Л16.059 13.4811Л14.5135 12.1807Л11.4317 9.58795Л15.8702 5.85583Л20.4899 9.81613В17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" />{" "} </svg> <h1>TEST</h1> </div> <div className="abs-logo"> <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > {" "} <path d="M21 9.57232L10.9992 1L1 9.57232В21H21V9.57232ZM6.37495 20.4796H1.50704В10.099Л6.37495 13.4779В20.4796ZM1.73087 9.62546Л6.16178 5.82613Л10.6308 9.58795Л6.57594 12.9903Л1.73087 9.62546ZM10.7632 14.5407Л10.745 20.4796H6.88199В13.4076Л10.7754 10.1396Л10.7617 14.5407H10.7632ZM6.55919 5.48543Л10.9992 1.67828Л15.4743 5.51512Л11.0327 9.25037Л6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611В14.9955H11.2703ZM15.2748 13.4936В20.4796H11.2535Л11.2611 18.1353H13.5086В14.5407H11.2718Л11.2855 10.1365Л11.2825 10.1334Л15.2764 13.4857В13.4936H15.2748ZM20.4914 20.4796H15.7819В13.9202Л20.4914 17.8836В20.4796ZM20.4914 17.21Л16.059 13.4811Л14.5135 12.1807Л11.4317 9.58795Л15.8702 5.85583Л20.4899 9.81613В17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" />{" "} </svg> </div>
+      <div className="hedd">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
+        <h1>TEST</h1>
+      </div>
 
+      <div className="abs-logo">
+        <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
+      </div>
       <main className="container">{renderContent()}</main>
-
       <BottomNav current={page} onChange={setPage} onLogout={onLogout} />
-
       <Modal
         open={openCheck}
         onClose={() => setOpenCheck(false)}
