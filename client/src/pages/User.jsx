@@ -554,14 +554,58 @@ function ObjectDetails({ obj, user, onBack }) {
       
 
       <div style={{ marginTop: 16 }}>
-        {obj.owner_name ? (
-          <div className="text-sub">Имя: {obj.owner_name}</div>
-        ) : null}
-        {obj.owner_contact ? (
-          <div className="text-sub">Телефон/контактs: {obj.owner_contact}</div>
-        ) : null}
-        
-      </div>
+  {obj.owner_name && (
+    <div className="text-sub">Имя: {obj.owner_name}</div>
+  )}
+
+  {obj.owner_contact && (
+    <div className="text-sub" style={{ marginTop: 6 }}>
+      Телефон/контакт: {obj.owner_contact}
+    </div>
+  )}
+
+  {/* Кнопка Telegram */}
+  {obj.owner_contact && (
+    <div style={{ marginTop: 10 }}>
+      {(() => {
+        // очищаем номер: убираем пробелы, скобки, дефисы и т.д.
+        const cleanPhone = String(obj.owner_contact).replace(/\D/g, "");
+        const tgLink = `https://t.me/+${cleanPhone}`;
+        return (
+          <a
+            href={tgLink}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              backgroundColor: "#0088cc", // фирменный цвет Telegram
+              color: "#fff",
+              padding: "10px 14px",
+              borderRadius: 12,
+              textDecoration: "none",
+              fontWeight: 600,
+            }}
+          >
+            {/* Иконка Telegram */}
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="white"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M21.944 4.667c.356-1.248-.775-2.348-1.98-1.884L2.62 9.312c-1.322.506-1.298 2.38.034 2.845l4.74 1.687 1.838 5.897c.382 1.227 1.99 1.48 2.753.42l2.57-3.554 4.877 3.63c1.102.82 2.675.2 2.99-1.16l3.523-15.41Z" />
+            </svg>
+            <span>Связаться в Telegram</span>
+          </a>
+        );
+      })()}
+    </div>
+  )}
+</div>
+
     </div>
   );
 }
