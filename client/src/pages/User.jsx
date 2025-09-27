@@ -288,6 +288,10 @@ function ObjectDetails({ obj, user, onBack }) {
         </div>
       )}
 
+{obj.adress ? (
+        <p style={{ marginTop: 6 }}>{obj.adress}</p>
+      ) : null}
+
       {obj.description ? (
         <p style={{ marginTop: 6 }}>{obj.description}</p>
       ) : null}
