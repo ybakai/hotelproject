@@ -288,15 +288,7 @@ function ObjectDetails({ obj, user, onBack }) {
         </div>
       )}
 
-{/* Адрес объекта */}
-{(obj?.adress || obj?.address) && (
-  <div style={{ gridColumn: "1 / -1" }}>
-    <div className="text-sub">Адрес</div>
-    <div style={{ fontWeight: 600 }}>
-      {obj.adress || obj.address}
-    </div>
-  </div>
-)}
+
 
 
       {obj.description ? (
@@ -345,6 +337,16 @@ function ObjectDetails({ obj, user, onBack }) {
           </div>
         </div>
       )}
+
+      {/* Адрес объекта */}
+{(obj?.adress || obj?.address) && (
+  <div style={{ gridColumn: "1 / -1" }}>
+    <div className="text-sub">Адрес</div>
+    <div style={{ fontWeight: 600 }}>
+      {obj.adress || obj.address}
+    </div>
+  </div>
+)}
 
       <div style={{ marginTop: 12 }}>
         <AdminCalendar
