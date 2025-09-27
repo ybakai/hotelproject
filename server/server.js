@@ -144,6 +144,33 @@ app.put("/api/users/:id/status", async (req, res) => {
   }
 });
 
+// УДАЛИТЬ пользователя
+app.delete("/api/users/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: "invalid id" });
+
+    // блокируем удаление, если он владелец объектов
+    const dep = await pool.query(`SELECT 1 FROM objects WHERE owner_id = $1 LIMIT 1`, [id]);
+    if (dep.rowCount > 0) {
+      return res.status(409).json({ error: "user_has_objects" });
+    }
+
+    const q = await pool.query(`DELETE FROM users WHERE id = $1 RETURNING id`, [id]);
+    if (q.rowCount === 0) return res.status(404).json({ error: "not_found" });
+
+    res.json({ ok: true, id: q.rows[0].id });
+  } catch (e) {
+    console.error("DELETE /api/users/:id", e);
+    if (e.code === "23503") {
+      // внешние зависимости (брони/обмены и т.д.)
+      return res.status(409).json({ error: "user_has_dependencies" });
+    }
+    res.status(500).json({ error: "server error" });
+  }
+});
+
+
 // ===================== OBJECTS =====================
 app.get("/api/objects", async (req, res) => {
   try {
