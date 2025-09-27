@@ -136,6 +136,7 @@ function BottomNav({ current, onChange, onLogout }) {
 
 /* ---------- Список всех объектов (с разбивкой: Ваши дома / Доступные) ---------- */
 /* ---------- Список всех объектов (с разбивкой: Ваши дома / Доступные) ---------- */
+/* ---------- Список всех объектов (с разбивкой: Ваши дома / Доступные) ---------- */
 function ObjectsList({ user, onOpen, onGoExchange }) {
   const [objects, setObjects] = React.useState([]);
   const [myObjectIds, setMyObjectIds] = React.useState(new Set());
@@ -226,7 +227,7 @@ function ObjectsList({ user, onOpen, onGoExchange }) {
                     <div className="tile__sub">{o.description}</div>
                   ) : null}
 
-                  {/* Кнопка "Забронировать" для своих домов */}
+                  {/* Кнопка "Забронировать" */}
                   <div style={{ marginTop: 8 }}>
                     <button
                       className="btn-primary"
@@ -235,7 +236,11 @@ function ObjectsList({ user, onOpen, onGoExchange }) {
                         e.stopPropagation();
                         onOpen(o);
                       }}
-                      style={{ width: "100%" }}
+                      style={{
+                        width: "100%",
+                        backgroundColor: "#000",
+                        color: "#fff",
+                      }}
                     >
                       Забронировать
                     </button>
@@ -281,16 +286,20 @@ function ObjectsList({ user, onOpen, onGoExchange }) {
                     <div className="tile__sub">{o.description}</div>
                   ) : null}
 
-                  {/* Кнопка "Обмен" для доступных домов */}
+                  {/* Только кнопка "Обмен" */}
                   <div style={{ marginTop: 8 }}>
                     <button
-                      className="btn-secondary"
+                      className="btn-primary"
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        goExchange(); // переходим на вкладку обменов
+                        goExchange(); // Переходим на вкладку обмена
                       }}
-                      style={{ width: "100%" }}
+                      style={{
+                        width: "100%",
+                        backgroundColor: "#000",
+                        color: "#fff",
+                      }}
                     >
                       Обмен
                     </button>
@@ -304,6 +313,7 @@ function ObjectsList({ user, onOpen, onGoExchange }) {
     </div>
   );
 }
+
 
 
 
