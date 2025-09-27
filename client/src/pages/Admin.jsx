@@ -32,7 +32,9 @@ const toYMD = (dLike) => {
 };
 
 const overlaps = (aStart, aEnd, bStart, bEnd) => {
-  return !(new Date(aEnd) < new Date(bStart) || new Date(bEnd) < new Date(aStart));
+  return !(
+    new Date(aEnd) < new Date(bStart) || new Date(bEnd) < new Date(aStart)
+  );
 };
 
 const toDateOnly = (dLike) => {
@@ -128,9 +130,11 @@ function UsersTab() {
   const phoneDigits = useMemo(() => phoneDigitsOnly(addPhone), [addPhone]);
 
   const genPassword = (len = 10) => {
-    const abc = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*";
+    const abc =
+      "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*";
     let s = "";
-    for (let i = 0; i < len; i++) s += abc[Math.floor(Math.random() * abc.length)];
+    for (let i = 0; i < len; i++)
+      s += abc[Math.floor(Math.random() * abc.length)];
     return s;
   };
 
@@ -201,7 +205,9 @@ function UsersTab() {
       setUsers((arr) => arr.filter((u) => u.id !== id));
     } catch (e) {
       console.error("delete user error:", e);
-      alert("Не удалось удалить пользователя (возможно, есть связанные данные)");
+      alert(
+        "Не удалось удалить пользователя (возможно, есть связанные данные)"
+      );
     }
   }
 
@@ -235,8 +241,9 @@ function UsersTab() {
     setCreating(true);
     setIssuedCreds(null);
 
-    const email =
-      phoneDigits ? `tel${phoneDigits}@local` : `u${Date.now()}@local`;
+    const email = phoneDigits
+      ? `tel${phoneDigits}@local`
+      : `u${Date.now()}@local`;
     const password = genPassword();
 
     try {
@@ -303,7 +310,11 @@ function UsersTab() {
       {/* NEW: панель действий */}
       <div className="objects-toolbar" style={{ marginBottom: 8 }}>
         <div className="objects-title">Пользователи</div>
-        <button className="btn-primary" type="button" onClick={() => setShowAdd(true)}>
+        <button
+          className="btn-primary"
+          type="button"
+          onClick={() => setShowAdd(true)}
+        >
           Добавить пользователя
         </button>
       </div>
@@ -326,7 +337,9 @@ function UsersTab() {
             <div className="hstack-8">
               <select
                 className="select-pill"
-                value={STATUS_OPTIONS.includes(String(u.status)) ? u.status : ""}
+                value={
+                  STATUS_OPTIONS.includes(String(u.status)) ? u.status : ""
+                }
                 onChange={(e) => updateStatus(u, e.target.value)}
                 disabled={savingId === u.id}
                 title="Статус"
@@ -346,7 +359,11 @@ function UsersTab() {
                 className="btn-secondary"
                 type="button"
                 onClick={() => deleteUser(u.id)}
-                style={{ background: "#fee2e2", color: "#991b1b", borderColor: "#fecaca" }}
+                style={{
+                  background: "#fee2e2",
+                  color: "#991b1b",
+                  borderColor: "#fecaca",
+                }}
                 title="X"
               >
                 X
@@ -362,7 +379,11 @@ function UsersTab() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal__header">
               <div className="modal__title">Добавить пользователя</div>
-              <button className="modal__close" type="button" onClick={() => setShowAdd(false)}>
+              <button
+                className="modal__close"
+                type="button"
+                onClick={() => setShowAdd(false)}
+              >
                 ✕
               </button>
             </div>
@@ -410,7 +431,10 @@ function UsersTab() {
 
               {/* выданные креды (аккуратно оформлено) */}
               {issuedCreds && (
-                <div className="card" style={{ background: "#f9fafb", marginTop: 10 }}>
+                <div
+                  className="card"
+                  style={{ background: "#f9fafb", marginTop: 10 }}
+                >
                   <div className="text-sub" style={{ marginBottom: 6 }}>
                     Данные для входа (передайте пользователю):
                   </div>
@@ -475,7 +499,11 @@ function UsersTab() {
                 >
                   Отмена
                 </button>
-                <button className="btn-primary" type="submit" disabled={creating}>
+                <button
+                  className="btn-primary"
+                  type="submit"
+                  disabled={creating}
+                >
                   {creating ? "Создаём…" : "Зарегистрировать"}
                 </button>
               </div>
@@ -490,7 +518,8 @@ function UsersTab() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal__header">
               <div className="modal__title">
-                Учётные данные {credsUser?.full_name ? `— ${credsUser.full_name}` : ""}
+                Учётные данные{" "}
+                {credsUser?.full_name ? `— ${credsUser.full_name}` : ""}
               </div>
               <button
                 className="modal__close"
@@ -549,9 +578,7 @@ function UsersTab() {
                     <button
                       className="btn-secondary"
                       type="button"
-                      onClick={() =>
-                        copy(`${creds.email} ${creds.password}`)
-                      }
+                      onClick={() => copy(`${creds.email} ${creds.password}`)}
                     >
                       Скопировать
                     </button>
@@ -565,7 +592,6 @@ function UsersTab() {
     </div>
   );
 }
-
 
 /* -------------------- Objects Tab -------------------- */
 function ObjectsTab() {
@@ -586,7 +612,10 @@ function ObjectsTab() {
   const [cFiles, setCFiles] = useState([]);
 
   // валидация телефона (create)
-  const cOwnerContactDigits = useMemo(() => phoneDigitsOnly(cOwnerContact), [cOwnerContact]);
+  const cOwnerContactDigits = useMemo(
+    () => phoneDigitsOnly(cOwnerContact),
+    [cOwnerContact]
+  );
   const cOwnerContactValid = useMemo(
     () => !cOwnerContact || cOwnerContactDigits.length >= 10,
     [cOwnerContact, cOwnerContactDigits]
@@ -616,7 +645,10 @@ function ObjectsTab() {
   const [eImages, setEImages] = useState([]);
 
   // валидация телефона (edit)
-  const eOwnerContactDigits = useMemo(() => phoneDigitsOnly(eOwnerContact), [eOwnerContact]);
+  const eOwnerContactDigits = useMemo(
+    () => phoneDigitsOnly(eOwnerContact),
+    [eOwnerContact]
+  );
   const eOwnerContactValid = useMemo(
     () => !eOwnerContact || eOwnerContactDigits.length >= 10,
     [eOwnerContact, eOwnerContactDigits]
@@ -723,7 +755,9 @@ function ObjectsTab() {
     if (!editingId) return;
     if (!confirm("Точно удалить объект? Это действие необратимо.")) return;
     try {
-      const res = await fetch(`${API}/api/objects/${editingId}`, { method: "DELETE" });
+      const res = await fetch(`${API}/api/objects/${editingId}`, {
+        method: "DELETE",
+      });
       if (!res.ok) {
         const t = await res.text();
         throw new Error(t || `HTTP ${res.status}`);
@@ -804,7 +838,9 @@ function ObjectsTab() {
                   <img className="tile__img" src={o.images[0]} alt={o.title} />
                 </div>
               ) : (
-                <div className="tile__imgwrap tile__imgwrap--empty">Нет фото</div>
+                <div className="tile__imgwrap tile__imgwrap--empty">
+                  Нет фото
+                </div>
               )}
               <div className="tile__body">
                 <div className="tile__title">{o.title}</div>
@@ -884,7 +920,9 @@ function ObjectsTab() {
               <label className="form__group">
                 <span className="form__label">Контакт (телефон/email)</span>
                 <input
-                  className={`input ${cOwnerContact && !cOwnerContactValid ? "is-error" : ""}`}
+                  className={`input ${
+                    cOwnerContact && !cOwnerContactValid ? "is-error" : ""
+                  }`}
                   value={cOwnerContact}
                   onChange={handleCreateContactChange}
                   placeholder="+48 600 000-000 или email"
@@ -1036,7 +1074,9 @@ function ObjectsTab() {
               <label className="form__group">
                 <span className="form__label">Контакт (телефон/email)</span>
                 <input
-                  className={`input ${eOwnerContact && !eOwnerContactValid ? "is-error" : ""}`}
+                  className={`input ${
+                    eOwnerContact && !eOwnerContactValid ? "is-error" : ""
+                  }`}
                   value={eOwnerContact}
                   onChange={handleEditContactChange}
                 />
@@ -1144,12 +1184,19 @@ function ObjectsTab() {
                   Сохранить
                 </button>
               </div>
-              <div className="form__actions" style={{ justifyContent: "flex-start" }}>
+              <div
+                className="form__actions"
+                style={{ justifyContent: "flex-start" }}
+              >
                 <button
                   className="btn-secondary"
                   type="button"
                   onClick={onDelete}
-                  style={{ background: "#fee2e2", color: "#991b1b", borderColor: "#fecaca" }}
+                  style={{
+                    background: "#fee2e2",
+                    color: "#991b1b",
+                    borderColor: "#fecaca",
+                  }}
                 >
                   Удалить объект
                 </button>
@@ -1183,7 +1230,9 @@ function BookingsTab({
     if (!id) return;
     if (!confirm("Точно отменить и удалить эту бронь?")) return;
     try {
-      const res = await fetch(`${API}/api/bookings/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API}/api/bookings/${id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) {
         const t = await res.text();
         throw new Error(t || `HTTP ${res.status}`);
@@ -1228,13 +1277,17 @@ function BookingsTab({
               Дом: {it.base_object_title} → {it.target_object_title}
             </div>
             <div className="booking-sub">
-              📅 {fmtDate(it.start_date)} → {fmtDate(it.end_date)} ({it.nights} ноч.)
+              📅 {fmtDate(it.start_date)} → {fmtDate(it.end_date)} ({it.nights}{" "}
+              ноч.)
             </div>
             {it.message ? (
               <div className="booking-sub">Сообщение: {it.message}</div>
             ) : null}
 
-            <div className={`booking-status ${it.status}`} style={{ marginTop: 6 }}>
+            <div
+              className={`booking-status ${it.status}`}
+              style={{ marginTop: 6 }}
+            >
               {it.status}
             </div>
 
@@ -1314,7 +1367,11 @@ function BottomNav({ current, onChange, onLogout }) {
   const items = [
     { key: "manage", label: "Управление", icon: <Home size={20} /> },
     { key: "calendar", label: "Календарь", icon: <CalendarDays size={20} /> },
-    { key: "bookings", label: "Бронирования", icon: <ClipboardList size={20} /> },
+    {
+      key: "bookings",
+      label: "Бронирования",
+      icon: <ClipboardList size={20} />,
+    },
   ];
   return (
     <nav className="bottom">
@@ -1463,7 +1520,12 @@ export default function Admin({ user, onLogout }) {
           ? actual
               .filter((b) => b.status !== "cancelled")
               .filter((b) =>
-                overlaps(toYMD(range.from), toYMD(range.to), toYMD(b.start_date), toYMD(b.end_date))
+                overlaps(
+                  toYMD(range.from),
+                  toYMD(range.to),
+                  toYMD(b.start_date),
+                  toYMD(b.end_date)
+                )
               )
               .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
           : actual
@@ -1527,9 +1589,16 @@ export default function Admin({ user, onLogout }) {
                     const color = colorFromId(b.object_id);
                     const nights = nightsBetween(b.start_date, b.end_date);
                     return (
-                      <div key={b.id} className="cal-item" style={{ borderLeftColor: color }}>
+                      <div
+                        key={b.id}
+                        className="cal-item"
+                        style={{ borderLeftColor: color }}
+                      >
                         <div className="cal-item__row">
-                          <div className="cal-item__object" title={`Object ID: ${b.object_id}`}>
+                          <div
+                            className="cal-item__object"
+                            title={`Object ID: ${b.object_id}`}
+                          >
                             🏠 {b.object_title || "Объект"}
                           </div>
                           <span className={`badge badge--${b.status}`}>
@@ -1550,12 +1619,16 @@ export default function Admin({ user, onLogout }) {
                           </div>
                         </div>
                         <div className="cal-item__actions">
-                          <button className="btn-link" onClick={() => setPage("bookings")}>
+                          <button
+                            className="btn-link"
+                            onClick={() => setPage("bookings")}
+                          >
                             Открыть в «Бронирования»
                           </button>
                           {b.status === "pending" && (
                             <span className="muted">
-                              Нажмите «Бронирования», чтобы подтвердить или отклонить
+                              Нажмите «Бронирования», чтобы подтвердить или
+                              отклонить
                             </span>
                           )}
                         </div>
@@ -1587,10 +1660,15 @@ export default function Admin({ user, onLogout }) {
   return (
     <div className="app">
       {/* шапка с быстрым выходом */}
-      <div className="hedd"> <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546Л6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg> <h1>TEST</h1> </div> <div className="abs-logo"> <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704В10.099Л6.37495 13.4779В20.4796ZM1.73087 9.62546Л6.16178 5.82613Л10.6308 9.58795Л6.57594 12.9903Л1.73087 9.62546ZM10.7632 14.5407Л10.745 20.4796H6.88199В13.4076Л10.7754 10.1396Л10.7617 14.5407H10.7632ZM6.55919 5.48543Л10.9992 1.67828Л15.4743 5.51512Л11.0327 9.25037Л6.55919 5.48543ZM11.2703 14.9955H13В17.6789H11.2611В14.9955H11.2703ZM15.2748 13.4936В20.4796H11.2535Л11.2611 18.1353H13.5086В14.5407H11.2718Л11.2855 10.1365Л11.2825 10.1334Л15.2764 13.4857В13.4936H15.2748ZM20.4914 20.4796H15.7819В13.9202Л20.4914 17.8836В20.4796ZM20.4914 17.21Л16.059 13.4811Л14.5135 12.1807Л11.4317 9.58795Л15.8702 5.85583Л20.4899 9.81613В17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg> </div>
+      <div className="hedd">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
+        <h1>TEST</h1>
+      </div>
 
+      <div className="abs-logo">
+        <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
+      </div>
       <main className="container">{renderContent()}</main>
-
       {/* нижняя навигация с кнопкой выхода */}
       <BottomNav current={page} onChange={setPage} onLogout={onLogout} />
     </div>
