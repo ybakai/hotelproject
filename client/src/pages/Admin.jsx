@@ -101,15 +101,37 @@ function SegmentedToggle({ value, onChange }) {
 }
 
 /* -------------------- Users Tab -------------------- */
+/* -------------------- Users Tab -------------------- */
 function UsersTab() {
   const [users, setUsers] = useState([]);
   const [state, setState] = useState({ loading: true, error: "" });
   const [savingId, setSavingId] = useState(null);
 
+  // NEW: add-user modal state
+  const [showAdd, setShowAdd] = useState(false);
+  const [addName, setAddName] = useState("");
+  const [addPhone, setAddPhone] = useState("");
+  const [addObjectId, setAddObjectId] = useState("");
+  const [allObjects, setAllObjects] = useState([]);
+  const [creating, setCreating] = useState(false);
+  const [issuedCreds, setIssuedCreds] = useState(null); // {email,password}
+
   const STATUS_LABELS = { lead: "Лид", owner: "Владелец", client: "Клиент" };
   const STATUS_OPTIONS = Object.keys(STATUS_LABELS);
 
-  useEffect(() => {
+  const phoneDigits = useMemo(() => phoneDigitsOnly(addPhone), [addPhone]);
+
+  const genPassword = (len = 10) => {
+    const abc = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*";
+    let s = "";
+    for (let i = 0; i < len; i++) s += abc[Math.floor(Math.random() * abc.length)];
+    return s;
+  };
+
+  const copy = (text) => navigator.clipboard?.writeText(text).catch(() => {});
+
+  const loadUsers = React.useCallback(() => {
+    setState((s) => ({ ...s, loading: true, error: "" }));
     fetch(`${API}/api/users`)
       .then((res) => res.json())
       .then((data) => {
@@ -121,6 +143,19 @@ function UsersTab() {
         setState({ loading: false, error: err.message || "DB error" });
       });
   }, []);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  // подгружаем объекты когда открываем модалку
+  useEffect(() => {
+    if (!showAdd) return;
+    fetch(`${API}/api/objects`)
+      .then((r) => r.json())
+      .then((d) => setAllObjects(Array.isArray(d) ? d : []))
+      .catch((e) => console.error("objects load error:", e));
+  }, [showAdd]);
 
   const updateStatus = async (user, nextStatus) => {
     if (!user.id) return;
@@ -147,41 +182,241 @@ function UsersTab() {
     }
   };
 
+  // NEW: удалить пользователя
+  async function deleteUser(id) {
+    if (!id) return;
+    if (!confirm("Удалить пользователя безвозвратно?")) return;
+    try {
+      const res = await fetch(`${API}/api/users/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || `HTTP ${res.status}`);
+      }
+      setUsers((arr) => arr.filter((u) => u.id !== id));
+    } catch (e) {
+      console.error("delete user error:", e);
+      alert("Не удалось удалить пользователя (возможно, есть связанные данные)");
+    }
+  }
+
+  // NEW: создать пользователя и привязать объект
+  async function onCreateUser(e) {
+    e?.preventDefault?.();
+    if (!addName.trim() && !addPhone.trim()) {
+      alert("Укажите хотя бы имя или телефон");
+      return;
+    }
+    setCreating(true);
+    setIssuedCreds(null);
+
+    const email =
+      phoneDigits ? `tel${phoneDigits}@local` : `u${Date.now()}@local`;
+    const password = genPassword();
+
+    try {
+      // 1) создаём пользователя админски через /auth/register
+      const r = await fetch(`${API}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          fullName: addName.trim() || null,
+          phone: addPhone.trim() || null,
+        }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data?.error || "register failed");
+
+      const created = data?.user;
+      if (!created?.id) throw new Error("user create: invalid response");
+
+      // 2) если выбран объект — назначаем владельца объекту
+      if (addObjectId) {
+        const fd = new FormData();
+        fd.append("owner_id", String(created.id));
+        if (addName.trim()) fd.append("owner_name", addName.trim());
+        if (addPhone.trim()) fd.append("owner_contact", addPhone.trim());
+        const rp = await fetch(`${API}/api/objects/${addObjectId}`, {
+          method: "PATCH",
+          body: fd,
+        });
+        if (!rp.ok) {
+          const t = await rp.text();
+          throw new Error(t || "bind object failed");
+        }
+      }
+
+      // 3) показать выданные креды и обновить список
+      setIssuedCreds({ email, password });
+      loadUsers();
+
+      // сброс полей формы (оставим объект выбранным)
+      setAddName("");
+      setAddPhone("");
+    } catch (e) {
+      console.error(e);
+      alert("Не удалось создать пользователя: " + (e.message || "error"));
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  const handleAddPhoneChange = (e) => {
+    const v = e.target.value;
+    if (/^[+\d\s\-()]*$/.test(v)) setAddPhone(formatPhoneMask(v));
+    else setAddPhone(v);
+  };
+
   if (state.loading) return <div className="empty">Загрузка...</div>;
   if (state.error) return <div className="empty">Ошибка: {state.error}</div>;
-  if (!users.length) return <div className="empty">Нет пользователей</div>;
+  // список может быть пустым — ок
 
   return (
     <div className="vstack-12">
-      {users.map((u) => (
-        <div key={u.id} className="card">
-          <div className="card__col">
-            <div className="text-name">{u.full_name || "Без имени"}</div>
-            {u.phone ? <div className="text-sub">{u.phone}</div> : null}
-          </div>
+      {/* NEW: панель действий */}
+      <div className="objects-toolbar" style={{ marginBottom: 8 }}>
+        <div className="objects-title">Пользователи</div>
+        <button className="btn-primary" type="button" onClick={() => setShowAdd(true)}>
+          Добавить пользователя
+        </button>
+      </div>
 
-          <div className="hstack-8">
-            <select
-              className="select-pill"
-              value={STATUS_OPTIONS.includes(String(u.status)) ? u.status : ""}
-              onChange={(e) => updateStatus(u, e.target.value)}
-              disabled={savingId === u.id}
-            >
-              <option value="" disabled>
-                Выбрать статус
-              </option>
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {STATUS_LABELS[s]}
+      {users.length === 0 ? (
+        <div className="empty">Нет пользователей</div>
+      ) : (
+        users.map((u) => (
+          <div key={u.id} className="card">
+            <div className="card__col">
+              <div className="text-name">{u.full_name || "Без имени"}</div>
+              {u.phone ? <div className="text-sub">{u.phone}</div> : null}
+            </div>
+
+            <div className="hstack-8">
+              <select
+                className="select-pill"
+                value={STATUS_OPTIONS.includes(String(u.status)) ? u.status : ""}
+                onChange={(e) => updateStatus(u, e.target.value)}
+                disabled={savingId === u.id}
+                title="Статус"
+              >
+                <option value="" disabled>
+                  Выбрать статус
                 </option>
-              ))}
-            </select>
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s}>
+                    {STATUS_LABELS[s]}
+                  </option>
+                ))}
+              </select>
+
+              {/* NEW: удалить */}
+              <button
+                className="btn-secondary"
+                type="button"
+                onClick={() => deleteUser(u.id)}
+                style={{ background: "#fee2e2", color: "#991b1b", borderColor: "#fecaca" }}
+                title="Удалить пользователя"
+              >
+                Удалить
+              </button>
+            </div>
+          </div>
+        ))
+      )}
+
+      {/* NEW: модалка добавления пользователя */}
+      {showAdd && (
+        <div className="modal__backdrop" onClick={() => setShowAdd(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__header">
+              <div className="modal__title">Добавить пользователя</div>
+              <button className="modal__close" type="button" onClick={() => setShowAdd(false)}>
+                ✕
+              </button>
+            </div>
+
+            <form className="form" onSubmit={onCreateUser}>
+              <label className="form__group">
+                <span className="form__label">Имя</span>
+                <input
+                  className="input"
+                  value={addName}
+                  onChange={(e) => setAddName(e.target.value)}
+                  placeholder="Иван Иванов"
+                />
+              </label>
+
+              <label className="form__group">
+                <span className="form__label">Телефон</span>
+                <input
+                  className="input"
+                  value={addPhone}
+                  onChange={handleAddPhoneChange}
+                  placeholder="+7 900 000-00-00"
+                />
+              </label>
+
+              <label className="form__group">
+                <span className="form__label">Привязать к объекту</span>
+                <select
+                  className="input"
+                  value={addObjectId}
+                  onChange={(e) => setAddObjectId(e.target.value)}
+                >
+                  <option value="">— не выбирать —</option>
+                  {allObjects.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.title || `Объект #${o.id}`}
+                      {o.owner_id ? " (занят)" : ""}
+                    </option>
+                  ))}
+                </select>
+                <small className="form__hint">
+                  Будет назначен владельцем выбранного объекта.
+                </small>
+              </label>
+
+              {/* выданные креды */}
+              {issuedCreds && (
+                <div className="card" style={{ background: "#f9fafb" }}>
+                  <div className="text-sub" style={{ marginBottom: 6 }}>
+                    Данные для входа (выдать пользователю):
+                  </div>
+                  <div>Логин (email): <b>{issuedCreds.email}</b></div>
+                  <div>Пароль: <b>{issuedCreds.password}</b></div>
+                  <div className="hstack-8" style={{ marginTop: 8 }}>
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm"
+                      onClick={() => copy(`${issuedCreds.email} ${issuedCreds.password}`)}
+                    >
+                      Скопировать
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="form__actions">
+                <button
+                  className="btn-secondary"
+                  type="button"
+                  onClick={() => setShowAdd(false)}
+                >
+                  Отмена
+                </button>
+                <button className="btn-primary" type="submit" disabled={creating}>
+                  {creating ? "Создаём…" : "Зарегистрировать"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      ))}
+      )}
     </div>
   );
 }
+
 
 /* -------------------- Objects Tab -------------------- */
 function ObjectsTab() {
