@@ -318,7 +318,7 @@ function UsersTab() {
                 style={{ background: "#fee2e2", color: "#991b1b", borderColor: "#fecaca" }}
                 title="X"
               >
-                Удалить
+                X
               </button>
             </div>
           </div>
