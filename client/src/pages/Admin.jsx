@@ -116,6 +116,12 @@ function UsersTab() {
   const [creating, setCreating] = useState(false);
   const [issuedCreds, setIssuedCreds] = useState(null); // {email,password}
 
+  // NEW: credentials viewer
+  const [showCreds, setShowCreds] = useState(false);
+  const [credsLoading, setCredsLoading] = useState(false);
+  const [credsUser, setCredsUser] = useState(null);
+  const [creds, setCreds] = useState(null);
+
   const STATUS_LABELS = { lead: "Лид", owner: "Владелец", client: "Клиент" };
   const STATUS_OPTIONS = Object.keys(STATUS_LABELS);
 
@@ -196,6 +202,26 @@ function UsersTab() {
     } catch (e) {
       console.error("delete user error:", e);
       alert("Не удалось удалить пользователя (возможно, есть связанные данные)");
+    }
+  }
+
+  // NEW: открыть модалку с логином/паролем
+  async function openCredentials(u) {
+    if (!u?.id) return;
+    setCredsUser(u);
+    setShowCreds(true);
+    setCreds(null);
+    setCredsLoading(true);
+    try {
+      const r = await fetch(`${API}/api/users/${u.id}/credentials`);
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d?.error || "server error");
+      setCreds(d); // { ok, email, password }
+    } catch (e) {
+      alert("Не удалось загрузить учётные данные: " + (e.message || "error"));
+      setShowCreds(false);
+    } finally {
+      setCredsLoading(false);
     }
   }
 
@@ -287,7 +313,12 @@ function UsersTab() {
       ) : (
         users.map((u) => (
           <div key={u.id} className="card">
-            <div className="card__col">
+            <div
+              className="card__col"
+              onClick={() => openCredentials(u)}
+              style={{ cursor: "pointer" }}
+              title="Показать логин/пароль"
+            >
               <div className="text-name">{u.full_name || "Без имени"}</div>
               {u.phone ? <div className="text-sub">{u.phone}</div> : null}
             </div>
@@ -377,19 +408,58 @@ function UsersTab() {
                 </small>
               </label>
 
-              {/* выданные креды */}
+              {/* выданные креды (аккуратно оформлено) */}
               {issuedCreds && (
-                <div className="card" style={{ background: "#f9fafb" }}>
+                <div className="card" style={{ background: "#f9fafb", marginTop: 10 }}>
                   <div className="text-sub" style={{ marginBottom: 6 }}>
-                    Данные для входа (выдать пользователю):
+                    Данные для входа (передайте пользователю):
                   </div>
-                  <div>Логин (email): <b>{issuedCreds.email}</b></div>
-                  <div>Пароль: <b>{issuedCreds.password}</b></div>
-                  <div className="hstack-8" style={{ marginTop: 8 }}>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      rowGap: 6,
+                      fontFamily:
+                        "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                    }}
+                  >
+                    <div>
+                      <span style={{ color: "#6b7280" }}>Логин (email):</span>
+                      <br />
+                      <code
+                        style={{
+                          background: "#eef2ff",
+                          padding: "2px 6px",
+                          borderRadius: 6,
+                          display: "inline-block",
+                        }}
+                      >
+                        {issuedCreds.email}
+                      </code>
+                    </div>
+                    <div>
+                      <span style={{ color: "#6b7280" }}>Пароль:</span>
+                      <br />
+                      <code
+                        style={{
+                          background: "#eef2ff",
+                          padding: "2px 6px",
+                          borderRadius: 6,
+                          display: "inline-block",
+                        }}
+                      >
+                        {issuedCreds.password}
+                      </code>
+                    </div>
+                  </div>
+
+                  <div className="hstack-8" style={{ marginTop: 10 }}>
                     <button
                       type="button"
                       className="btn-secondary btn-sm"
-                      onClick={() => copy(`${issuedCreds.email} ${issuedCreds.password}`)}
+                      onClick={() =>
+                        copy(`${issuedCreds.email} ${issuedCreds.password}`)
+                      }
                     >
                       Скопировать
                     </button>
@@ -410,6 +480,85 @@ function UsersTab() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* NEW: модалка учётных данных пользователя */}
+      {showCreds && (
+        <div className="modal__backdrop" onClick={() => setShowCreds(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__header">
+              <div className="modal__title">
+                Учётные данные {credsUser?.full_name ? `— ${credsUser.full_name}` : ""}
+              </div>
+              <button
+                className="modal__close"
+                type="button"
+                onClick={() => setShowCreds(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal__body">
+              {credsLoading ? (
+                <div className="empty">Загрузка…</div>
+              ) : !creds ? (
+                <div className="empty">Не удалось получить данные</div>
+              ) : (
+                <div className="vstack-12">
+                  <div style={{ display: "grid", rowGap: 10 }}>
+                    <div>
+                      <div className="text-sub" style={{ marginBottom: 4 }}>
+                        Логин (email)
+                      </div>
+                      <code
+                        style={{
+                          background: "#eef2ff",
+                          padding: "4px 8px",
+                          borderRadius: 6,
+                          display: "inline-block",
+                          fontFamily:
+                            "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                        }}
+                      >
+                        {creds.email}
+                      </code>
+                    </div>
+                    <div>
+                      <div className="text-sub" style={{ marginBottom: 4 }}>
+                        Пароль
+                      </div>
+                      <code
+                        style={{
+                          background: "#eef2ff",
+                          padding: "4px 8px",
+                          borderRadius: 6,
+                          display: "inline-block",
+                          fontFamily:
+                            "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                        }}
+                      >
+                        {creds.password}
+                      </code>
+                    </div>
+                  </div>
+
+                  <div className="hstack-8">
+                    <button
+                      className="btn-secondary"
+                      type="button"
+                      onClick={() =>
+                        copy(`${creds.email} ${creds.password}`)
+                      }
+                    >
+                      Скопировать
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1438,7 +1587,7 @@ export default function Admin({ user, onLogout }) {
   return (
     <div className="app">
       {/* шапка с быстрым выходом */}
-      <div className="hedd"> <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg> <h1>TEST</h1> </div> <div className="abs-logo"> <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg> </div>
+      <div className="hedd"> <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546Л6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg> <h1>TEST</h1> </div> <div className="abs-logo"> <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704В10.099Л6.37495 13.4779В20.4796ZM1.73087 9.62546Л6.16178 5.82613Л10.6308 9.58795Л6.57594 12.9903Л1.73087 9.62546ZM10.7632 14.5407Л10.745 20.4796H6.88199В13.4076Л10.7754 10.1396Л10.7617 14.5407H10.7632ZM6.55919 5.48543Л10.9992 1.67828Л15.4743 5.51512Л11.0327 9.25037Л6.55919 5.48543ZM11.2703 14.9955H13В17.6789H11.2611В14.9955H11.2703ZM15.2748 13.4936В20.4796H11.2535Л11.2611 18.1353H13.5086В14.5407H11.2718Л11.2855 10.1365Л11.2825 10.1334Л15.2764 13.4857В13.4936H15.2748ZM20.4914 20.4796H15.7819В13.9202Л20.4914 17.8836В20.4796ZM20.4914 17.21Л16.059 13.4811Л14.5135 12.1807Л11.4317 9.58795Л15.8702 5.85583Л20.4899 9.81613В17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg> </div>
 
       <main className="container">{renderContent()}</main>
 
