@@ -134,7 +134,6 @@ function BottomNav({ current, onChange, onLogout }) {
   );
 }
 
-/* ---------- Список всех объектов (клиентский каталог) ---------- */
 /* ---------- Список всех объектов (с разбивкой: Ваши дома / Доступные) ---------- */
 function ObjectsList({ user, onOpen }) {
   const [objects, setObjects] = React.useState([]);
@@ -149,7 +148,7 @@ function ObjectsList({ user, onOpen }) {
         setLoading(true);
         setError("");
 
-        // грузим все объекты и все брони (можно оптимизировать на бэке)
+        // грузим все объекты и все брони
         const [objRes, bookRes] = await Promise.all([
           fetch(`${API}/api/objects`),
           fetch(`${API}/api/bookings`),
@@ -164,7 +163,7 @@ function ObjectsList({ user, onOpen }) {
         const objs = Array.isArray(objData) ? objData : [];
         setObjects(objs);
 
-        // мои подтверждённые брони => набор object_id
+        // мои подтверждённые брони => object_id
         const allBookings = Array.isArray(bookData) ? bookData : [];
         const mineConfirmed = allBookings.filter(
           (b) =>
@@ -242,12 +241,14 @@ function ObjectsList({ user, onOpen }) {
         ) : (
           <div className="grid-2-12">
             {available.map((o) => (
-              <button
+              <div
                 key={o.id}
-                type="button"
                 className="tile"
                 style={{ textAlign: "left", cursor: "pointer" }}
                 onClick={() => onOpen(o)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && onOpen(o)}
               >
                 {Array.isArray(o.images) && o.images[0] ? (
                   <div className="tile__imgwrap">
@@ -256,13 +257,29 @@ function ObjectsList({ user, onOpen }) {
                 ) : (
                   <div className="tile__imgwrap tile__imgwrap--empty">Нет фото</div>
                 )}
+
                 <div className="tile__body">
                   <div className="tile__title">{o.title}</div>
                   {o.description ? (
                     <div className="tile__sub">{o.description}</div>
                   ) : null}
+
+                  {/* Кнопка "Забронировать" */}
+                  <div style={{ marginTop: 8 }}>
+                    <button
+                      className="btn-primary"
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation(); // предотвращаем двойной клик
+                        onOpen(o); // открываем карточку объекта
+                      }}
+                      style={{ width: "100%" }}
+                    >
+                      Забронировать
+                    </button>
+                  </div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}
@@ -270,6 +287,7 @@ function ObjectsList({ user, onOpen }) {
     </div>
   );
 }
+
 
 
 /* ---------- Детали объекта + обычная бронь ---------- */
