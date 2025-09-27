@@ -342,7 +342,7 @@ function ObjectDetails({ obj, user, onBack }) {
 {(obj?.adress || obj?.address) && (
   <div style={{ gridColumn: "1 / -1" }}>
     <div className="text-sub">Адрес</div>
-    <div style={{ fontWeight: 600 }}>
+    <div style={{marginTop: 6, fontWeight: 600 }}>
       {obj.adress || obj.address}
     </div>
   </div>
