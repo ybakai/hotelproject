@@ -499,7 +499,8 @@ app.delete("/api/bookings/:id", async (req, res) => {
   }
 });
 
-// изменить статус брони (+ авто-установка owner_id у объекта при confirm)
+// ИЗМЕНИТЬ СТАТУС БРОНИ
+// (фикc: без LEFT JOIN + FOR UPDATE — сперва лочим бронь, затем отдельно объект)
 app.patch("/api/bookings/:id", async (req, res) => {
   const client = await pool.connect();
   try {
@@ -512,23 +513,21 @@ app.patch("/api/bookings/:id", async (req, res) => {
 
     await client.query("BEGIN");
 
-    // читаем бронь + текущий owner_id объекта под лок
-    const cur = await client.query(
-      `SELECT b.id, b.object_id, b.user_id, b.status,
-              o.owner_id AS object_owner_id
-         FROM bookings b
-    LEFT JOIN objects o ON o.id = b.object_id
-        WHERE b.id = $1
+    // 1) Лочим саму бронь
+    const bkQ = await client.query(
+      `SELECT id, object_id, user_id, status
+         FROM bookings
+        WHERE id = $1
         FOR UPDATE`,
       [id]
     );
-    if (cur.rowCount === 0) {
+    if (bkQ.rowCount === 0) {
       await client.query("ROLLBACK");
       return res.status(404).json({ error: "not found" });
     }
-    const booking = cur.rows[0];
+    const booking = bkQ.rows[0];
 
-    // обновляем статус брони
+    // 2) Обновляем статус
     const upd = await client.query(
       `UPDATE bookings SET status = $1 WHERE id = $2 RETURNING *`,
       [status, id]
@@ -536,17 +535,22 @@ app.patch("/api/bookings/:id", async (req, res) => {
 
     let owner_set = false;
 
-    // если подтвердили и у объекта нет владельца — назначаем владельцем пользователя из этой брони
-    if (status === "confirmed" && (booking.object_owner_id == null)) {
-      const updObj = await client.query(
-        `UPDATE objects SET owner_id = $1 WHERE id = $2 AND owner_id IS NULL RETURNING id`,
-        [booking.user_id, booking.object_id]
+    // 3) Если confirm — проставим owner_id у объекта, но отдельным запросом
+    if (status === "confirmed" && booking.object_id != null) {
+      // Можно лочить и объект (опционально)
+      const objQ = await client.query(
+        `SELECT id, owner_id FROM objects WHERE id = $1 FOR UPDATE`,
+        [booking.object_id]
       );
-      owner_set = updObj.rowCount > 0;
-      if (!owner_set) {
-        console.warn(
-          `Owner not set: object ${booking.object_id} already has owner or object missing`
-        );
+      if (objQ.rowCount > 0) {
+        const obj = objQ.rows[0];
+        if (obj.owner_id == null) {
+          const updObj = await client.query(
+            `UPDATE objects SET owner_id = $1 WHERE id = $2 AND owner_id IS NULL RETURNING id`,
+            [booking.user_id, booking.object_id]
+          );
+          owner_set = updObj.rowCount > 0;
+        }
       }
     }
 
