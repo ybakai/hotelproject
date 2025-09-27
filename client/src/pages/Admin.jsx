@@ -1210,13 +1210,7 @@ function ObjectsTab() {
 }
 
 /* -------------------- Bookings Tab -------------------- */
-function BookingsTab({
-  bookings,
-  exchanges,
-  reloadAll,
-  updateBookingStatus,
-  decideExchange,
-}) {
+function BookingsTab({ bookings, reloadAll, updateBookingStatus }) {
   async function changeStatus(id, status) {
     try {
       await updateBookingStatus(id, status);
@@ -1230,9 +1224,7 @@ function BookingsTab({
     if (!id) return;
     if (!confirm("Точно отменить и удалить эту бронь?")) return;
     try {
-      const res = await fetch(`${API}/api/bookings/${id}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`${API}/api/bookings/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const t = await res.text();
         throw new Error(t || `HTTP ${res.status}`);
@@ -1244,123 +1236,62 @@ function BookingsTab({
     }
   }
 
-  const mix = [
-    ...exchanges.map((x) => ({ kind: "exchange", ...x })),
-    ...bookings.map((b) => ({ kind: "booking", ...b })),
-  ].sort((a, b) => {
+  const list = [...bookings].sort((a, b) => {
     const ad = a.created_at ? new Date(a.created_at) : new Date(0);
     const bd = b.created_at ? new Date(b.created_at) : new Date(0);
     return bd - ad;
   });
 
-  if (!mix.length) return <div className="empty">Пока пусто</div>;
+  if (!list.length) return <div className="empty">Пока пусто</div>;
 
   return (
     <div className="vstack-12">
-      {mix.map((it) =>
-        it.kind === "exchange" ? (
-          <div key={`ex-${it.id}`} className="booking-card">
-            <div className="booking-header">
-              <span className="chip chip--exchange">
-                <Shuffle size={14} />
-                <span>Обмен</span>
-              </span>
-              &nbsp;Запрос #{it.id} —{" "}
-              {it.status === "pending"
-                ? "⏳ Ожидает"
-                : it.status === "approved"
-                ? "✅ Разрешено"
-                : "❌ Отклонено"}
-            </div>
-            <div className="booking-sub">Пользователь: {it.user_id}</div>
-            <div className="booking-sub">
-              Дом: {it.base_object_title} → {it.target_object_title}
-            </div>
-            <div className="booking-sub">
-              📅 {fmtDate(it.start_date)} → {fmtDate(it.end_date)} ({it.nights}{" "}
-              ноч.)
-            </div>
-            {it.message ? (
-              <div className="booking-sub">Сообщение: {it.message}</div>
-            ) : null}
-
-            <div
-              className={`booking-status ${it.status}`}
-              style={{ marginTop: 6 }}
-            >
-              {it.status}
-            </div>
-
-            {it.status === "pending" && (
-              <div className="booking-actions" style={{ marginTop: 8 }}>
-                <button
-                  className="btn-primary"
-                  onClick={() => decideExchange(it.id, "approve")}
-                >
-                  Разрешить
-                </button>
-                <button
-                  className="btn-secondary"
-                  onClick={() => decideExchange(it.id, "reject")}
-                >
-                  Отклонить
-                </button>
-              </div>
-            )}
+      {list.map((it) => (
+        <div key={`bk-${it.id}`} className="booking-card">
+          <div className="booking-header">
+            {it.user_name || "Пользователь"} {it.user_phone ? `(${it.user_phone})` : ""}
           </div>
-        ) : (
-          <div key={`bk-${it.id}`} className="booking-card">
-            <div className="booking-header">
-              {it.user_name || "Пользователь"}{" "}
-              {it.user_phone ? `(${it.user_phone})` : ""}
-            </div>
-            <div className="booking-sub">🏠 {it.object_title || "Объект"}</div>
-            <div className="booking-sub">
-              📅 {fmtDate(it.start_date)} → {fmtDate(it.end_date)}
-            </div>
+          <div className="booking-sub">🏠 {it.object_title || "Объект"}</div>
+          <div className="booking-sub">
+            📅 {fmtDate(it.start_date)} → {fmtDate(it.end_date)}
+          </div>
 
-            <div className={`booking-status ${it.status}`}>
-              {it.status === "pending"
-                ? "⏳ Ожидает"
-                : it.status === "confirmed"
-                ? "✅ Подтверждено"
-                : it.status === "cancelled"
-                ? "🚫 Отменена"
-                : "❌ Отклонено"}
-            </div>
+          <div className={`booking-status ${it.status}`}>
+            {it.status === "pending"
+              ? "⏳ Ожидает"
+              : it.status === "confirmed"
+              ? "✅ Подтверждено"
+              : it.status === "cancelled"
+              ? "🚫 Отменена"
+              : "❌ Отклонено"}
+          </div>
 
-            {it.status === "pending" && (
-              <div className="booking-actions">
-                <button
-                  className="btn-primary"
-                  onClick={() => changeStatus(it.id, "confirmed")}
-                >
-                  Подтвердить
-                </button>
-                <button
-                  className="btn-secondary"
-                  onClick={() => changeStatus(it.id, "rejected")}
-                >
-                  Отклонить
-                </button>
-              </div>
-            )}
-
-            <div className="booking-actions" style={{ marginTop: 8 }}>
-              <button
-                className="btn-secondary"
-                onClick={() => deleteBooking(it.id)}
-                style={{ background: "#fee2e2", color: "#991b1b" }}
-              >
-                Отменить (удалить)
+          {it.status === "pending" && (
+            <div className="booking-actions">
+              <button className="btn-primary" onClick={() => changeStatus(it.id, "confirmed")}>
+                Подтвердить
+              </button>
+              <button className="btn-secondary" onClick={() => changeStatus(it.id, "rejected")}>
+                Отклонить
               </button>
             </div>
+          )}
+
+          <div className="booking-actions" style={{ marginTop: 8 }}>
+            <button
+              className="btn-secondary"
+              onClick={() => deleteBooking(it.id)}
+              style={{ background: "#fee2e2", color: "#991b1b" }}
+            >
+              Отменить (удалить)
+            </button>
           </div>
-        )
-      )}
+        </div>
+      ))}
     </div>
   );
 }
+
 
 /* -------------------- Bottom Nav (с выходом) -------------------- */
 function BottomNav({ current, onChange, onLogout }) {
