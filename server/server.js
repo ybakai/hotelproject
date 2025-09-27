@@ -170,6 +170,28 @@ app.delete("/api/users/:id", async (req, res) => {
   }
 });
 
+// Показать логин/пароль пользователя (для админки)
+app.get("/api/users/:id/credentials", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: "invalid id" });
+
+    const q = await pool.query(
+      `SELECT id, email, password_hash FROM users WHERE id = $1`,
+      [id]
+    );
+    if (q.rowCount === 0) return res.status(404).json({ error: "not_found" });
+
+    // ВНИМАНИЕ: у тебя password_hash сейчас хранит пароль как есть.
+    // Возвращаем его как password.
+    const { email, password_hash } = q.rows[0];
+    res.json({ ok: true, email, password: String(password_hash) });
+  } catch (e) {
+    console.error("GET /api/users/:id/credentials", e);
+    res.status(500).json({ error: e?.message || "server error" });
+  }
+});
+
 
 // ===================== OBJECTS =====================
 app.get("/api/objects", async (req, res) => {
