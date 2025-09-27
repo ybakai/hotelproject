@@ -135,51 +135,142 @@ function BottomNav({ current, onChange, onLogout }) {
 }
 
 /* ---------- Список всех объектов (клиентский каталог) ---------- */
-function ObjectsList({ onOpen }) {
+/* ---------- Список всех объектов (с разбивкой: Ваши дома / Доступные) ---------- */
+function ObjectsList({ user, onOpen }) {
   const [objects, setObjects] = React.useState([]);
+  const [myObjectIds, setMyObjectIds] = React.useState(new Set());
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState("");
 
   React.useEffect(() => {
-    setLoading(true);
-    fetch(`${API}/api/objects`)
-      .then((r) => r.json())
-      .then((data) => setObjects(Array.isArray(data) ? data : []))
-      .catch((e) => console.error("objects load error:", e))
-      .finally(() => setLoading(false));
-  }, []);
+    let cancelled = false;
+    async function load() {
+      try {
+        setLoading(true);
+        setError("");
+
+        // грузим все объекты и все брони (можно оптимизировать на бэке)
+        const [objRes, bookRes] = await Promise.all([
+          fetch(`${API}/api/objects`),
+          fetch(`${API}/api/bookings`),
+        ]);
+        const [objData, bookData] = await Promise.all([
+          objRes.json(),
+          bookRes.json(),
+        ]);
+
+        if (cancelled) return;
+
+        const objs = Array.isArray(objData) ? objData : [];
+        setObjects(objs);
+
+        // мои подтверждённые брони => набор object_id
+        const allBookings = Array.isArray(bookData) ? bookData : [];
+        const mineConfirmed = allBookings.filter(
+          (b) =>
+            Number(b.user_id) === Number(user?.id) &&
+            b.status === "confirmed"
+        );
+        setMyObjectIds(new Set(mineConfirmed.map((b) => b.object_id)));
+      } catch (e) {
+        console.error("objects list load error:", e);
+        if (!cancelled) setError("Не удалось загрузить список объектов");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   if (loading) return <div className="empty">Загрузка…</div>;
-  if (objects.length === 0)
-    return <div className="empty">Объектов пока нет</div>;
+  if (error) return <div className="empty">Ошибка: {error}</div>;
+  if (!objects.length) return <div className="empty">Объектов пока нет</div>;
+
+  const myObjects = objects.filter((o) => myObjectIds.has(o.id));
+  const available = objects.filter((o) => !myObjectIds.has(o.id));
 
   return (
-    <div className="grid-2-12">
-      {objects.map((o) => (
-        <button
-          key={o.id}
-          type="button"
-          className="tile"
-          style={{ textAlign: "left", cursor: "pointer" }}
-          onClick={() => onOpen(o)}
-        >
-          {Array.isArray(o.images) && o.images[0] ? (
-            <div className="tile__imgwrap">
-              <img className="tile__img" src={o.images[0]} alt={o.title} />
-            </div>
-          ) : (
-            <div className="tile__imgwrap tile__imgwrap--empty">Нет фото</div>
-          )}
-          <div className="tile__body">
-            <div className="tile__title">{o.title}</div>
-            {o.description ? (
-              <div className="tile__sub">{o.description}</div>
-            ) : null}
+    <div className="vstack-16">
+      {/* Ваши дома */}
+      <section>
+        <div className="objects-toolbar" style={{ marginBottom: 8 }}>
+          <div className="objects-title">Ваши дома</div>
+        </div>
+
+        {myObjects.length === 0 ? (
+          <div className="empty">Нет доступных домов</div>
+        ) : (
+          <div className="grid-2-12">
+            {myObjects.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                className="tile"
+                style={{ textAlign: "left", cursor: "pointer" }}
+                onClick={() => onOpen(o)}
+              >
+                {Array.isArray(o.images) && o.images[0] ? (
+                  <div className="tile__imgwrap">
+                    <img className="tile__img" src={o.images[0]} alt={o.title} />
+                  </div>
+                ) : (
+                  <div className="tile__imgwrap tile__imgwrap--empty">Нет фото</div>
+                )}
+                <div className="tile__body">
+                  <div className="tile__title">{o.title}</div>
+                  {o.description ? (
+                    <div className="tile__sub">{o.description}</div>
+                  ) : null}
+                </div>
+              </button>
+            ))}
           </div>
-        </button>
-      ))}
+        )}
+      </section>
+
+      {/* Доступные */}
+      <section>
+        <div className="objects-toolbar" style={{ marginBottom: 8, marginTop: 8 }}>
+          <div className="objects-title">Доступные</div>
+        </div>
+
+        {available.length === 0 ? (
+          <div className="empty">Пока нет доступных объектов</div>
+        ) : (
+          <div className="grid-2-12">
+            {available.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                className="tile"
+                style={{ textAlign: "left", cursor: "pointer" }}
+                onClick={() => onOpen(o)}
+              >
+                {Array.isArray(o.images) && o.images[0] ? (
+                  <div className="tile__imgwrap">
+                    <img className="tile__img" src={o.images[0]} alt={o.title} />
+                  </div>
+                ) : (
+                  <div className="tile__imgwrap tile__imgwrap--empty">Нет фото</div>
+                )}
+                <div className="tile__body">
+                  <div className="tile__title">{o.title}</div>
+                  {o.description ? (
+                    <div className="tile__sub">{o.description}</div>
+                  ) : null}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
+
 
 /* ---------- Детали объекта + обычная бронь ---------- */
 function ObjectDetails({ obj, user, onBack }) {
@@ -961,7 +1052,7 @@ export default function User({ user, onLogout }) {
           />
         );
       }
-      return <ObjectsList onOpen={setOpenedObject} />;
+      return <ObjectsList user={user} onOpen={setOpenedObject} />;
     }
 
     if (page === "exchange") {
