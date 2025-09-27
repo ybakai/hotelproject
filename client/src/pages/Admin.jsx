@@ -316,7 +316,7 @@ function UsersTab() {
                 type="button"
                 onClick={() => deleteUser(u.id)}
                 style={{ background: "#fee2e2", color: "#991b1b", borderColor: "#fecaca" }}
-                title="Удалить пользователя"
+                title="X"
               >
                 Удалить
               </button>
