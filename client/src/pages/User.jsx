@@ -135,7 +135,8 @@ function BottomNav({ current, onChange, onLogout }) {
 }
 
 /* ---------- Список всех объектов (с разбивкой: Ваши дома / Доступные) ---------- */
-function ObjectsList({ user, onOpen }) {
+/* ---------- Список всех объектов (с разбивкой: Ваши дома / Доступные) ---------- */
+function ObjectsList({ user, onOpen, onGoExchange }) {
   const [objects, setObjects] = React.useState([]);
   const [myObjectIds, setMyObjectIds] = React.useState(new Set());
   const [loading, setLoading] = React.useState(true);
@@ -148,7 +149,6 @@ function ObjectsList({ user, onOpen }) {
         setLoading(true);
         setError("");
 
-        // грузим все объекты и все брони
         const [objRes, bookRes] = await Promise.all([
           fetch(`${API}/api/objects`),
           fetch(`${API}/api/bookings`),
@@ -157,13 +157,11 @@ function ObjectsList({ user, onOpen }) {
           objRes.json(),
           bookRes.json(),
         ]);
-
         if (cancelled) return;
 
         const objs = Array.isArray(objData) ? objData : [];
         setObjects(objs);
 
-        // мои подтверждённые брони => object_id
         const allBookings = Array.isArray(bookData) ? bookData : [];
         const mineConfirmed = allBookings.filter(
           (b) =>
@@ -191,6 +189,8 @@ function ObjectsList({ user, onOpen }) {
   const myObjects = objects.filter((o) => myObjectIds.has(o.id));
   const available = objects.filter((o) => !myObjectIds.has(o.id));
 
+  const goExchange = onGoExchange || (() => {});
+
   return (
     <div className="vstack-16">
       {/* Ваши дома */}
@@ -204,12 +204,14 @@ function ObjectsList({ user, onOpen }) {
         ) : (
           <div className="grid-2-12">
             {myObjects.map((o) => (
-              <button
+              <div
                 key={o.id}
-                type="button"
                 className="tile"
                 style={{ textAlign: "left", cursor: "pointer" }}
                 onClick={() => onOpen(o)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && onOpen(o)}
               >
                 {Array.isArray(o.images) && o.images[0] ? (
                   <div className="tile__imgwrap">
@@ -223,8 +225,23 @@ function ObjectsList({ user, onOpen }) {
                   {o.description ? (
                     <div className="tile__sub">{o.description}</div>
                   ) : null}
+
+                  {/* Кнопка "Забронировать" для своих домов */}
+                  <div style={{ marginTop: 8 }}>
+                    <button
+                      className="btn-primary"
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpen(o);
+                      }}
+                      style={{ width: "100%" }}
+                    >
+                      Забронировать
+                    </button>
+                  </div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}
@@ -264,18 +281,18 @@ function ObjectsList({ user, onOpen }) {
                     <div className="tile__sub">{o.description}</div>
                   ) : null}
 
-                  {/* Кнопка "Забронировать" */}
+                  {/* Кнопка "Обмен" для доступных домов */}
                   <div style={{ marginTop: 8 }}>
                     <button
-                      className="btn-primary"
+                      className="btn-secondary"
                       type="button"
                       onClick={(e) => {
-                        e.stopPropagation(); // предотвращаем двойной клик
-                        onOpen(o); // открываем карточку объекта
+                        e.stopPropagation();
+                        goExchange(); // переходим на вкладку обменов
                       }}
                       style={{ width: "100%" }}
                     >
-                      Забронировать
+                      Обмен
                     </button>
                   </div>
                 </div>
@@ -287,6 +304,7 @@ function ObjectsList({ user, onOpen }) {
     </div>
   );
 }
+
 
 
 
@@ -1070,7 +1088,7 @@ export default function User({ user, onLogout }) {
           />
         );
       }
-      return <ObjectsList user={user} onOpen={setOpenedObject} />;
+      return <ObjectsList user={user} onOpen={setOpenedObject} onGoExchange={() => setPage("exchange")} />;
     }
 
     if (page === "exchange") {
