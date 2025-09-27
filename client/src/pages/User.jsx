@@ -66,6 +66,12 @@ const nightsBetween = (start, end) => {
   return Math.max(1, Math.round(ms / 86400000));
 };
 
+/** Делает ссылку на Telegram по номеру телефона */
+const phoneToTgLink = (phone) => {
+  const digits = String(phone || "").replace(/\D/g, "");
+  return digits ? `https://t.me/+${digits}` : "";
+};
+
 /* ---------- UI primitives ---------- */
 function EmptyScreen({ title, note }) {
   return (
@@ -314,10 +320,6 @@ function ObjectsList({ user, onOpen, onGoExchange }) {
   );
 }
 
-
-
-
-
 /* ---------- Детали объекта + обычная бронь ---------- */
 function ObjectDetails({ obj, user, onBack }) {
   const [range, setRange] = React.useState();
@@ -425,9 +427,6 @@ function ObjectDetails({ obj, user, onBack }) {
         </div>
       )}
 
-
-
-
       {obj.description ? (
         <p style={{ marginTop: 6 }}>{obj.description}</p>
       ) : null}
@@ -476,49 +475,47 @@ function ObjectDetails({ obj, user, onBack }) {
       )}
 
       {/* Адрес объекта */}
-{/* Адрес объекта */}
-{(obj?.adress || obj?.address) && (
-  <div style={{ gridColumn: "1 / -1" }}>
-    <div style={{ marginTop: 6 }} className="text-sub">
-      Адрес
-    </div>
-    <div style={{ marginTop: 6, fontWeight: 600 }}>
-      {obj.adress || obj.address}
-    </div>
+      {(obj?.adress || obj?.address) && (
+        <div style={{ gridColumn: "1 / -1" }}>
+          <div style={{ marginTop: 6 }} className="text-sub">
+            Адрес
+          </div>
+          <div style={{ marginTop: 6, fontWeight: 600 }}>
+            {obj.adress || obj.address}
+          </div>
 
-    {/* Карта по адресу */}
-    <div style={{ position: "relative", width: "100%", paddingTop: "56.25%", marginTop: 12 }}>
-      <iframe
-        title="map"
-        src={`https://www.google.com/maps?q=${encodeURIComponent(obj.adress || obj.address)}&output=embed`}
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          border: 0,
-          borderRadius: 12,
-        }}
-        loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-        allowFullScreen
-      />
-    </div>
+          {/* Карта по адресу */}
+          <div style={{ position: "relative", width: "100%", paddingTop: "56.25%", marginTop: 12 }}>
+            <iframe
+              title="map"
+              src={`https://www.google.com/maps?q=${encodeURIComponent(obj.adress || obj.address)}&output=embed`}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                border: 0,
+                borderRadius: 12,
+              }}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+            />
+          </div>
 
-    {/* Ссылка на Google Maps */}
-    <div style={{ marginTop: 8 }}>
-      <a
-        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(obj.adress || obj.address)}`}
-        target="_blank"
-        rel="noreferrer"
-        style={{ color: "#1a73e8", textDecoration: "underline" }}
-      >
-        Открыть в Google Maps
-      </a>
-    </div>
-  </div>
-)}
-
+          {/* Ссылка на Google Maps */}
+          <div style={{ marginTop: 8 }}>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(obj.adress || obj.address)}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: "#1a73e8", textDecoration: "underline" }}
+            >
+              Открыть в Google Maps
+            </a>
+          </div>
+        </div>
+      )}
 
       <div style={{ marginTop: 12 }}>
         <AdminCalendar
@@ -551,61 +548,58 @@ function ObjectDetails({ obj, user, onBack }) {
         </div>
       </div>
 
-      
-
       <div style={{ marginTop: 16 }}>
-  {obj.owner_name && (
-    <div className="text-sub">Имя: {obj.owner_name}</div>
-  )}
+        {obj.owner_name && (
+          <div className="text-sub">Имя: {obj.owner_name}</div>
+        )}
 
-  {obj.owner_contact && (
-    <div className="text-sub" style={{ marginTop: 6 }}>
-      Телефон/контакт: {obj.owner_contact}
-    </div>
-  )}
+        {obj.owner_contact && (
+          <div className="text-sub" style={{ marginTop: 6 }}>
+            Телефон/контакт: {obj.owner_contact}
+          </div>
+        )}
 
-  {/* Кнопка Telegram */}
-  {obj.owner_contact && (
-    <div style={{ marginTop: 10 }}>
-      {(() => {
-        // очищаем номер: убираем пробелы, скобки, дефисы и т.д.
-        const cleanPhone = String(obj.owner_contact).replace(/\D/g, "");
-        const tgLink = `https://t.me/+${cleanPhone}`;
-        return (
-          <a
-            href={tgLink}
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              backgroundColor: "#0088cc", // фирменный цвет Telegram
-              color: "#fff",
-              padding: "10px 14px",
-              borderRadius: 12,
-              textDecoration: "none",
-              fontWeight: 600,
-            }}
-          >
-            {/* Иконка Telegram */}
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="white"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M21.944 4.667c.356-1.248-.775-2.348-1.98-1.884L2.62 9.312c-1.322.506-1.298 2.38.034 2.845l4.74 1.687 1.838 5.897c.382 1.227 1.99 1.48 2.753.42l2.57-3.554 4.877 3.63c1.102.82 2.675.2 2.99-1.16l3.523-15.41Z" />
-            </svg>
-            <span>Связаться в Telegram</span>
-          </a>
-        );
-      })()}
-    </div>
-  )}
-</div>
-
+        {/* Кнопка Telegram */}
+        {obj.owner_contact && (
+          <div style={{ marginTop: 10 }}>
+            {(() => {
+              // очищаем номер: убираем пробелы, скобки, дефисы и т.д.
+              const cleanPhone = String(obj.owner_contact).replace(/\D/g, "");
+              const tgLink = `https://t.me/+${cleanPhone}`;
+              return (
+                <a
+                  href={tgLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    backgroundColor: "#0088cc", // фирменный цвет Telegram
+                    color: "#fff",
+                    padding: "10px 14px",
+                    borderRadius: 12,
+                    textDecoration: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  {/* Иконка Telegram */}
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="white"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path d="M21.944 4.667c.356-1.248-.775-2.348-1.98-1.884L2.62 9.312c-1.322.506-1.298 2.38.034 2.845л4.74 1.687 1.838 5.897c.382 1.227 1.99 1.48 2.753.42л2.57-3.554 4.877 3.63c1.102.82 2.675.2 2.99-1.16л3.523-15.41Z" />
+                  </svg>
+                  <span>Связаться в Telegram</span>
+                </a>
+              );
+            })()}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -777,7 +771,7 @@ function ExchangePage({ user }) {
 
     const selNights = nightsBetween(targetRange.from, targetRange.to);
     if (selNights !== baseNights) {
-      alert(`Нужно выбрать ровно ${baseNights} ноч.: выбранно ${selNights}`);
+      alert(`Нужно выбрать ровно {baseNights} ноч.: выбранно ${selNights}`);
       return;
     }
 
@@ -1069,6 +1063,11 @@ export default function User({ user, onLogout }) {
   const [editing, setEditing] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
+  // контакты владельцев моих домов (по подтверждённым броням)
+  const [ownerContacts, setOwnerContacts] = React.useState([]); // [{title, phone, tg}]
+  const [loadingOwnerContacts, setLoadingOwnerContacts] = React.useState(true);
+  const [ownerContactsError, setOwnerContactsError] = React.useState("");
+
   function formatPhoneMask(value) {
     const d = value.replace(/\D/g, "").slice(0, 15);
     if (!d) return "";
@@ -1122,6 +1121,61 @@ export default function User({ user, onLogout }) {
       setSaving(false);
     }
   }
+
+  // грузим контакты владельца(ев) по подтверждённым броням пользователя
+  React.useEffect(() => {
+    let cancelled = false;
+    async function loadOwnerContacts() {
+      try {
+        setLoadingOwnerContacts(true);
+        setOwnerContactsError("");
+
+        const [bookRes, objRes] = await Promise.all([
+          fetch(`${API}/api/bookings`),
+          fetch(`${API}/api/objects`),
+        ]);
+        const [bookData, objData] = await Promise.all([
+          bookRes.json(),
+          objRes.json(),
+        ]);
+
+        if (cancelled) return;
+
+        const bookings = Array.isArray(bookData) ? bookData : [];
+        const objects = Array.isArray(objData) ? objData : [];
+
+        const myConfirmed = bookings.filter(
+          (b) => Number(b.user_id) === Number(user?.id) && b.status === "confirmed"
+        );
+
+        const myObjectIds = Array.from(new Set(myConfirmed.map((b) => b.object_id)));
+
+        const contacts = myObjectIds
+          .map((id) => objects.find((o) => o.id === id))
+          .filter(Boolean)
+          .map((o) => ({
+            title: o.title || "Объект",
+            phone: o.owner_contact || o.owner_phone || o.phone || null,
+          }))
+          .filter((x) => x.phone);
+
+        const uniqueByPhone = Array.from(
+          new Map(contacts.map((c) => [String(c.phone), c])).values()
+        );
+
+        setOwnerContacts(
+          uniqueByPhone.map((c) => ({ ...c, tg: phoneToTgLink(c.phone) }))
+        );
+      } catch (e) {
+        console.error("owner contacts load error:", e);
+        if (!cancelled) setOwnerContactsError("Не удалось загрузить контакты владельца");
+      } finally {
+        if (!cancelled) setLoadingOwnerContacts(false);
+      }
+    }
+    if (user?.id) loadOwnerContacts();
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   const renderContent = () => {
     if (!user?.id) {
@@ -1224,6 +1278,71 @@ export default function User({ user, onLogout }) {
           </button>
         </div>
 
+        {/* Контакты владельца по вашим домам */}
+        <div style={{ marginTop: 16 }}>
+          <div className="objects-title" style={{ fontSize: 16, marginBottom: 8 }}>
+            Контакты владельца
+          </div>
+
+          {loadingOwnerContacts ? (
+            <div className="empty">Загрузка…</div>
+          ) : ownerContactsError ? (
+            <div className="empty">Ошибка: {ownerContactsError}</div>
+          ) : ownerContacts.length === 0 ? (
+            <div className="empty">Нет доступных контактов</div>
+          ) : (
+            <div className="vstack-12">
+              {ownerContacts.map((c, i) => (
+                <div key={i} className="booking-card">
+                  <div className="booking-header">{c.title}</div>
+                  <div className="booking-sub" style={{ marginTop: 6 }}>
+                    Телефон:{" "}
+                    <a
+                      href={`tel:${String(c.phone).replace(/\D/g, "")}`}
+                      style={{ textDecoration: "underline" }}
+                    >
+                      {c.phone}
+                    </a>
+                  </div>
+
+                  {c.tg && (
+                    <div style={{ marginTop: 10 }}>
+                      <a
+                        href={c.tg}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          backgroundColor: "#000", // чёрная как твои primary
+                          color: "#fff",
+                          padding: "10px 14px",
+                          borderRadius: 12,
+                          textDecoration: "none",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          aria-hidden="true"
+                        >
+                          <path d="M21.944 4.667c.356-1.248-.775-2.348-1.98-1.884L2.62 9.312c-1.322.506-1.298 2.38.034 2.845л4.74 1.687 1.838 5.897c.382 1.227 1.99 1.48 2.753.42л2.57-3.554 4.877 3.63c1.102.82 2.675.2 2.99-1.16л3.523-15.41З" />
+                        </svg>
+                        <span>Написать в Telegram</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* кнопки "Выйти" в профиле больше нет — выход в BottomNav */}
       </div>
     );
@@ -1231,7 +1350,7 @@ export default function User({ user, onLogout }) {
 
   return (
     <div className="app" style={{ paddingBottom: 80 }}>
-     <div className="hedd"> <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > {" "} <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" />{" "} </svg> <h1>TEST</h1> </div> <div className="abs-logo"> <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > {" "} <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" />{" "} </svg> </div>
+     <div className="hedd"> <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > {" "} <path d="M21 9.57232L10.9992 1L1 9.57232В21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779В20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199В13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611В14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535Л11.2611 18.1353H13.5086В14.5407H11.2718Л11.2855 10.1365Л11.2825 10.1334Л15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819В13.9202Л20.4914 17.8836В20.4796ZM20.4914 17.21Л16.059 13.4811Л14.5135 12.1807Л11.4317 9.58795Л15.8702 5.85583Л20.4899 9.81613В17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" />{" "} </svg> <h1>TEST</h1> </div> <div className="abs-logo"> <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > {" "} <path d="M21 9.57232L10.9992 1L1 9.57232В21H21V9.57232ZM6.37495 20.4796H1.50704В10.099Л6.37495 13.4779В20.4796ZM1.73087 9.62546Л6.16178 5.82613Л10.6308 9.58795Л6.57594 12.9903Л1.73087 9.62546ZM10.7632 14.5407Л10.745 20.4796H6.88199В13.4076Л10.7754 10.1396Л10.7617 14.5407H10.7632ZM6.55919 5.48543Л10.9992 1.67828Л15.4743 5.51512Л11.0327 9.25037Л6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611В14.9955H11.2703ZM15.2748 13.4936В20.4796H11.2535Л11.2611 18.1353H13.5086В14.5407H11.2718Л11.2855 10.1365Л11.2825 10.1334Л15.2764 13.4857В13.4936H15.2748ZM20.4914 20.4796H15.7819В13.9202Л20.4914 17.8836В20.4796ZM20.4914 17.21Л16.059 13.4811Л14.5135 12.1807Л11.4317 9.58795Л15.8702 5.85583Л20.4899 9.81613В17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" />{" "} </svg> </div>
 
       <main className="container">{renderContent()}</main>
 
