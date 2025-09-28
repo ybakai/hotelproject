@@ -10,6 +10,7 @@ import jwt from "jsonwebtoken";
 const app = express();
 const PORT = process.env.PORT || 4000;
 const FRONT_ORIGIN = process.env.APP_URL || true; // true — отражает Origin запроса
+const DEBUG_ERRORS = (process.env.DEBUG_ERRORS ?? "true").toLowerCase() !== "false";
 
 // ===== Cookies / JWT =====
 const JWT_REFRESH_SECRET =
@@ -62,12 +63,8 @@ async function ensureSchema() {
       decided_at TIMESTAMPTZ
     );
   `);
-  await pool.query(
-    `CREATE INDEX IF NOT EXISTS idx_exchanges_user ON exchanges(user_id);`
-  );
-  await pool.query(
-    `CREATE INDEX IF NOT EXISTS idx_exchanges_status ON exchanges(status);`
-  );
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_exchanges_user ON exchanges(user_id);`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_exchanges_status ON exchanges(status);`);
 
   // контакты + денормализованный получатель
   await pool.query(`
@@ -77,9 +74,7 @@ async function ensureSchema() {
       ADD COLUMN IF NOT EXISTS target_owner_id INTEGER
         REFERENCES users(id) ON DELETE SET NULL
   `);
-  await pool.query(
-    `CREATE INDEX IF NOT EXISTS idx_exchanges_target_owner ON exchanges(target_owner_id);`
-  );
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_exchanges_target_owner ON exchanges(target_owner_id);`);
 }
 ensureSchema().catch((e) => console.error("ensureSchema error:", e));
 
@@ -128,7 +123,7 @@ app.get("/api/users", async (_req, res) => {
     res.json(rows);
   } catch (e) {
     console.error("DB error in /api/users:", e);
-    res.status(500).json({ error: "DB error" });
+    res.status(500).json({ error: "DB error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
@@ -152,7 +147,7 @@ app.put("/api/users/:id/status", async (req, res) => {
     res.json(rows[0]);
   } catch (e) {
     console.error("DB error in PUT /api/users/:id/status:", e);
-    res.status(500).json({ error: "DB error" });
+    res.status(500).json({ error: "DB error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
@@ -162,7 +157,6 @@ app.delete("/api/users/:id", async (req, res) => {
     const id = Number(req.params.id);
     if (!id) return res.status(400).json({ error: "invalid id" });
 
-    // блокируем удаление, если он владелец объектов
     const dep = await pool.query(`SELECT 1 FROM objects WHERE owner_id = $1 LIMIT 1`, [id]);
     if (dep.rowCount > 0) {
       return res.status(409).json({ error: "user_has_objects" });
@@ -177,7 +171,7 @@ app.delete("/api/users/:id", async (req, res) => {
     if (e.code === "23503") {
       return res.status(409).json({ error: "user_has_dependencies" });
     }
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
@@ -193,12 +187,11 @@ app.get("/api/users/:id/credentials", async (req, res) => {
     );
     if (q.rowCount === 0) return res.status(404).json({ error: "not_found" });
 
-    // сейчас password_hash = реальный пароль — возвращаем как есть
     const { email, password_hash } = q.rows[0];
     res.json({ ok: true, email, password: String(password_hash) });
   } catch (e) {
     console.error("GET /api/users/:id/credentials", e);
-    res.status(500).json({ error: e?.message || "server error" });
+    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
@@ -216,7 +209,7 @@ app.get("/api/objects", async (req, res) => {
     res.json(rows);
   } catch (e) {
     console.error("GET /api/objects:", e);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Server error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
@@ -230,7 +223,7 @@ app.get("/api/users/:id/objects", async (req, res) => {
     res.json(rows);
   } catch (e) {
     console.error("GET /api/users/:id/objects:", e);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Server error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
@@ -264,9 +257,7 @@ app.post("/api/objects", upload.array("images", 6), async (req, res) => {
         urls.push(uploaded.secure_url);
       }
     } else if (Array.isArray(req.files) && req.files.length && !cloudOK) {
-      console.warn(
-        "Images were sent but Cloudinary isn't configured — skipping upload."
-      );
+      console.warn("Images were sent but Cloudinary isn't configured — skipping upload.");
     }
 
     const areaNum =
@@ -305,7 +296,7 @@ app.post("/api/objects", upload.array("images", 6), async (req, res) => {
     res.status(201).json(rows[0]);
   } catch (e) {
     console.error("POST /api/objects:", e);
-    res.status(500).json({ error: e.message || "Server error" });
+    res.status(500).json({ error: e.message || "Server error", details: DEBUG_ERRORS ? e.stack : undefined });
   }
 });
 
@@ -313,7 +304,7 @@ app.post("/api/objects", upload.array("images", 6), async (req, res) => {
 app.get("/healthz", async (_req, res) => {
   try {
     const r = await pool.query("SELECT NOW()");
-    res.json({ ok: true, time: r.rows[0].now });
+  res.json({ ok: true, time: r.rows[0].now });
   } catch (err) {
     console.error("healthz error:", err);
     res.status(500).json({ ok: false, error: err.message });
@@ -343,7 +334,7 @@ app.post("/auth/register", async (req, res) => {
     console.error("register error:", err);
     if (err.code === "23505")
       return res.status(409).json({ error: "email already exists" });
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? err.message : undefined });
   }
 });
 
@@ -375,7 +366,7 @@ app.post("/auth/login", async (req, res) => {
     res.json({ ok: true, user });
   } catch (err) {
     console.error("login error:", err);
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? err.message : undefined });
   }
 });
 
@@ -420,6 +411,8 @@ app.post("/auth/logout", async (_req, res) => {
 });
 
 // ===================== BOOKINGS =====================
+
+// создать бронь
 app.post("/api/bookings", async (req, res) => {
   try {
     const {
@@ -464,6 +457,7 @@ app.post("/api/bookings", async (req, res) => {
   }
 });
 
+// получить все бронирования
 app.get("/api/bookings", async (_req, res) => {
   try {
     const q = await pool.query(
@@ -483,6 +477,7 @@ app.get("/api/bookings", async (_req, res) => {
   }
 });
 
+// удалить бронь
 app.delete("/api/bookings/:id", async (req, res) => {
   try {
     const q = await pool.query(`DELETE FROM bookings WHERE id = $1 RETURNING id`, [
@@ -496,27 +491,74 @@ app.delete("/api/bookings/:id", async (req, res) => {
   }
 });
 
+// ИЗМЕНИТЬ СТАТУС БРОНИ
+// — при confirmed владелец объекта = пользователь этой брони (без проверки на NULL)
 app.patch("/api/bookings/:id", async (req, res) => {
+  const client = await pool.connect();
   try {
+    const id = Number(req.params.id);
     const { status } = req.body || {};
+
     if (!["pending", "confirmed", "rejected", "cancelled"].includes(status)) {
       return res.status(400).json({ error: "invalid status" });
     }
-    const q = await pool.query(
-      `UPDATE bookings SET status = $1 WHERE id = $2 RETURNING *`,
-      [status, req.params.id]
+
+    await client.query("BEGIN");
+
+    // 1) Лочим бронь
+    const bkQ = await client.query(
+      `SELECT id, object_id, user_id, status
+         FROM bookings
+        WHERE id = $1
+        FOR UPDATE`,
+      [id]
     );
-    if (q.rowCount === 0) return res.status(404).json({ error: "not found" });
-    res.json(q.rows[0]);
+    if (bkQ.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "not found" });
+    }
+    const booking = bkQ.rows[0];
+
+    // 2) Обновляем статус
+    const upd = await client.query(
+      `UPDATE bookings SET status = $1 WHERE id = $2 RETURNING *`,
+      [status, id]
+    );
+
+    let owner_set = false;
+
+    // 3) Если подтверждена — назначаем владельца объекта = user_id этой брони
+    if (status === "confirmed" && booking.object_id != null) {
+      // (можно без FOR UPDATE, но оставим, чтобы избежать гонок)
+      const _lock = await client.query(
+        `SELECT id FROM objects WHERE id = $1 FOR UPDATE`,
+        [booking.object_id]
+      );
+      const updObj = await client.query(
+        `UPDATE objects SET owner_id = $1 WHERE id = $2 RETURNING id`,
+        [booking.user_id, booking.object_id]
+      );
+      owner_set = updObj.rowCount > 0;
+    }
+
+    await client.query("COMMIT");
+    res.json({ ...upd.rows[0], owner_set });
   } catch (err) {
+    await client.query("ROLLBACK");
     console.error("Error updating booking:", err);
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({
+      error: "server error",
+      details: DEBUG_ERRORS ? (err.detail || err.message) : undefined,
+      code: DEBUG_ERRORS ? err.code : undefined,
+    });
+  } finally {
+    client.release();
   }
 });
 
 // ===================== EXCHANGES =====================
 
-// История (по желанию: ?user_id=)
+// История (?user_id=)
 app.get("/api/exchanges", async (req, res) => {
   try {
     const { user_id } = req.query;
@@ -548,11 +590,11 @@ app.get("/api/exchanges", async (req, res) => {
     res.json(q.rows);
   } catch (e) {
     console.error("GET /api/exchanges", e);
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
-// Входящие: заявки на Мои объекты (по owner'у)
+// Входящие по owner'у
 app.get("/api/exchanges/incoming", async (req, res) => {
   try {
     const userId = Number(req.query.user_id);
@@ -572,7 +614,7 @@ app.get("/api/exchanges/incoming", async (req, res) => {
       LEFT JOIN bookings bo      ON bo.id    = e.base_booking_id
       LEFT JOIN objects  obase   ON obase.id = bo.object_id
       LEFT JOIN objects  otarget ON otarget.id = e.target_object_id
-      WHERE COALESCE(e.target_owner_id, otarget.owner_id) = $1
+      WHERE (otarget.owner_id = $1) OR (e.target_owner_id = $1)
       ORDER BY e.created_at DESC
       `,
       [userId]
@@ -581,11 +623,11 @@ app.get("/api/exchanges/incoming", async (req, res) => {
     res.json(q.rows);
   } catch (e) {
     console.error("GET /api/exchanges/incoming", e);
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
-// Создать обмен (с контактами и target_owner_id)
+// Создать обмен
 app.post("/api/exchanges", async (req, res) => {
   try {
     const {
@@ -635,18 +677,28 @@ app.post("/api/exchanges", async (req, res) => {
     if (Number(base.object_id) === Number(targetObjectId))
       return res.status(400).json({ error: "нужно выбрать другой дом" });
 
-    // получатель = владелец целевого объекта (обязателен и не равен инициатору)
+    // целевой объект
     const targetObjQ = await pool.query(
       `SELECT id, owner_id FROM objects WHERE id = $1`,
       [Number(targetObjectId)]
     );
     if (targetObjQ.rowCount === 0)
       return res.status(404).json({ error: "target object not found" });
-    const targetOwnerId = Number(targetObjQ.rows[0]?.owner_id) || null;
-    if (!targetOwnerId)
-      return res.status(400).json({ error: "у целевого объекта не задан владелец (owner_id)" });
-    if (targetOwnerId === Number(userId))
-      return res.status(400).json({ error: "нельзя отправлять обмен самому себе" });
+    const targetObj = targetObjQ.rows[0];
+
+    // Если на выбранные даты у объекта есть подтверждённая бронь — получатель = тот пользователь
+    const holderQ = await pool.query(
+      `SELECT user_id
+         FROM bookings
+        WHERE object_id = $1
+          AND status = 'confirmed'
+          AND NOT ($2::date > end_date OR $3::date < start_date)
+        ORDER BY created_at DESC
+        LIMIT 1`,
+      [targetObjectId, startDate, endDate]
+    );
+    const targetOwnerId =
+      holderQ.rowCount > 0 ? holderQ.rows[0].user_id : (targetObj.owner_id || null);
 
     // на выбранные даты целевой объект свободен?
     const conflict = await pool.query(
@@ -663,7 +715,7 @@ app.post("/api/exchanges", async (req, res) => {
     const ins = await pool.query(
       `INSERT INTO exchanges
          (user_id, base_booking_id, target_object_id, start_date, end_date, nights, message, status, contact, target_owner_id)
-       VALUES ($1::int,$2::int,$3::int,$4::date,$5::date,$6::int,$7,'pending',$8::jsonb,$9::int)
+       VALUES ($1::int,$2::int,$3::int,$4::date,$5::date,$6::int,$7,'pending',$8::jsonb,$9)
        RETURNING *`,
       [
         userId,
@@ -728,10 +780,10 @@ app.patch("/api/exchanges/:id", async (req, res) => {
     const targetObj = targetObjQ.rows[0];
 
     if (action === "share_contacts") {
-      const receiverId = ex.target_owner_id || targetObj.owner_id;
+      const ownerIdToShare = ex.target_owner_id || targetObj.owner_id || null;
       const ownerQ = await client.query(
         `SELECT id, full_name, phone, email FROM users WHERE id = $1`,
-        [receiverId]
+        [ownerIdToShare]
       );
       const owner = ownerQ.rows[0] || null;
 
@@ -802,11 +854,8 @@ app.patch("/api/exchanges/:id", async (req, res) => {
       [ex.target_object_id, ex.start_date, ex.end_date, base.id]
     );
 
-    const receiverId = ex.target_owner_id || targetObj.owner_id;
-    if (!receiverId) {
-      await client.query("ROLLBACK");
-      return res.status(409).json({ error: "не определён получатель обмена" });
-    }
+    // кому создаём встречную бронь — предпочитаем ex.target_owner_id
+    const peerUserId = ex.target_owner_id || targetObj.owner_id;
 
     const insPeer = await client.query(
       `INSERT INTO bookings (object_id, user_id, status, start_date, end_date, guests, note)
@@ -814,7 +863,7 @@ app.patch("/api/exchanges/:id", async (req, res) => {
        RETURNING *`,
       [
         baseObjectId,
-        receiverId,
+        peerUserId,
         origStart,
         origEnd,
         `created by exchange #${id}`,
@@ -868,7 +917,7 @@ app.patch("/api/users/:id", async (req, res) => {
     if (e.code === "23505")
       return res.status(409).json({ error: "email already exists" });
     console.error("PATCH /api/users/:id:", e);
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
 
