@@ -33,7 +33,7 @@
   top: 50%;
   right: 0;
   transform: translateY(-50%); /* центр по вертикали */
-  z-index: 10; /* чтобы было поверх */
+  z-index: 0; /* чтобы было поверх */
 }
 
 /* Повернуть сам SVG и сделать полупрозрачным */
@@ -169,6 +169,7 @@
   align-items: stretch;
   padding: 0;
   box-sizing: border-box;
+  z-index: 1;
 }
 
 .tile * {
@@ -182,6 +183,7 @@
   background: #f3f3f3;
   overflow: hidden;
   display: block;
+  z-index: 1;
 }
 
 .tile__imgwrap--empty {
@@ -198,6 +200,7 @@
   height: 100%;
   -o-object-fit: cover;
      object-fit: cover;
+  z-index: 1;
 }
 
 /* Тело карточки с уверенными отступами */
