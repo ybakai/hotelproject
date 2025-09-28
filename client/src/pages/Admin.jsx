@@ -33,18 +33,48 @@ const toYMD = (dLike) => {
 
 // --- email helpers ---
 const CYR_TO_LAT = {
-  а:"a", б:"b", в:"v", г:"g", д:"d", е:"e", ё:"e", ж:"zh", з:"z", и:"i", й:"y",
-  к:"k", л:"l", м:"m", н:"n", о:"o", п:"p", р:"r", с:"s", т:"t", у:"u", ф:"f",
-  х:"h", ц:"c", ч:"ch", ш:"sh", щ:"sch", ъ:"", ы:"y", ь:"", э:"e", ю:"yu", я:"ya",
+  а: "a",
+  б: "b",
+  в: "v",
+  г: "g",
+  д: "d",
+  е: "e",
+  ё: "e",
+  ж: "zh",
+  з: "z",
+  и: "i",
+  й: "y",
+  к: "k",
+  л: "l",
+  м: "m",
+  н: "n",
+  о: "o",
+  п: "p",
+  р: "r",
+  с: "s",
+  т: "t",
+  у: "u",
+  ф: "f",
+  х: "h",
+  ц: "c",
+  ч: "ch",
+  ш: "sh",
+  щ: "sch",
+  ъ: "",
+  ы: "y",
+  ь: "",
+  э: "e",
+  ю: "yu",
+  я: "ya",
 };
-function translit(str="") {
+function translit(str = "") {
   return str
     .toLowerCase()
     .split("")
-    .map(ch => CYR_TO_LAT[ch] ?? ch)
+    .map((ch) => CYR_TO_LAT[ch] ?? ch)
     .join("");
 }
-function slugLocalPart(s="") {
+function slugLocalPart(s = "") {
   // убираем лишнее, оставляем латиницу/цифры/._-
   const base = translit(s)
     .normalize("NFKD")
@@ -67,7 +97,6 @@ function makeEmailLogin(name, phoneDigits) {
   }
   return `user${Date.now()}@byhan.com`;
 }
-
 
 const overlaps = (aStart, aEnd, bStart, bEnd) => {
   return !(
@@ -280,10 +309,9 @@ function UsersTab() {
     setIssuedCreds(null);
 
     const email = phoneDigits
-  ? `tel${phoneDigits}@byhan.com`
-  : `user${Date.now()}@byhan.com`;
-const password = genPassword();
-
+      ? `tel${phoneDigits}@byhan.com`
+      : `user${Date.now()}@byhan.com`;
+    const password = genPassword();
 
     try {
       // 1) создаём пользователя админски через /auth/register
@@ -1263,7 +1291,9 @@ function BookingsTab({ bookings, reloadAll, updateBookingStatus }) {
     if (!id) return;
     if (!confirm("Точно отменить и удалить эту бронь?")) return;
     try {
-      const res = await fetch(`${API}/api/bookings/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API}/api/bookings/${id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) {
         const t = await res.text();
         throw new Error(t || `HTTP ${res.status}`);
@@ -1288,7 +1318,8 @@ function BookingsTab({ bookings, reloadAll, updateBookingStatus }) {
       {list.map((it) => (
         <div key={`bk-${it.id}`} className="booking-card">
           <div className="booking-header">
-            {it.user_name || "Пользователь"} {it.user_phone ? `(${it.user_phone})` : ""}
+            {it.user_name || "Пользователь"}{" "}
+            {it.user_phone ? `(${it.user_phone})` : ""}
           </div>
           <div className="booking-sub">🏠 {it.object_title || "Объект"}</div>
           <div className="booking-sub">
@@ -1307,10 +1338,16 @@ function BookingsTab({ bookings, reloadAll, updateBookingStatus }) {
 
           {it.status === "pending" && (
             <div className="booking-actions">
-              <button className="btn-primary" onClick={() => changeStatus(it.id, "confirmed")}>
+              <button
+                className="btn-primary"
+                onClick={() => changeStatus(it.id, "confirmed")}
+              >
                 Подтвердить
               </button>
-              <button className="btn-secondary" onClick={() => changeStatus(it.id, "rejected")}>
+              <button
+                className="btn-secondary"
+                onClick={() => changeStatus(it.id, "rejected")}
+              >
                 Отклонить
               </button>
             </div>
@@ -1330,7 +1367,6 @@ function BookingsTab({ bookings, reloadAll, updateBookingStatus }) {
     </div>
   );
 }
-
 
 /* -------------------- Bottom Nav (с выходом) -------------------- */
 function BottomNav({ current, onChange, onLogout }) {
@@ -1631,12 +1667,40 @@ export default function Admin({ user, onLogout }) {
     <div className="app">
       {/* шапка с быстрым выходом */}
       <div className="hedd">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 22 22"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {" "}
+          <path
+            d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z"
+            fill="#111827"
+            stroke="#111827"
+            stroke-linejoin="round"
+          />{" "}
+        </svg>
         <h1>TEST</h1>
       </div>
 
       <div className="abs-logo">
-        <svg width="162" height="162" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" > <path d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z" fill="#111827" stroke="#111827" stroke-linejoin="round" /> </svg>
+        <svg
+          width="162"
+          height="162"
+          viewBox="0 0 22 22"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {" "}
+          <path
+            d="M21 9.57232L10.9992 1L1 9.57232V21H21V9.57232ZM6.37495 20.4796H1.50704V10.099L6.37495 13.4779V20.4796ZM1.73087 9.62546L6.16178 5.82613L10.6308 9.58795L6.57594 12.9903L1.73087 9.62546ZM10.7632 14.5407L10.745 20.4796H6.88199V13.4076L10.7754 10.1396L10.7617 14.5407H10.7632ZM6.55919 5.48543L10.9992 1.67828L15.4743 5.51512L11.0327 9.25037L6.55919 5.48543ZM11.2703 14.9955H13V17.6789H11.2611V14.9955H11.2703ZM15.2748 13.4936V20.4796H11.2535L11.2611 18.1353H13.5086V14.5407H11.2718L11.2855 10.1365L11.2825 10.1334L15.2764 13.4857V13.4936H15.2748ZM20.4914 20.4796H15.7819V13.9202L20.4914 17.8836V20.4796ZM20.4914 17.21L16.059 13.4811L14.5135 12.1807L11.4317 9.58795L15.8702 5.85583L20.4899 9.81613V17.21H20.4914Z"
+            fill="#111827"
+            stroke="#111827"
+            stroke-linejoin="round"
+          />{" "}
+        </svg>
       </div>
       <main className="container">{renderContent()}</main>
       {/* нижняя навигация с кнопкой выхода */}
