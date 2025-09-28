@@ -89,13 +89,13 @@ function makeEmailLogin(name, phoneDigits) {
   // приоритет: телефон -> имя -> fallback
   if (phoneDigits) {
     const local = `tel${phoneDigits}`.slice(0, 64);
-    return `${local}@byhan.com`;
+    return `${local}@bayhan.com`;
   }
   if (name?.trim()) {
     const local = slugLocalPart(name.trim());
-    return `${local}@byhan.com`;
+    return `${local}@bayhan.com`;
   }
-  return `user${Date.now()}@byhan.com`;
+  return `user${Date.now()}@bayhan.com`;
 }
 
 const overlaps = (aStart, aEnd, bStart, bEnd) => {
@@ -309,8 +309,8 @@ function UsersTab() {
     setIssuedCreds(null);
 
     const email = phoneDigits
-      ? `tel${phoneDigits}@byhan.com`
-      : `user${Date.now()}@byhan.com`;
+      ? `tel${phoneDigits}@bayhan.com`
+      : `user${Date.now()}@bayhan.com`;
     const password = genPassword();
 
     try {
