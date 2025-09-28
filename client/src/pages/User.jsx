@@ -689,7 +689,7 @@ function ExchangeHistory({ userId }) {
           {x.shared_contacts && (
             <div className="booking-sub" style={{ marginTop: 8 }}>
               <div className="text-sub">Контакты:</div>
-              <div style={{ marginTop: 4 }}>
+              <div style={{ marginTop: 4, display : 'flex', flexDirection : 'column', gap : '10px' }}>
                 {x.shared_contacts.their?.name && (
                   <div>Имя: {x.shared_contacts.their.name}</div>
                 )}
