@@ -247,7 +247,7 @@ function ObjectsList({ user, onOpen, onGoExchange }) {
                       }}
                       style={{
                         width: "100%",
-                        backgroundColor: "#000",
+                        backgroundColor: "#27343a",
                         color: "#fff",
                       }}
                     >
@@ -315,7 +315,7 @@ function ObjectsList({ user, onOpen, onGoExchange }) {
                       }}
                       style={{
                         width: "100%",
-                        backgroundColor: "#000",
+                        backgroundColor: "#27343a",
                         color: "#fff",
                       }}
                     >

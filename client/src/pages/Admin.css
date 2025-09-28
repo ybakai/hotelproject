@@ -9,6 +9,7 @@
 .title {
   font-size: 24px;
   font-weight: 800;
+  color: #27343a;
 }
 
 .hedd {
@@ -18,7 +19,7 @@
   margin-bottom: 30px;
   justify-content: center;
   align-items: center;
-  color: #111827;
+  color: #27343a;
 }
 .hedd svg {
   width: 60px;
@@ -214,7 +215,7 @@
 .tile__title {
   font-size: 14px;
   font-weight: 700;
-  color: #000;
+  color: #27343a;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -336,6 +337,7 @@
 .objects-title {
   font-weight: 800;
   font-size: 22px;
+  color: #27343a;
 }
 
 /* кнопки */
