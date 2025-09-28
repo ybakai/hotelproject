@@ -10,7 +10,6 @@ import jwt from "jsonwebtoken";
 const app = express();
 const PORT = process.env.PORT || 4000;
 const FRONT_ORIGIN = process.env.APP_URL || true; // true — отражает Origin запроса
-const DEBUG_ERRORS = (process.env.DEBUG_ERRORS ?? "true").toLowerCase() !== "false";
 
 // ===== Cookies / JWT =====
 const JWT_REFRESH_SECRET =
@@ -129,7 +128,7 @@ app.get("/api/users", async (_req, res) => {
     res.json(rows);
   } catch (e) {
     console.error("DB error in /api/users:", e);
-    res.status(500).json({ error: "DB error", details: DEBUG_ERRORS ? e.message : undefined });
+    res.status(500).json({ error: "DB error" });
   }
 });
 
@@ -153,7 +152,7 @@ app.put("/api/users/:id/status", async (req, res) => {
     res.json(rows[0]);
   } catch (e) {
     console.error("DB error in PUT /api/users/:id/status:", e);
-    res.status(500).json({ error: "DB error", details: DEBUG_ERRORS ? e.message : undefined });
+    res.status(500).json({ error: "DB error" });
   }
 });
 
@@ -163,6 +162,7 @@ app.delete("/api/users/:id", async (req, res) => {
     const id = Number(req.params.id);
     if (!id) return res.status(400).json({ error: "invalid id" });
 
+    // блокируем удаление, если он владелец объектов
     const dep = await pool.query(`SELECT 1 FROM objects WHERE owner_id = $1 LIMIT 1`, [id]);
     if (dep.rowCount > 0) {
       return res.status(409).json({ error: "user_has_objects" });
@@ -177,7 +177,7 @@ app.delete("/api/users/:id", async (req, res) => {
     if (e.code === "23503") {
       return res.status(409).json({ error: "user_has_dependencies" });
     }
-    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
+    res.status(500).json({ error: "server error" });
   }
 });
 
@@ -193,11 +193,12 @@ app.get("/api/users/:id/credentials", async (req, res) => {
     );
     if (q.rowCount === 0) return res.status(404).json({ error: "not_found" });
 
+    // сейчас password_hash = реальный пароль — возвращаем как есть
     const { email, password_hash } = q.rows[0];
     res.json({ ok: true, email, password: String(password_hash) });
   } catch (e) {
     console.error("GET /api/users/:id/credentials", e);
-    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
+    res.status(500).json({ error: e?.message || "server error" });
   }
 });
 
@@ -215,7 +216,7 @@ app.get("/api/objects", async (req, res) => {
     res.json(rows);
   } catch (e) {
     console.error("GET /api/objects:", e);
-    res.status(500).json({ error: "Server error", details: DEBUG_ERRORS ? e.message : undefined });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -229,7 +230,7 @@ app.get("/api/users/:id/objects", async (req, res) => {
     res.json(rows);
   } catch (e) {
     console.error("GET /api/users/:id/objects:", e);
-    res.status(500).json({ error: "Server error", details: DEBUG_ERRORS ? e.message : undefined });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -304,7 +305,7 @@ app.post("/api/objects", upload.array("images", 6), async (req, res) => {
     res.status(201).json(rows[0]);
   } catch (e) {
     console.error("POST /api/objects:", e);
-    res.status(500).json({ error: e.message || "Server error", details: DEBUG_ERRORS ? e.stack : undefined });
+    res.status(500).json({ error: e.message || "Server error" });
   }
 });
 
@@ -342,7 +343,7 @@ app.post("/auth/register", async (req, res) => {
     console.error("register error:", err);
     if (err.code === "23505")
       return res.status(409).json({ error: "email already exists" });
-    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? err.message : undefined });
+    res.status(500).json({ error: "server error" });
   }
 });
 
@@ -374,7 +375,7 @@ app.post("/auth/login", async (req, res) => {
     res.json({ ok: true, user });
   } catch (err) {
     console.error("login error:", err);
-    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? err.message : undefined });
+    res.status(500).json({ error: "server error" });
   }
 });
 
@@ -419,8 +420,6 @@ app.post("/auth/logout", async (_req, res) => {
 });
 
 // ===================== BOOKINGS =====================
-
-// создать бронь (с проверкой пересечений)
 app.post("/api/bookings", async (req, res) => {
   try {
     const {
@@ -465,7 +464,6 @@ app.post("/api/bookings", async (req, res) => {
   }
 });
 
-// получить все бронирования
 app.get("/api/bookings", async (_req, res) => {
   try {
     const q = await pool.query(
@@ -485,7 +483,6 @@ app.get("/api/bookings", async (_req, res) => {
   }
 });
 
-// удалить бронь
 app.delete("/api/bookings/:id", async (req, res) => {
   try {
     const q = await pool.query(`DELETE FROM bookings WHERE id = $1 RETURNING id`, [
@@ -499,73 +496,21 @@ app.delete("/api/bookings/:id", async (req, res) => {
   }
 });
 
-// ИЗМЕНИТЬ СТАТУС БРОНИ
-// (фикc: без LEFT JOIN + FOR UPDATE — сперва лочим бронь, затем отдельно объект)
 app.patch("/api/bookings/:id", async (req, res) => {
-  const client = await pool.connect();
   try {
-    const id = Number(req.params.id);
     const { status } = req.body || {};
-
     if (!["pending", "confirmed", "rejected", "cancelled"].includes(status)) {
       return res.status(400).json({ error: "invalid status" });
     }
-
-    await client.query("BEGIN");
-
-    // 1) Лочим саму бронь
-    const bkQ = await client.query(
-      `SELECT id, object_id, user_id, status
-         FROM bookings
-        WHERE id = $1
-        FOR UPDATE`,
-      [id]
-    );
-    if (bkQ.rowCount === 0) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ error: "not found" });
-    }
-    const booking = bkQ.rows[0];
-
-    // 2) Обновляем статус
-    const upd = await client.query(
+    const q = await pool.query(
       `UPDATE bookings SET status = $1 WHERE id = $2 RETURNING *`,
-      [status, id]
+      [status, req.params.id]
     );
-
-    let owner_set = false;
-
-    // 3) Если confirm — проставим owner_id у объекта, но отдельным запросом
-    if (status === "confirmed" && booking.object_id != null) {
-      // Можно лочить и объект (опционально)
-      const objQ = await client.query(
-        `SELECT id, owner_id FROM objects WHERE id = $1 FOR UPDATE`,
-        [booking.object_id]
-      );
-      if (objQ.rowCount > 0) {
-        const obj = objQ.rows[0];
-        if (obj.owner_id == null) {
-          const updObj = await client.query(
-            `UPDATE objects SET owner_id = $1 WHERE id = $2 AND owner_id IS NULL RETURNING id`,
-            [booking.user_id, booking.object_id]
-          );
-          owner_set = updObj.rowCount > 0;
-        }
-      }
-    }
-
-    await client.query("COMMIT");
-    res.json({ ...upd.rows[0], owner_set });
+    if (q.rowCount === 0) return res.status(404).json({ error: "not found" });
+    res.json(q.rows[0]);
   } catch (err) {
-    await client.query("ROLLBACK");
     console.error("Error updating booking:", err);
-    res.status(500).json({
-      error: "server error",
-      details: DEBUG_ERRORS ? (err.detail || err.message) : undefined,
-      code: DEBUG_ERRORS ? err.code : undefined,
-    });
-  } finally {
-    client.release();
+    res.status(500).json({ error: "server error" });
   }
 });
 
@@ -603,7 +548,7 @@ app.get("/api/exchanges", async (req, res) => {
     res.json(q.rows);
   } catch (e) {
     console.error("GET /api/exchanges", e);
-    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
+    res.status(500).json({ error: "server error" });
   }
 });
 
@@ -627,7 +572,7 @@ app.get("/api/exchanges/incoming", async (req, res) => {
       LEFT JOIN bookings bo      ON bo.id    = e.base_booking_id
       LEFT JOIN objects  obase   ON obase.id = bo.object_id
       LEFT JOIN objects  otarget ON otarget.id = e.target_object_id
-      WHERE (otarget.owner_id = $1) OR (e.target_owner_id = $1)
+      WHERE COALESCE(e.target_owner_id, otarget.owner_id) = $1
       ORDER BY e.created_at DESC
       `,
       [userId]
@@ -636,7 +581,7 @@ app.get("/api/exchanges/incoming", async (req, res) => {
     res.json(q.rows);
   } catch (e) {
     console.error("GET /api/exchanges/incoming", e);
-    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
+    res.status(500).json({ error: "server error" });
   }
 });
 
@@ -690,14 +635,18 @@ app.post("/api/exchanges", async (req, res) => {
     if (Number(base.object_id) === Number(targetObjectId))
       return res.status(400).json({ error: "нужно выбрать другой дом" });
 
-    // получатель
+    // получатель = владелец целевого объекта (обязателен и не равен инициатору)
     const targetObjQ = await pool.query(
       `SELECT id, owner_id FROM objects WHERE id = $1`,
       [Number(targetObjectId)]
     );
     if (targetObjQ.rowCount === 0)
       return res.status(404).json({ error: "target object not found" });
-    const targetOwnerId = targetObjQ.rows[0]?.owner_id || null;
+    const targetOwnerId = Number(targetObjQ.rows[0]?.owner_id) || null;
+    if (!targetOwnerId)
+      return res.status(400).json({ error: "у целевого объекта не задан владелец (owner_id)" });
+    if (targetOwnerId === Number(userId))
+      return res.status(400).json({ error: "нельзя отправлять обмен самому себе" });
 
     // на выбранные даты целевой объект свободен?
     const conflict = await pool.query(
@@ -714,7 +663,7 @@ app.post("/api/exchanges", async (req, res) => {
     const ins = await pool.query(
       `INSERT INTO exchanges
          (user_id, base_booking_id, target_object_id, start_date, end_date, nights, message, status, contact, target_owner_id)
-       VALUES ($1::int,$2::int,$3::int,$4::date,$5::date,$6::int,$7,'pending',$8::jsonb,$9)
+       VALUES ($1::int,$2::int,$3::int,$4::date,$5::date,$6::int,$7,'pending',$8::jsonb,$9::int)
        RETURNING *`,
       [
         userId,
@@ -779,9 +728,10 @@ app.patch("/api/exchanges/:id", async (req, res) => {
     const targetObj = targetObjQ.rows[0];
 
     if (action === "share_contacts") {
+      const receiverId = ex.target_owner_id || targetObj.owner_id;
       const ownerQ = await client.query(
         `SELECT id, full_name, phone, email FROM users WHERE id = $1`,
-        [targetObj.owner_id || ex.target_owner_id]
+        [receiverId]
       );
       const owner = ownerQ.rows[0] || null;
 
@@ -852,13 +802,19 @@ app.patch("/api/exchanges/:id", async (req, res) => {
       [ex.target_object_id, ex.start_date, ex.end_date, base.id]
     );
 
+    const receiverId = ex.target_owner_id || targetObj.owner_id;
+    if (!receiverId) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({ error: "не определён получатель обмена" });
+    }
+
     const insPeer = await client.query(
       `INSERT INTO bookings (object_id, user_id, status, start_date, end_date, guests, note)
        VALUES ($1::int, $2::int, 'confirmed', $3::date, $4::date, 1, $5)
        RETURNING *`,
       [
         baseObjectId,
-        targetObj.owner_id || ex.target_owner_id,
+        receiverId,
         origStart,
         origEnd,
         `created by exchange #${id}`,
@@ -912,7 +868,7 @@ app.patch("/api/users/:id", async (req, res) => {
     if (e.code === "23505")
       return res.status(409).json({ error: "email already exists" });
     console.error("PATCH /api/users/:id:", e);
-    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
+    res.status(500).json({ error: "server error" });
   }
 });
 
