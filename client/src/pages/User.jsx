@@ -839,7 +839,7 @@ function IncomingRequests({ user }) {
             {/* Контакты отправителя (введены вручную при создании) */}
             <div className="booking-sub" style={{ marginTop: 8 }}>
               <div className="text-sub">Контакты отправителя</div>
-              <div style={{ marginTop: 4 }}>
+              <div style={{ marginTop: 4, display : 'flex', flexDirection : 'column', gap : '10px'  }}>
                 {x.contact?.name && <div>Имя: {x.contact.name}</div>}
                 {x.contact?.phone && (
                   <div>
