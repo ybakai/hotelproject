@@ -151,6 +151,8 @@ app.put("/api/users/:id/status", async (req, res) => {
   }
 });
 
+
+
 // УДАЛИТЬ пользователя
 app.delete("/api/users/:id", async (req, res) => {
   try {
@@ -174,6 +176,113 @@ app.delete("/api/users/:id", async (req, res) => {
     res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
   }
 });
+
+// ОБНОВИТЬ объект
+app.patch("/api/objects/:id", upload.array("images", 6), async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: "invalid id" });
+
+    // Загружаем текущий объект
+    const curQ = await pool.query(`SELECT * FROM objects WHERE id = $1`, [id]);
+    if (curQ.rowCount === 0) return res.status(404).json({ error: "not_found" });
+    const cur = curQ.rows[0];
+
+    // Новые картинки в Cloudinary (если пришли)
+    const newUrls = [];
+    if (Array.isArray(req.files) && req.files.length && cloudOK) {
+      for (const file of req.files) {
+        const uploaded = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "hotel_objects" },
+            (err, result) => (err ? reject(err) : resolve(result))
+          );
+          stream.end(file.buffer);
+        });
+        newUrls.push(uploaded.secure_url);
+      }
+    } else if (Array.isArray(req.files) && req.files.length && !cloudOK) {
+      console.warn("Images were sent but Cloudinary isn't configured — skipping upload.");
+    }
+
+    // Поля из формы
+    const {
+      title,
+      description,
+      owner_id,
+      owner_name,
+      owner_contact,
+      address,
+      area,
+      rooms,
+      share,
+    } = req.body || {};
+
+    const areaNum =
+      area !== undefined && area !== null && String(area).trim() !== ""
+        ? Number(area)
+        : null;
+    const roomsInt =
+      rooms !== undefined && rooms !== null && String(rooms).trim() !== ""
+        ? parseInt(rooms, 10)
+        : null;
+
+    // Собираем итоговые значения (Coalesce-логика на приложении)
+    const next = {
+      title:            title?.trim() ?? cur.title,
+      description:      description?.trim() ?? cur.description,
+      owner_id:         owner_id ? Number(owner_id) : cur.owner_id,
+      owner_name:       owner_name?.trim() ?? cur.owner_name,
+      owner_contact:    owner_contact?.trim() ?? cur.owner_contact,
+      address:          address?.trim() ?? cur.address,
+      area:             Number.isFinite(areaNum) ? areaNum : cur.area,
+      rooms:            Number.isInteger(roomsInt) ? roomsInt : cur.rooms,
+      share:            share?.trim() ?? cur.share,
+      images:           [...(cur.images || []), ...newUrls],
+    };
+
+    const upd = await pool.query(
+      `UPDATE objects SET
+         title=$1, description=$2, owner_id=$3, owner_name=$4, owner_contact=$5,
+         address=$6, area=$7, rooms=$8, share=$9, images=$10
+       WHERE id=$11
+       RETURNING *`,
+      [
+        next.title, next.description, next.owner_id, next.owner_name, next.owner_contact,
+        next.address, next.area, next.rooms, next.share, next.images, id
+      ]
+    );
+
+    res.json(upd.rows[0]);
+  } catch (e) {
+    console.error("PATCH /api/objects/:id", e);
+    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
+  }
+});
+
+// УДАЛИТЬ объект
+app.delete("/api/objects/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: "invalid id" });
+
+    // Проверка зависимостей (если нужно)
+    const dep = await pool.query(
+      `SELECT 1 FROM bookings WHERE object_id = $1 LIMIT 1`, [id]
+    );
+    if (dep.rowCount > 0) {
+      return res.status(409).json({ error: "object_has_bookings" });
+    }
+
+    const q = await pool.query(`DELETE FROM objects WHERE id = $1 RETURNING id`, [id]);
+    if (q.rowCount === 0) return res.status(404).json({ error: "not_found" });
+    res.json({ ok: true, id: q.rows[0].id });
+  } catch (e) {
+    console.error("DELETE /api/objects/:id", e);
+    res.status(500).json({ error: "server error", details: DEBUG_ERRORS ? e.message : undefined });
+  }
+});
+
 
 // Показать логин/пароль пользователя (для админки)
 app.get("/api/users/:id/credentials", async (req, res) => {
@@ -736,6 +845,8 @@ app.post("/api/exchanges", async (req, res) => {
     res.status(500).json({ error: e?.message || "server error" });
   }
 });
+
+
 
 // Подтвердить / Отклонить / Обменяться контактами
 app.patch("/api/exchanges/:id", async (req, res) => {
