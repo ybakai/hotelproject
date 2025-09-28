@@ -31,6 +31,44 @@ const toYMD = (dLike) => {
   return `${y}-${m}-${dd}`;
 };
 
+// --- email helpers ---
+const CYR_TO_LAT = {
+  а:"a", б:"b", в:"v", г:"g", д:"d", е:"e", ё:"e", ж:"zh", з:"z", и:"i", й:"y",
+  к:"k", л:"l", м:"m", н:"n", о:"o", п:"p", р:"r", с:"s", т:"t", у:"u", ф:"f",
+  х:"h", ц:"c", ч:"ch", ш:"sh", щ:"sch", ъ:"", ы:"y", ь:"", э:"e", ю:"yu", я:"ya",
+};
+function translit(str="") {
+  return str
+    .toLowerCase()
+    .split("")
+    .map(ch => CYR_TO_LAT[ch] ?? ch)
+    .join("");
+}
+function slugLocalPart(s="") {
+  // убираем лишнее, оставляем латиницу/цифры/._-
+  const base = translit(s)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9._-]+/g, ".")
+    .replace(/\.{2,}/g, ".")
+    .replace(/^\.|\.$/g, "");
+  // ограничим длину локальной части (RFC — 64 символа)
+  return (base || "user").slice(0, 64);
+}
+function makeEmailLogin(name, phoneDigits) {
+  // приоритет: телефон -> имя -> fallback
+  if (phoneDigits) {
+    const local = `tel${phoneDigits}`.slice(0, 64);
+    return `${local}@byhan.com`;
+  }
+  if (name?.trim()) {
+    const local = slugLocalPart(name.trim());
+    return `${local}@byhan.com`;
+  }
+  return `user${Date.now()}@byhan.com`;
+}
+
+
 const overlaps = (aStart, aEnd, bStart, bEnd) => {
   return !(
     new Date(aEnd) < new Date(bStart) || new Date(bEnd) < new Date(aStart)
@@ -242,9 +280,10 @@ function UsersTab() {
     setIssuedCreds(null);
 
     const email = phoneDigits
-      ? `tel${phoneDigits}@local`
-      : `u${Date.now()}@local`;
-    const password = genPassword();
+  ? `tel${phoneDigits}@byhan.com`
+  : `user${Date.now()}@byhan.com`;
+const password = genPassword();
+
 
     try {
       // 1) создаём пользователя админски через /auth/register
